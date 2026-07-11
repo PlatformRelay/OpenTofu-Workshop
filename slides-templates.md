@@ -274,7 +274,7 @@ provider "aws" {
 }
 ```
 
-<CodeCallout at="0" top="28%" right="6%" width="18rem" label="hardcoded credentials" variant="danger">
+<CodeCallout at="1" top="28%" right="6%" width="18rem" label="hardcoded credentials" variant="danger">
   Secrets in <code>.tf</code> end up in git and state. Use environment auth or a
   provider credential source — never literals.
 </CodeCallout>
