@@ -167,11 +167,11 @@ output "name" {
 - `environment` · `criticality` · `project`
 - `service` · `owner` · `cost-center`
 
-**Optional (6)** — dropped when null:
+**Optional (6)** — dropped when null, except `managed-by` (defaults `opentofu`, always emitted):
 
 - `compliance` · `data-classification`
 - `primary-contact` · `secondary-contact`
-- `managed-by` (defaults `opentofu`) · `iac-source-url`
+- `managed-by` · `iac-source-url`
 
 </div>
 <div>
