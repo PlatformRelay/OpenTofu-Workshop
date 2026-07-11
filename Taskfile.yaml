@@ -1,0 +1,235 @@
+# Taskfile.yaml — the single entrypoint for the OpenTofu workshop.
+#
+# Run `task` (or `task default`) to list everything. Install go-task:
+#   macOS: brew install go-task/tap/go-task
+#   Linux: sh -c "$(curl -fsSL https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin
+#
+# Tasks are grouped: deck (Slidev), lab environment (LocalStack), lab/module
+# (OpenTofu), and the `verify` "tested workshop" gate. Every task has a `desc:`
+# so it shows up in `task --list`. Pass a target dir to lab:* with DIR=...,
+# e.g. `task lab:plan DIR=examples/naming-labels-demo`.
+version: "3"
+
+silent: true
+
+vars:
+  LOCALSTACK_URL: http://localhost:4566
+  LOCALSTACK_HEALTH: http://localhost:4566/_localstack/health
+
+tasks:
+  # -------------------------------------------------------------------------
+  # Meta
+  # -------------------------------------------------------------------------
+  default:
+    desc: List all available tasks
+    cmds:
+      - task --list
+
+  preflight:
+    desc: Check that required CLI tools are installed
+    cmds:
+      - bash setup/bootstrap.sh
+
+  # -------------------------------------------------------------------------
+  # Deck (Slidev) — delegate to the pnpm scripts already in package.json
+  # -------------------------------------------------------------------------
+  setup:
+    desc: "Deck: install toolchain & deps (setup/bootstrap.sh + pnpm install)"
+    cmds:
+      - bash setup/bootstrap.sh
+      - pnpm install
+    preconditions:
+      - sh: command -v pnpm
+        msg: "pnpm is required. Install: corepack enable && corepack prepare pnpm@latest --activate"
+
+  dev:
+    desc: "Deck: serve the superset deck with live reload"
+    cmds:
+      - pnpm run dev
+    preconditions:
+      - sh: command -v pnpm
+        msg: "pnpm is required (run 'task setup')."
+
+  dev:3day:
+    desc: "Deck: serve the 3-day cut with live reload"
+    cmds:
+      - pnpm run dev:3day
+    preconditions:
+      - sh: command -v pnpm
+        msg: "pnpm is required (run 'task setup')."
+
+  dev:templates:
+    desc: "Deck: serve the templates gallery with live reload"
+    cmds:
+      - pnpm run dev:templates
+    preconditions:
+      - sh: command -v pnpm
+        msg: "pnpm is required (run 'task setup')."
+
+  build:
+    desc: "Deck: build the superset deck to static HTML"
+    cmds:
+      - pnpm run build
+    preconditions:
+      - sh: command -v pnpm
+        msg: "pnpm is required (run 'task setup')."
+
+  build:3day:
+    desc: "Deck: build the 3-day cut to static HTML"
+    cmds:
+      - pnpm run build:3day
+    preconditions:
+      - sh: command -v pnpm
+        msg: "pnpm is required (run 'task setup')."
+
+  build:templates:
+    desc: "Deck: build the templates gallery to static HTML"
+    cmds:
+      - pnpm run build:templates
+    preconditions:
+      - sh: command -v pnpm
+        msg: "pnpm is required (run 'task setup')."
+
+  export:
+    desc: "Deck: export the superset deck to PDF (needs playwright browser)"
+    cmds:
+      - pnpm run export
+    preconditions:
+      - sh: command -v pnpm
+        msg: "pnpm is required (run 'task setup')."
+
+  lint:
+    desc: "Deck: lint lab Markdown (markdownlint-cli2)"
+    cmds:
+      - pnpm run lint
+    preconditions:
+      - sh: command -v pnpm
+        msg: "pnpm is required (run 'task setup')."
+
+  # -------------------------------------------------------------------------
+  # Lab environment (LocalStack via Docker Compose)
+  # -------------------------------------------------------------------------
+  lab:up:
+    desc: "Lab env: start LocalStack and wait until it is healthy on :4566"
+    cmds:
+      - docker compose up -d localstack
+      - |
+        echo "Waiting for LocalStack to become healthy at {{.LOCALSTACK_HEALTH}} ..."
+        for i in $(seq 1 60); do
+          if curl -fsS "{{.LOCALSTACK_HEALTH}}" >/dev/null 2>&1; then
+            echo "LocalStack is healthy -> {{.LOCALSTACK_URL}}"
+            exit 0
+          fi
+          sleep 2
+        done
+        echo "ERROR: LocalStack did not become healthy in time. Check: docker compose logs localstack" >&2
+        exit 1
+    preconditions:
+      - sh: command -v docker
+        msg: "docker is required for LocalStack. Install Docker Desktop or 'curl -fsSL https://get.docker.com | sh'."
+
+  lab:down:
+    desc: "Lab env: stop LocalStack and remove its volumes"
+    cmds:
+      - docker compose down -v
+    preconditions:
+      - sh: command -v docker
+        msg: "docker is required for LocalStack."
+
+  # -------------------------------------------------------------------------
+  # Lab / module workflow (OpenTofu). Pass a target dir with DIR=examples/foo.
+  # -------------------------------------------------------------------------
+  lab:init:
+    desc: "Lab: tofu init in DIR (e.g. DIR=examples/naming-labels-demo)"
+    vars:
+      DIR: '{{.DIR | default "."}}'
+    cmds:
+      - tofu -chdir="{{.DIR}}" init
+    preconditions:
+      - sh: command -v tofu
+        msg: "tofu is required. Install: brew install opentofu"
+
+  lab:plan:
+    desc: "Lab: tofu plan in DIR (e.g. DIR=examples/naming-labels-demo)"
+    vars:
+      DIR: '{{.DIR | default "."}}'
+    cmds:
+      - tofu -chdir="{{.DIR}}" plan
+    preconditions:
+      - sh: command -v tofu
+        msg: "tofu is required. Install: brew install opentofu"
+
+  lab:apply:
+    desc: "Lab: tofu apply in DIR (e.g. DIR=examples/naming-labels-demo)"
+    vars:
+      DIR: '{{.DIR | default "."}}'
+    cmds:
+      - tofu -chdir="{{.DIR}}" apply
+    preconditions:
+      - sh: command -v tofu
+        msg: "tofu is required. Install: brew install opentofu"
+
+  lab:test:
+    desc: "Lab: run 'tofu test' across every modules/* and examples/* with tests"
+    cmds:
+      - bash scripts/verify.sh
+    preconditions:
+      - sh: command -v tofu
+        msg: "tofu is required. Install: brew install opentofu"
+
+  lab:fmt:
+    desc: "Lab: format all OpenTofu files (tofu fmt -recursive)"
+    cmds:
+      - tofu fmt -recursive
+    preconditions:
+      - sh: command -v tofu
+        msg: "tofu is required. Install: brew install opentofu"
+
+  lab:validate:
+    desc: "Lab: tofu validate in DIR (default '.'; e.g. DIR=examples/naming-labels-demo)"
+    vars:
+      DIR: '{{.DIR | default "."}}'
+    cmds:
+      - tofu -chdir="{{.DIR}}" init -backend=false -input=false
+      - tofu -chdir="{{.DIR}}" validate
+    preconditions:
+      - sh: command -v tofu
+        msg: "tofu is required. Install: brew install opentofu"
+
+  # -------------------------------------------------------------------------
+  # Interactive runner
+  # -------------------------------------------------------------------------
+  lab:
+    desc: "Launch the interactive gum lab runner (setup/lab.sh)"
+    cmds:
+      - bash setup/lab.sh
+    preconditions:
+      - sh: command -v tofu
+        msg: "tofu is required. Install: brew install opentofu"
+
+  # -------------------------------------------------------------------------
+  # The "tested workshop" gate
+  # -------------------------------------------------------------------------
+  verify:
+    desc: "Tested-workshop gate (unit lane): fmt-check + validate + tofu test. No Docker needed."
+    cmds:
+      - bash scripts/verify.sh
+    preconditions:
+      - sh: command -v tofu
+        msg: "tofu is required. Install: brew install opentofu"
+
+  verify:integration:
+    desc: "Tested-workshop gate (integration): verify against a live LocalStack. Needs Docker."
+    deps:
+      - lab:up
+    cmds:
+      - bash scripts/verify.sh
+      - |
+        echo ""
+        echo "Integration lane: run apply-based examples against LocalStack here."
+        echo "(Add 'tofu apply' smoke tests per example once lab content grows.)"
+    preconditions:
+      - sh: command -v tofu
+        msg: "tofu is required. Install: brew install opentofu"
+      - sh: command -v docker
+        msg: "docker is required for the integration lane."

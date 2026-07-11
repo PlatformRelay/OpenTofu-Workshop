@@ -1,0 +1,7 @@
+shamefullyHoist: true
+
+# pnpm v11 errors on unapproved dependency build scripts, so allowlist the one
+# we rely on: `playwright-chromium` (downloads the browser that `slidev export`
+# needs for PDF/PNG/PPTX output).
+allowBuilds:
+  playwright-chromium: true

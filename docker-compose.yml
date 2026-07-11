@@ -1,0 +1,28 @@
+# docker-compose.yml — LocalStack for the OpenTofu workshop.
+#
+# LocalStack emulates AWS locally so learners need NO AWS account and pay
+# nothing. Start it with `task lab:up` (waits for healthy); stop with
+# `task lab:down`. The endpoint is http://localhost:4566 for every service.
+services:
+  localstack:
+    image: localstack/localstack:stable
+    container_name: opentofu-workshop-localstack
+    ports:
+      - "4566:4566" # unified edge port for all AWS service APIs
+    environment:
+      # Only the services the labs touch — keeps startup fast and memory low.
+      SERVICES: "s3,dynamodb,iam,sqs,sns,kms,logs"
+      DEBUG: "0"
+      # Persist nothing between runs → every `task lab:down`/`up` is a clean slate.
+      PERSISTENCE: "0"
+      AWS_DEFAULT_REGION: "us-east-1"
+    volumes:
+      # Let LocalStack manage docker for services that need it (optional).
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    healthcheck:
+      # LocalStack exposes readiness at /_localstack/health.
+      test: ["CMD-SHELL", "curl -fsS http://localhost:4566/_localstack/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 78" fill="none">
+  <path d="M32 4 55 17 55 43 32 56 9 43 9 17Z" fill="#7b42bc" stroke="#a974e0" stroke-width="2" stroke-linejoin="round"/>
+  <text x="32" y="34" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="13" font-weight="700" fill="#ffffff">loc</text>
+  <text x="32" y="72" text-anchor="middle" font-family="'JetBrains Mono', monospace" font-size="10" fill="#97a4b5">locals</text>
+</svg>

@@ -1,0 +1,106 @@
+<script setup lang="ts">
+import type { IacKind } from './IacIcon.vue'
+
+const props = defineProps<{
+  heading?: string
+  /** Leading emoji or short glyph, e.g. "📦". Ignored when `kind` is set. */
+  icon?: string
+  /**
+   * HCL block glyph (see IacIcon). Use for cards that name a SPECIFIC construct
+   * (resource, module, provider, state, test, …); takes precedence over `icon`.
+   */
+  kind?: IacKind
+  /**
+   * Glyph style when `kind` is set. Default `unlabeled` per the approved
+   * convention (glyphs inside cards/diagrams are bare); pass `labeled` where a
+   * standalone keyword label helps.
+   */
+  kindVariant?: 'labeled' | 'unlabeled'
+  /** accent (default) · ok · warn · danger · plain */
+  variant?: 'accent' | 'ok' | 'warn' | 'danger' | 'plain'
+}>()
+</script>
+
+<!-- Concept card for grids: icon/glyph + heading + short body. -->
+<template>
+  <div class="kw-card" :class="`kw-card--${props.variant ?? 'accent'}`">
+    <div v-if="props.kind || props.icon || props.heading" class="kw-card-head">
+      <IacIcon
+        v-if="props.kind"
+        :kind="props.kind"
+        :variant="props.kindVariant ?? 'unlabeled'"
+        size="1.4rem"
+        class="kw-card-glyph"
+      />
+      <span v-else-if="props.icon" class="kw-card-icon">{{ props.icon }}</span>
+      <span v-if="props.heading" class="kw-card-heading">{{ props.heading }}</span>
+    </div>
+    <div class="kw-card-body">
+      <slot />
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.kw-card {
+  --kw-card-color: var(--kw-accent);
+  background: var(--kw-panel);
+  border: 1px solid var(--kw-border);
+  border-top: 3px solid var(--kw-card-color);
+  border-radius: var(--kw-radius-sm);
+  padding: 0.7rem 0.9rem;
+  min-width: 0;
+}
+
+.kw-card--ok {
+  --kw-card-color: var(--kw-ok);
+}
+
+.kw-card--warn {
+  --kw-card-color: var(--kw-warn);
+}
+
+.kw-card--danger {
+  --kw-card-color: var(--kw-danger);
+}
+
+.kw-card--plain {
+  --kw-card-color: var(--kw-border);
+}
+
+.kw-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.3rem;
+}
+
+.kw-card-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.kw-card-glyph {
+  flex: none;
+  margin: -0.15rem 0;
+}
+
+.kw-card-heading {
+  font-weight: 650;
+  font-size: 0.88rem;
+}
+
+.kw-card-body {
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--kw-text-dim);
+}
+
+.kw-card-body :deep(p) {
+  margin: 0;
+}
+
+.kw-card-body :deep(strong) {
+  color: var(--kw-text);
+}
+</style>

@@ -1,0 +1,27 @@
+# terraform-docs config for the naming module.
+# Run: terraform-docs -c .terraform-docs.yml .
+formatter: markdown table
+
+sections:
+  show:
+    - inputs
+    - outputs
+
+sort:
+  enabled: true
+  by: required
+
+output:
+  file: README.md
+  mode: inject
+  template: |-
+    <!-- BEGIN_TF_DOCS -->
+    {{ .Content }}
+    <!-- END_TF_DOCS -->
+
+settings:
+  anchor: false
+  default: true
+  description: true
+  required: true
+  type: true

@@ -1,0 +1,95 @@
+name: CI
+
+# Fast gate on every PR and every push to main: lint the labs and build all
+# three root decks so a broken deck or malformed lab fails review. PDF export
+# (slow, needs a headless browser) is intentionally left to the release job.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Slidev + pnpm must run non-interactively; pnpm 11 otherwise prompts on its
+  # dependency-build allowlist. (GitHub Actions also sets CI=true itself.)
+  CI: "true"
+
+jobs:
+  lint:
+    name: Lint labs (markdown)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+
+  build:
+    name: Build root decks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build superset, 3-day cut, and templates gallery
+        run: |
+          pnpm run build
+          pnpm run build:3day
+          pnpm run build:templates
+
+  verify-unit:
+    name: Verify modules (fmt · validate · tofu test — mock/plan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: "1.10.3"
+      - name: fmt · validate · test (no cloud)
+        # Unit lane — the same gate developers run locally as `task verify`:
+        # fmt-check, validate, and `tofu test` (plan/mock) across modules/examples,
+        # excluding integration tests (those run in verify-integration below).
+        run: bash scripts/verify.sh
+
+  verify-integration:
+    name: Verify integration (tofu test — LocalStack apply)
+    runs-on: ubuntu-latest
+    services:
+      localstack:
+        image: localstack/localstack
+        ports: ["4566:4566"]
+        env:
+          SERVICES: s3,dynamodb,iam,sqs,sns,kms,logs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: "1.10.3"
+      - name: Integration tests against LocalStack
+        env:
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          AWS_DEFAULT_REGION: us-east-1
+          AWS_ENDPOINT_URL: http://localhost:4566
+        run: |
+          for d in examples/*; do
+            [ -d "$d" ] || continue
+            ls "$d"/tests/integration*.tftest.hcl >/dev/null 2>&1 || continue
+            echo "::group::$d (integration)"
+            ( cd "$d" && tofu init -input=false && tofu test -filter=tests/integration.tftest.hcl ) || \
+            ( cd "$d" && tofu test )
+            echo "::endgroup::"
+          done

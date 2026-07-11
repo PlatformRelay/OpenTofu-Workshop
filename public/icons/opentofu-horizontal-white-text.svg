@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" fill="none">
+  <path d="M40 8 68 24 68 56 40 72 12 56 12 24Z" stroke="#ffffff" stroke-width="5"
+        stroke-linejoin="round" fill="none"/>
+  <path d="M40 26 54 34 40 42 26 34Z" fill="#ffffff"/>
+  <text x="88" y="50" font-family="Inter, sans-serif" font-size="30" font-weight="700"
+        fill="#ffffff">OpenTofu</text>
+</svg>

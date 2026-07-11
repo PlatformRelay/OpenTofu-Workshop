@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" fill="none">
+  <rect width="1280" height="720" fill="#0b0e14"/>
+  <g stroke="#263041" stroke-width="1" opacity="0.5">
+    <path d="M0 180 H1280 M0 360 H1280 M0 540 H1280 M320 0 V720 M640 0 V720 M960 0 V720"/>
+  </g>
+  <path d="M980 200 1120 280 1120 440 980 520 840 440 840 280Z" stroke="#7b42bc" stroke-width="8" stroke-linejoin="round" opacity="0.35" fill="none"/>
+  <path d="M980 300 1060 345 980 390 900 345Z" fill="#ffda18" opacity="0.30"/>
+  <text x="80" y="620" font-family="Inter, sans-serif" font-size="26" fill="#66738a">section cover · placeholder</text>
+</svg>
