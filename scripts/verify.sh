@@ -172,7 +172,9 @@ else
         fail "lab ref missing on disk: $ref  (cited in $f)"
         MISSING_REFS=$((MISSING_REFS + 1))
       fi
-    done < <(grep -roE '(modules|examples)/[A-Za-z0-9_./-]+' "$f" 2>/dev/null | sort -u)
+    # -h: never prefix the filename onto the match (BSD/ugrep prefix even a
+    # single file); trim trailing slashes so `dir/` and `dir` dedupe under sort.
+    done < <(grep -hoE '(modules|examples)/[A-Za-z0-9_./-]+' "$f" 2>/dev/null | sed 's:/*$::' | sort -u)
   done
   info "scanned ${#LAB_FILES[@]} lab file(s): ${HCL_BLOCKS} \`\`\`hcl block(s), ${CHECKED_REFS} shared-code reference(s)"
   if [ "$CHECKED_REFS" -eq 0 ]; then
