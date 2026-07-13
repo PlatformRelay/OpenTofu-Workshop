@@ -10,14 +10,14 @@
 
 Take a project with **plaintext** local state, turn on OpenTofu's client-side
 `encryption` block (PBKDF2), migrate the existing state with a `fallback`, and
-**prove the file on disk is ciphertext**. Then flip `enforced = true` and watch a
-plaintext read get rejected.
+**prove the file on disk is ciphertext**. Then flip `enforced = true` to ban any
+unencrypted fallback, and confirm the state is inaccessible without the passphrase.
 
 You run **tracked files**, not heredocs — what you apply is exactly what CI
 verified. The config lives in this repo at `labs/day-1/05-state-encryption/`:
 
 - `main.tf` — a tiny project (one `random_password`) that puts a generated secret
-  **into state** (no file is written — the value lives only in state). Carried
+  **into state** (no separate file is written — the value lives only in state). Carried
   forward: S06 extends the same folder.
 - `encryption.tf` — the OpenTofu `encryption` block (PBKDF2 → AES-GCM). This is
   the exact block S05 teaches; the slide and this file are drift-checked to stay
@@ -263,8 +263,10 @@ above — the non-interactive form a CI teammate would hit.)
 
 - A generated secret lands in **plaintext** state by default.
 - `encryption` (PBKDF2) needs a one-time `fallback` to migrate existing state.
-- After migration the on-disk file is an **encrypted envelope**, not JSON.
-- `enforced = true` rejects any plaintext read/write.
+- After migration the on-disk file is an **encrypted envelope** — still valid JSON,
+  but the resource data is one opaque `encrypted_data` blob.
+- `enforced = true` bans any unencrypted fallback; without the passphrase the
+  encrypted state can't be read at all.
 
 ## Cleanup / panic reset
 
