@@ -356,6 +356,28 @@ emoji for conceptual/decorative cards. Over-conversion is a defect.
 </div>
 
 ---
+
+<span class="kw-kicker">Convention: presenter notes on every content slide</span>
+
+# This slide has presenter notes
+
+Open **presenter mode** (press `p`, or the toolbar) and you'll see facilitator
+notes for this slide in the side panel — they never render here.
+
+- Notes live in the **last HTML comment** in a slide, at the very end of its markdown.
+- Each note carries three things: **what to say · a timing cue · the transition**.
+- Every content slide in a section gets one — see `AGENT.md`, DoD item 8.
+
+<!--
+Say: This is the notes convention itself, demonstrated. If you're in presenter
+mode right now, this text is what you see in the side panel while the audience
+sees only the slide. Author it as the LAST HTML comment in the slide, after all
+content, and give it three parts: what to say, a timing cue, and the transition.
+(~1 min)
+Then: close on the reference statement — everything here is open and reusable.
+-->
+
+---
 layout: statement
 kicker: 'Reference'
 ---
