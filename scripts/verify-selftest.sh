@@ -1,24 +1,31 @@
 #!/usr/bin/env bash
-# scripts/verify-selftest.sh — regression protection for the slide↔lab drift
-# ENFORCEMENT in scripts/verify.sh (section 6). The main fixture is positive-only
-# (a matching block), so deleting the enforcement would leave the build green and
-# nobody would notice. This meta-test proves the check actually FAILS on drift.
+# scripts/verify-selftest.sh — regression protection for two ENFORCEMENT gates in
+# scripts/verify.sh: (A) slide↔lab drift enforcement (section 6) and (B) deck tier
+# consistency + hide invariant (section 7). Both gates are positive-only in the
+# tracked tree (matching fixture / consistent decks), so silently deleting or
+# weakening either would leave the build green and nobody would notice. This
+# meta-test proves each check actually FAILS when it should.
 #
 # How it works: it copies the LIVE verify.sh + setup/lib.sh + the drift-demo
-# fixture into a throwaway temp root. Because verify.sh derives REPO_ROOT from its
-# own location and `cd`s there, the copy auto-isolates to the temp dir — no
-# modules/examples, so tofu validate/test are no-ops and it runs sub-second.
-# Copying at runtime (not vendoring a snapshot) means removing section 6 from the
-# real verify.sh turns THIS test red — that is the regression protection.
+# fixture (and, for the tier cases, the two content decks) into a throwaway temp
+# root. Because verify.sh derives REPO_ROOT from its own location and `cd`s there,
+# the copy auto-isolates to the temp dir — no modules/examples, so tofu
+# validate/test are no-ops and it runs sub-second. Copying at runtime (not
+# vendoring a snapshot) means removing/weakening the enforcement in the real
+# verify.sh turns THIS test red — that is the regression protection.
 #
-# Three cases, each asserting BOTH exit code AND message (exit code alone is
-# ambiguous — a clean pass could be a silent "no annotated blocks" no-op, and a
-# non-zero could be an env break rather than real drift):
-#   1. clean      → exit 0  AND  "no drift: …main.tf matches"   (enforcement ARMED)
-#   2. LF drift   → exit !=0 AND  "✗ drift: …main.tf"           (catches drift)
-#   3. CRLF drift → exit !=0 AND  "✗ drift: …main.tf"           (locks in F1)
+# Cases, each asserting BOTH exit code AND message (exit code alone is ambiguous —
+# a clean pass could be a silent "no annotated blocks / no headers" no-op, and a
+# non-zero could be an env break rather than a real violation):
+#   drift gate (section 6):
+#     1. clean      → exit 0  AND  "no drift: …main.tf matches"   (enforcement ARMED)
+#     2. LF drift   → exit !=0 AND  "✗ drift: …main.tf"           (catches drift)
+#     3. CRLF drift → exit !=0 AND  "✗ drift: …main.tf"           (locks in F1)
+#   tier gate (section 7):
+#     4. cross-deck tier mismatch → exit !=0 AND "tier drift: S05 …"   (deck↔deck)
+#     5. hide-invariant violation → exit !=0 AND "hide invariant: S18 …" (3-day cut)
 #
-# It NEVER mutates the tracked fixture; all edits happen inside the temp copy.
+# It NEVER mutates the tracked fixture or decks; all edits happen in the temp copy.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -35,9 +42,11 @@ bad()  { printf '  [FAIL] %s\n' "$*"; fail_n=$((fail_n + 1)); }
 
 command -v tofu >/dev/null 2>&1 || { echo "selftest: tofu required" >&2; exit 1; }
 
-printf '\n### verify.sh drift-enforcement self-test ###\n'
+printf '\n### verify.sh enforcement self-test (drift + tier) ###\n'
 
-# Build an isolated temp repo root with only what verify.sh needs.
+# Build an isolated temp repo root with only what verify.sh needs. Includes the
+# two content decks so section 7 (tier consistency) has inputs; verify.sh reads
+# them by literal path relative to REPO_ROOT.
 build_root() {
   local root="$1"
   mkdir -p "$root/scripts" "$root/setup" "$root/labs/fixtures/drift-demo"
@@ -45,6 +54,8 @@ build_root() {
   cp "$REPO_ROOT/setup/lib.sh"      "$root/setup/lib.sh"
   cp "$REPO_ROOT/$FIXTURE_MD"       "$root/$FIXTURE_MD"
   cp "$REPO_ROOT/$FIXTURE_TF"       "$root/$FIXTURE_TF"
+  cp "$REPO_ROOT/slides.md"         "$root/slides.md"
+  cp "$REPO_ROOT/slides-3day.md"    "$root/slides-3day.md"
 }
 
 # run_case <label> <expect: pass|fail> <needle> <mutator-fn>
@@ -91,15 +102,29 @@ m_drift_crlf() {   # drift the source AND author the .md as CRLF (F1 regression)
   perl -pi -e 's/\n/\r\n/' "$root/$FIXTURE_MD"
 }
 
+m_tier_mismatch() {  # section 7 (a): make S05's tier differ between the two decks
+  local root="$1"    # mutate the SUPERSET deck only → deck↔deck identity breaks
+  perl -pi -e 's/^# S05 · State encryption · core · Day 1$/# S05 · State encryption · recommended · Day 1/' \
+    "$root/slides.md"
+}
+
+m_hide_violation() { # section 7 (b): optional section left visible in the 3-day cut
+  local root="$1"    # S18 is optional → its hide flag must be true; force false
+  perl -0pi -e 's/(# S18 · [^\n]*\n(?:src:[^\n]*\n)?hide: )true/${1}false/' \
+    "$root/slides-3day.md"
+}
+
 run_case "clean fixture"        pass "no drift: labs/fixtures/drift-demo/main.tf matches" m_clean
 run_case "LF-authored drift"    fail "drift: block in labs/fixtures/drift-demo.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_drift_lf
 run_case "CRLF-authored drift"  fail "drift: block in labs/fixtures/drift-demo.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_drift_crlf
+run_case "cross-deck tier mismatch (S05)" fail "tier drift: S05 is 'recommended' in slides.md but 'core' in slides-3day.md" m_tier_mismatch
+run_case "hide-invariant violation (S18)" fail "hide invariant: S18 is 'optional' but hide='false' in slides-3day.md" m_hide_violation
 
 printf '\n'
 if [ "$fail_n" -eq 0 ]; then
-  printf '  drift self-test PASSED — %d/%d cases OK.\n' "$pass_n" "$pass_n"
+  printf '  enforcement self-test PASSED — %d/%d cases OK.\n' "$pass_n" "$pass_n"
   exit 0
 else
-  printf '  drift self-test FAILED — %d case(s) failed, %d OK.\n' "$fail_n" "$pass_n"
+  printf '  enforcement self-test FAILED — %d case(s) failed, %d OK.\n' "$fail_n" "$pass_n"
   exit 1
 fi
