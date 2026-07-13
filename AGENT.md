@@ -63,6 +63,52 @@ Flat file `labs/day-N/NN-topic.md`, one per section. Every lab:
   applies. The next lab extends the same files.
 - **Panic reset is always safe:** `task lab:down` + `tofu destroy` leaves no residue.
 
+### Lab workdir & drift contract
+
+A lab's runnable HCL lives as **tracked files in a sibling workdir**, not as
+heredocs the learner pastes into `$HOME`. For a lab `labs/day-N/NN-topic.md`,
+put its config under `labs/day-N/NN-topic/` (e.g. `labs/day-1/09-best-practices/main.tf`)
+and reference those files **by path** from the prose. The heredoc-into-`$HOME`
+pattern is never the primary flow — a learner should be able to
+`task lab:validate DIR=labs/day-N/NN-topic` against real, `tofu fmt`-clean files.
+The `lab:*` tasks all take `DIR=labs/day-N/NN-topic` (see `Taskfile.yaml`).
+
+> **Carve-out:** `labs/fixtures/` is reserved for `scripts/verify.sh` drift
+> self-test fixtures (e.g. `labs/fixtures/drift-demo/`). It is an intentional
+> exception to the `labs/day-N/NN-topic` convention and is **not** a workshop
+> section — never number it into the section namespace.
+
+To make "slide↔lab single source of truth" **CI-verifiable**, tie a fenced
+`hcl` block to its source file with an HTML-comment marker on the line
+immediately above the fence (shown indented so the inner fences render):
+
+    <!-- source: labs/fixtures/drift-demo/main.tf -->
+    ```hcl
+    terraform {
+      required_version = ">= 1.8"
+    }
+    ```
+
+`scripts/verify.sh` then diffs the block body against that file and **fails the
+build, naming the file,** on any drift (or if the file is missing). Rules:
+
+- **Annotated** block → diffed against its source; drift is a build failure.
+- **Unannotated** `hcl` block → ignored (scratch/inline teaching HCL, or a
+  partially-authored lab). A lab with only unannotated blocks **warns, never
+  fails**, so in-flight work never blocks unrelated lanes.
+- **Line endings must be LF.** Lab `.md` and `.tf` files are enforced to LF by
+  the repo-root `.gitattributes`; the drift check also strips `\r` upstream so a
+  stray CRLF cannot silently disarm detection. Only the block-body **comparison**
+  additionally normalises a lone trailing newline — it is not a licence to author
+  CRLF.
+- The marker `<!-- source: … -->` and the ` ```hcl ` fence are expected at
+  **column 0** (top level). A block written inside a list/indented context keeps
+  its indentation in the body, so it will diff against the raw file only if the
+  file is indented identically — author drift-checked blocks at top level.
+- The block body must be **byte-identical** to the file. Generate the block
+  *from* the file — never hand-sync the two. `labs/fixtures/drift-demo/` is the
+  reference example.
+
 ## Definition of Done (per section)
 
 1. Slides authored in `pages/SNN-topic/index.md`, matching the outline beats.
