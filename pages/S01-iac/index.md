@@ -8,7 +8,7 @@ tier: core
 
 # Infrastructure as Code
 
-<!-- TODO(US-S01-iac-S): author this section. Placeholder stub so the superset deck builds. -->
+<!-- TODO(US-S01): author this section. Placeholder stub so the superset deck builds. -->
 
 ---
 
@@ -17,8 +17,7 @@ tier: core
 # Infrastructure as Code — outline
 
 > Section stub. See `agent-context/presentation-outline.md` for the intended
-> beats and `agent-context/user-stories.md` for story `US-S01-iac-S` (slides) and
-> `US-S01-iac-L` (lab).
+> beats and `agent-context/user-stories.md` for story `US-S01`.
 
 - Beat 1 — _todo_
 - Beat 2 — _todo_

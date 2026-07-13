@@ -8,7 +8,7 @@ tier: core
 
 # Variables, validation & types
 
-<!-- TODO(US-S06-variables-S): author this section. Placeholder stub so the superset deck builds. -->
+<!-- TODO(US-S06): author this section. Placeholder stub so the superset deck builds. -->
 
 ---
 
@@ -17,8 +17,7 @@ tier: core
 # Variables, validation & types — outline
 
 > Section stub. See `agent-context/presentation-outline.md` for the intended
-> beats and `agent-context/user-stories.md` for story `US-S06-variables-S` (slides) and
-> `US-S06-variables-L` (lab).
+> beats and `agent-context/user-stories.md` for story `US-S06`.
 
 - Beat 1 — _todo_
 - Beat 2 — _todo_

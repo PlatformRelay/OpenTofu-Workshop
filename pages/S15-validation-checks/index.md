@@ -8,7 +8,7 @@ tier: core
 
 # Validation, preconditions & checks
 
-<!-- TODO(US-S15-validation-checks-S): author this section. Placeholder stub so the superset deck builds. -->
+<!-- TODO(US-S15): author this section. Placeholder stub so the superset deck builds. -->
 
 ---
 
@@ -17,8 +17,7 @@ tier: core
 # Validation, preconditions & checks — outline
 
 > Section stub. See `agent-context/presentation-outline.md` for the intended
-> beats and `agent-context/user-stories.md` for story `US-S15-validation-checks-S` (slides) and
-> `US-S15-validation-checks-L` (lab).
+> beats and `agent-context/user-stories.md` for story `US-S15`.
 
 - Beat 1 — _todo_
 - Beat 2 — _todo_

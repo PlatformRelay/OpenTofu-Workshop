@@ -8,7 +8,7 @@ tier: core
 
 # Modules
 
-<!-- TODO(US-S07-modules-S): author this section. Placeholder stub so the superset deck builds. -->
+<!-- TODO(US-S07): author this section. Placeholder stub so the superset deck builds. -->
 
 ---
 
@@ -17,8 +17,7 @@ tier: core
 # Modules — outline
 
 > Section stub. See `agent-context/presentation-outline.md` for the intended
-> beats and `agent-context/user-stories.md` for story `US-S07-modules-S` (slides) and
-> `US-S07-modules-L` (lab).
+> beats and `agent-context/user-stories.md` for story `US-S07`.
 
 - Beat 1 — _todo_
 - Beat 2 — _todo_

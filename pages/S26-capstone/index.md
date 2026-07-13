@@ -8,7 +8,7 @@ tier: core
 
 # Capstone & wrap-up
 
-<!-- TODO(US-S26-capstone-S): author this section. Placeholder stub so the superset deck builds. -->
+<!-- TODO(US-S26): author this section. Placeholder stub so the superset deck builds. -->
 
 ---
 
@@ -17,8 +17,7 @@ tier: core
 # Capstone & wrap-up — outline
 
 > Section stub. See `agent-context/presentation-outline.md` for the intended
-> beats and `agent-context/user-stories.md` for story `US-S26-capstone-S` (slides) and
-> `US-S26-capstone-L` (lab).
+> beats and `agent-context/user-stories.md` for story `US-S26`.
 
 - Beat 1 — _todo_
 - Beat 2 — _todo_

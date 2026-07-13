@@ -8,7 +8,7 @@ tier: core
 
 # Mocking providers
 
-<!-- TODO(US-S17-mocking-S): author this section. Placeholder stub so the superset deck builds. -->
+<!-- TODO(US-S17): author this section. Placeholder stub so the superset deck builds. -->
 
 ---
 
@@ -17,8 +17,7 @@ tier: core
 # Mocking providers — outline
 
 > Section stub. See `agent-context/presentation-outline.md` for the intended
-> beats and `agent-context/user-stories.md` for story `US-S17-mocking-S` (slides) and
-> `US-S17-mocking-L` (lab).
+> beats and `agent-context/user-stories.md` for story `US-S17`.
 
 - Beat 1 — _todo_
 - Beat 2 — _todo_

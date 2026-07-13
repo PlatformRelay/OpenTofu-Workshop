@@ -8,7 +8,7 @@ tier: core
 
 # Code generation
 
-<!-- TODO(US-S22-codegen-S): author this section. Placeholder stub so the superset deck builds. -->
+<!-- TODO(US-S22): author this section. Placeholder stub so the superset deck builds. -->
 
 ---
 
@@ -17,8 +17,7 @@ tier: core
 # Code generation — outline
 
 > Section stub. See `agent-context/presentation-outline.md` for the intended
-> beats and `agent-context/user-stories.md` for story `US-S22-codegen-S` (slides) and
-> `US-S22-codegen-L` (lab).
+> beats and `agent-context/user-stories.md` for story `US-S22`.
 
 - Beat 1 — _todo_
 - Beat 2 — _todo_

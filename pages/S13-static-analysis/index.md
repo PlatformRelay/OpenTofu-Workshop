@@ -8,7 +8,7 @@ tier: core
 
 # Static analysis & formatting
 
-<!-- TODO(US-S13-static-analysis-S): author this section. Placeholder stub so the superset deck builds. -->
+<!-- TODO(US-S13): author this section. Placeholder stub so the superset deck builds. -->
 
 ---
 
@@ -17,8 +17,7 @@ tier: core
 # Static analysis & formatting — outline
 
 > Section stub. See `agent-context/presentation-outline.md` for the intended
-> beats and `agent-context/user-stories.md` for story `US-S13-static-analysis-S` (slides) and
-> `US-S13-static-analysis-L` (lab).
+> beats and `agent-context/user-stories.md` for story `US-S13`.
 
 - Beat 1 — _todo_
 - Beat 2 — _todo_

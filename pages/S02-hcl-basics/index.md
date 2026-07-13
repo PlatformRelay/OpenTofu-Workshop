@@ -8,7 +8,7 @@ tier: core
 
 # HCL & building blocks
 
-<!-- TODO(US-S02-hcl-basics-S): author this section. Placeholder stub so the superset deck builds. -->
+<!-- TODO(US-S02): author this section. Placeholder stub so the superset deck builds. -->
 
 ---
 
@@ -17,8 +17,7 @@ tier: core
 # HCL & building blocks — outline
 
 > Section stub. See `agent-context/presentation-outline.md` for the intended
-> beats and `agent-context/user-stories.md` for story `US-S02-hcl-basics-S` (slides) and
-> `US-S02-hcl-basics-L` (lab).
+> beats and `agent-context/user-stories.md` for story `US-S02`.
 
 - Beat 1 — _todo_
 - Beat 2 — _todo_

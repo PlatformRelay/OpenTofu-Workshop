@@ -8,7 +8,7 @@ tier: core
 
 # Orchestration & ordering
 
-<!-- TODO(US-S23-orchestration-S): author this section. Placeholder stub so the superset deck builds. -->
+<!-- TODO(US-S23): author this section. Placeholder stub so the superset deck builds. -->
 
 ---
 
@@ -17,8 +17,7 @@ tier: core
 # Orchestration & ordering — outline
 
 > Section stub. See `agent-context/presentation-outline.md` for the intended
-> beats and `agent-context/user-stories.md` for story `US-S23-orchestration-S` (slides) and
-> `US-S23-orchestration-L` (lab).
+> beats and `agent-context/user-stories.md` for story `US-S23`.
 
 - Beat 1 — _todo_
 - Beat 2 — _todo_

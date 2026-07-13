@@ -8,7 +8,7 @@ tier: core
 
 # State
 
-<!-- TODO(US-S04-state-S): author this section. Placeholder stub so the superset deck builds. -->
+<!-- TODO(US-S04): author this section. Placeholder stub so the superset deck builds. -->
 
 ---
 
@@ -17,8 +17,7 @@ tier: core
 # State — outline
 
 > Section stub. See `agent-context/presentation-outline.md` for the intended
-> beats and `agent-context/user-stories.md` for story `US-S04-state-S` (slides) and
-> `US-S04-state-L` (lab).
+> beats and `agent-context/user-stories.md` for story `US-S04`.
 
 - Beat 1 — _todo_
 - Beat 2 — _todo_

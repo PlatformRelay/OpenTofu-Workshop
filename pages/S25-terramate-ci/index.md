@@ -8,7 +8,7 @@ tier: optional
 
 # Terramate in CI + Cloud
 
-<!-- TODO(US-S25-terramate-ci-S): author this section. Placeholder stub so the superset deck builds. -->
+<!-- TODO(US-S25): author this section. Placeholder stub so the superset deck builds. -->
 
 ---
 
@@ -17,8 +17,7 @@ tier: optional
 # Terramate in CI + Cloud — outline
 
 > Section stub. See `agent-context/presentation-outline.md` for the intended
-> beats and `agent-context/user-stories.md` for story `US-S25-terramate-ci-S` (slides) and
-> `US-S25-terramate-ci-L` (lab).
+> beats and `agent-context/user-stories.md` for story `US-S25`.
 
 - Beat 1 — _todo_
 - Beat 2 — _todo_

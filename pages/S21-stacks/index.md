@@ -8,7 +8,7 @@ tier: core
 
 # Stacks
 
-<!-- TODO(US-S21-stacks-S): author this section. Placeholder stub so the superset deck builds. -->
+<!-- TODO(US-S21): author this section. Placeholder stub so the superset deck builds. -->
 
 ---
 
@@ -17,8 +17,7 @@ tier: core
 # Stacks — outline
 
 > Section stub. See `agent-context/presentation-outline.md` for the intended
-> beats and `agent-context/user-stories.md` for story `US-S21-stacks-S` (slides) and
-> `US-S21-stacks-L` (lab).
+> beats and `agent-context/user-stories.md` for story `US-S21`.
 
 - Beat 1 — _todo_
 - Beat 2 — _todo_

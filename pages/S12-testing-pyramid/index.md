@@ -8,7 +8,7 @@ tier: core
 
 # Why test IaC + the testing pyramid
 
-<!-- TODO(US-S12-testing-pyramid-S): author this section. Placeholder stub so the superset deck builds. -->
+<!-- TODO(US-S12): author this section. Placeholder stub so the superset deck builds. -->
 
 ---
 
@@ -17,8 +17,7 @@ tier: core
 # Why test IaC + the testing pyramid — outline
 
 > Section stub. See `agent-context/presentation-outline.md` for the intended
-> beats and `agent-context/user-stories.md` for story `US-S12-testing-pyramid-S` (slides) and
-> `US-S12-testing-pyramid-L` (lab).
+> beats and `agent-context/user-stories.md` for story `US-S12`.
 
 - Beat 1 — _todo_
 - Beat 2 — _todo_
