@@ -39,6 +39,10 @@ How this workshop is built. Read before authoring a section, a lab, or a module.
     per-layer label lists `staticTools` / `unitTools` / `integrationTools` /
     `e2eTools` (`string[]`, default `[]` → bare bands). Reused by S12 and S18
     with their own tool sets.
+  - `StateEncryptionFlow` — client-side state encryption lit stage-by-stage:
+    plaintext state → PBKDF2 key provider → AES-GCM method → ciphertext.
+    Props: `step?: number` (0–4, bind `:step="$clicks"`; clamped). step 0 lights
+    nothing, step 4 lights all four. S05's headline visual.
 - `agent-context/` — **gitignored** planning docs (roadmap, outline, stories,
   image prompts, ideas, operator board, research brief).
 - `docs/decisions/` — tracked ADRs.
