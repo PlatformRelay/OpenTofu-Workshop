@@ -279,6 +279,106 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 7. Deck tier consistency (slides.md ↔ slides-3day.md) + hide invariant
+#    Each section import block in both content decks starts with a header:
+#        # SNN · <Title> · <tier> · Day N
+#    where tier ∈ {core, recommended, optional}, followed by `src:` and
+#    `hide: <bool>`. Two invariants make "tiers do the cut" actually true:
+#      (a) deck↔deck: for every SNN present in BOTH decks, the tier token is
+#          identical across slides.md and slides-3day.md;
+#      (b) 3-day cut: in slides-3day.md, `hide: true` ⟺ tier == optional.
+#    We parse structurally in awk (split on '·', tier = field NF-1 so a future
+#    '·' in a Title can't shift it; that also dodges the prior BSD `grep -o`
+#    bug) and read ONLY the two tracked decks by literal path — never anything
+#    under agent-context/ (gitignored/absent in CI). A section present in only
+#    one deck is reported (warn) and skipped for the identity check, not failed.
+# ---------------------------------------------------------------------------
+heading "Deck tier consistency (slides.md ↔ slides-3day.md)"
+
+# emit_sections DECK — one "SNN<TAB>tier<TAB>hide" line per section block.
+# Header sets snn+tier; the FIRST `hide:` after a header carries that section's
+# flag (blank "-" if a block has no hide line). '\r?' guards CRLF-authored decks.
+emit_sections() {
+  awk '
+    function trim(s){ sub(/^[ \t]+/,"",s); sub(/[ \t\r]+$/,"",s); return s }
+    /^#[ \t]*S[0-9][0-9]+[ \t]*·/ {
+      if (snn != "") { print snn "\t" tier "\t" (hide=="" ? "-" : hide) }
+      n = split($0, f, /·/)
+      snn = f[1]; sub(/^#[ \t]*/, "", snn); snn = trim(snn)
+      tier = trim(f[n-1])          # ·<tier>· Day N  → tier is second-to-last
+      hide = ""
+      next
+    }
+    snn != "" && hide == "" && /^[ \t]*hide:[ \t]*/ {
+      h = $0; sub(/^[ \t]*hide:[ \t]*/, "", h); hide = trim(h)
+    }
+    END { if (snn != "") print snn "\t" tier "\t" (hide=="" ? "-" : hide) }
+  ' "$1"
+}
+
+if [ ! -f slides.md ] || [ ! -f slides-3day.md ]; then
+  warn "one or both content decks missing (slides.md / slides-3day.md) — skipping tier check."
+else
+  declare -A SUPER_TIER=()
+  declare -A CUT_TIER=()
+  declare -A CUT_HIDE=()
+
+  while IFS=$'\t' read -r snn tier _hide; do
+    [ -n "$snn" ] && SUPER_TIER["$snn"]="$tier"
+  done < <(emit_sections slides.md)
+
+  while IFS=$'\t' read -r snn tier hide; do
+    [ -n "$snn" ] || continue
+    CUT_TIER["$snn"]="$tier"
+    CUT_HIDE["$snn"]="$hide"
+  done < <(emit_sections slides-3day.md)
+
+  if [ "${#SUPER_TIER[@]}" -eq 0 ] || [ "${#CUT_TIER[@]}" -eq 0 ]; then
+    warn "no '# SNN · … · <tier> · Day N' headers parsed from a deck — nothing to check. (pass)"
+  else
+    # (a) deck↔deck tier identity over the intersection of SNNs.
+    TIER_MISMATCH=0
+    CHECKED_SECTIONS=0
+    for snn in "${!SUPER_TIER[@]}"; do
+      if [ -z "${CUT_TIER[$snn]+set}" ]; then
+        warn "tier check: $snn present in slides.md but not slides-3day.md — skipping identity for it"
+        continue
+      fi
+      CHECKED_SECTIONS=$((CHECKED_SECTIONS + 1))
+      if [ "${SUPER_TIER[$snn]}" != "${CUT_TIER[$snn]}" ]; then
+        fail "tier drift: $snn is '${SUPER_TIER[$snn]}' in slides.md but '${CUT_TIER[$snn]}' in slides-3day.md"
+        TIER_MISMATCH=$((TIER_MISMATCH + 1))
+      fi
+    done
+    for snn in "${!CUT_TIER[@]}"; do
+      if [ -z "${SUPER_TIER[$snn]+set}" ]; then
+        warn "tier check: $snn present in slides-3day.md but not slides.md — skipping identity for it"
+      fi
+    done
+    if [ "$CHECKED_SECTIONS" -gt 0 ] && [ "$TIER_MISMATCH" -eq 0 ]; then
+      pass "tier tokens identical across both decks for all ${CHECKED_SECTIONS} shared section(s)"
+    fi
+
+    # (b) 3-day cut hide invariant: hide==true ⟺ tier==optional.
+    HIDE_VIOLATION=0
+    for snn in "${!CUT_TIER[@]}"; do
+      tier="${CUT_TIER[$snn]}"
+      hide="${CUT_HIDE[$snn]}"
+      if [ "$tier" = "optional" ] && [ "$hide" != "true" ]; then
+        fail "hide invariant: $snn is 'optional' but hide='$hide' in slides-3day.md (must be true)"
+        HIDE_VIOLATION=$((HIDE_VIOLATION + 1))
+      elif [ "$tier" != "optional" ] && [ "$hide" = "true" ]; then
+        fail "hide invariant: $snn is '$tier' (not optional) but hide=true in slides-3day.md"
+        HIDE_VIOLATION=$((HIDE_VIOLATION + 1))
+      fi
+    done
+    if [ "$HIDE_VIOLATION" -eq 0 ]; then
+      pass "slides-3day.md hide flags satisfy hide:true ⟺ optional (${#CUT_TIER[@]} section(s))"
+    fi
+  fi
+fi
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 heading "Summary"
