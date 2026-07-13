@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Section** | S05 — State encryption *(red line: author → **protect** → test)* |
-| **Environment** | `localstack ✓` · `mock ✓` · `real-aws (optional)` — this lab needs neither; it uses the `local` provider only |
+| **Environment** | `localstack ✓` · `mock ✓` · `real-aws (optional)` — this lab needs neither; it uses the `random` provider only |
 | **Estimated time** | 25 min |
 
 ## Objective
@@ -13,38 +13,69 @@ Take a project with **plaintext** local state, turn on OpenTofu's client-side
 **prove the file on disk is ciphertext**. Then flip `enforced = true` and watch a
 plaintext read get rejected.
 
+You run **tracked files**, not heredocs — what you apply is exactly what CI
+verified. The config lives in this repo at `labs/day-1/05-state-encryption/`:
+
+- `main.tf` — a tiny project (one `random_password`, written to disk) that puts a
+  secret **into state**. Carried forward: S06 extends the same folder.
+- `encryption.tf` — the OpenTofu `encryption` block (PBKDF2 → AES-GCM). This is
+  the exact block S05 teaches; the slide and this file are drift-checked to stay
+  byte-identical.
+
 ## Prerequisites
 
 - `tofu` ≥ 1.8 (`task setup` installs it). Check: `tofu version`.
 - `jq` for inspecting state (optional but used in a spoiler).
+- Run everything **from the repo clone** — no Docker, no cloud.
 
 ## Files used
 
-- `main.tf` — a tiny project (one `random_password`, written to disk) that puts a
-  secret **into state**. Carried forward: S06 extends the same folder.
-- `terraform.tfstate` — the state file you'll encrypt.
+All tracked in `labs/day-1/05-state-encryption/` — you run them, you do not paste
+them:
+
+- `main.tf` — the plaintext-secret project.
+- `encryption.tf` — the client-side `encryption` block.
+- `variables.tf` — declares the `state_passphrase` variable the block consumes.
+- `.gitignore` — keeps the state/`.terraform` you generate out of version control.
+
+The lab drives these files through four stages by editing `encryption.tf`
+**temporarily** (plaintext → migration → enforced) and then resetting it. The
+tracked file is always the migrated, un-enforced canonical config.
 
 ---
 
-## Step 1 — Make a secret land in state
-
-Create the working folder and a project whose state will contain a secret:
+## Step 0 — Enter the tracked workdir
 
 ```bash
-mkdir -p ~/tofu-labs/05-encryption && cd ~/tofu-labs/05-encryption
-cat > main.tf <<'EOF'
-terraform {
-  required_providers {
-    random = { source = "hashicorp/random" }
-  }
-}
+cd labs/day-1/05-state-encryption
+ls
+```
 
-# A generated secret — the kind of value that ends up in state as plaintext.
-resource "random_password" "db" {
-  length = 20
-}
-EOF
+**Task:** Confirm the config files are already present — you author nothing.
 
+<details><summary>Solution / expected output</summary>
+
+```console
+$ ls
+encryption.tf  main.tf  variables.tf
+```
+
+`main.tf`, `encryption.tf`, and `variables.tf` are tracked in the repo. Everything
+below runs against these exact files.
+</details>
+
+---
+
+## Step 1 — Make a secret land in state (plaintext first)
+
+To see the *problem*, start from plaintext state. Temporarily move the encryption
+block **and** its variable aside (a required, defaultless variable would otherwise
+block a non-interactive apply), then `init` + `apply` so a secret lands in the
+clear:
+
+```bash
+mv encryption.tf encryption.tf.off
+mv variables.tf variables.tf.off
 tofu init
 tofu apply -auto-approve
 ```
@@ -66,15 +97,11 @@ file reads the password.
 
 ## Step 2 — Turn on encryption (and hit the migration wall)
 
-Add an `encryption` block and try to plan:
+Bring the encryption block back and try to plan. This is the config S05 teaches —
+`cat` it so you can read exactly what you're turning on:
 
-```bash
-cat > encryption.tf <<'EOF'
-variable "state_passphrase" {
-  type      = string
-  sensitive = true
-}
-
+<!-- source: labs/day-1/05-state-encryption/encryption.tf -->
+```hcl
 terraform {
   encryption {
     key_provider "pbkdf2" "passphrase" {
@@ -84,11 +111,17 @@ terraform {
       keys = key_provider.pbkdf2.passphrase
     }
     state { method = method.aes_gcm.secure }
-    plan  { method = method.aes_gcm.secure }
+    plan { method = method.aes_gcm.secure }
+
+    # enforced = true  # reject any plaintext state/plan
   }
 }
-EOF
+```
 
+```bash
+mv encryption.tf.off encryption.tf
+mv variables.tf.off variables.tf
+cat encryption.tf
 export TF_VAR_state_passphrase="correct-horse-battery-staple"
 tofu plan
 ```
@@ -112,21 +145,22 @@ explicit one-time path from plaintext to ciphertext. That's the `fallback` block
 ## Step 3 — Migrate with a `fallback`
 
 Add an `unencrypted` method as a **fallback** so the next run can *read* plaintext
-and *write* ciphertext:
+and *write* ciphertext. This is a **one-time** edit — you'll revert it in Step 5,
+which is why it isn't the tracked default. Drop the fallback lines into
+`encryption.tf` in place:
 
 ```bash
+# Add a fallback method + wire it into state{} and plan{}. Applied once, then removed.
+# (variables.tf still holds state_passphrase — we only edit encryption.tf here.)
 cat > encryption.tf <<'EOF'
-variable "state_passphrase" {
-  type      = string
-  sensitive = true
-}
-
 terraform {
   encryption {
     key_provider "pbkdf2" "passphrase" {
       passphrase = var.state_passphrase
     }
-    method "aes_gcm" "secure" {}
+    method "aes_gcm" "secure" {
+      keys = key_provider.pbkdf2.passphrase
+    }
     method "unencrypted" "migrate" {}
 
     state {
@@ -140,25 +174,13 @@ terraform {
   }
 }
 EOF
-# aes_gcm needs its key wired — set it via the method's keys arg:
+
+tofu apply -auto-approve
 ```
 
-> **Note:** `method "aes_gcm" "secure" {}` needs `keys = key_provider.pbkdf2.passphrase`.
-> Put it back — it was dropped above only to keep the diff readable.
-
-**Task:** Fix the `aes_gcm` method to reference the key, then `apply`.
+**Task:** Confirm the apply succeeds by reading old plaintext through the fallback.
 
 <details><summary>Solution / expected output</summary>
-
-The `aes_gcm` block must be:
-
-```hcl
-method "aes_gcm" "secure" {
-  keys = key_provider.pbkdf2.passphrase
-}
-```
-
-Then:
 
 ```console
 $ tofu apply -auto-approve
@@ -193,12 +215,13 @@ still reads it transparently because it has the passphrase.
 
 ## Step 5 — Ban plaintext with `enforced`
 
-Once migrated, remove the fallback and add `enforced = true`:
+Migration done — drop the fallback and turn on `enforced`. Restore the tracked
+canonical config (fallback gone) and uncomment the `enforced = true` line:
 
 ```bash
-# In encryption.tf: delete the two `fallback { ... }` lines and the
-# `method "unencrypted" "migrate" {}` line, then add `enforced = true`
-# just inside `encryption {`.
+git checkout -- encryption.tf          # back to the tracked, fallback-free config
+sed -i.bak 's/# enforced = true/enforced = true/' encryption.tf && rm -f encryption.tf.bak
+tofu apply -auto-approve                # re-encrypt under enforced; no fallback needed
 ```
 
 **Task:** With `enforced = true`, what happens if a teammate clones the repo
@@ -225,14 +248,22 @@ access. That's the guarantee you want in a shared repo.
 
 ## Cleanup / panic reset
 
+Destroy the (local-only) resources and restore the tracked files to a pristine
+state — no residue, `git status` clean:
+
 ```bash
-cd ~/tofu-labs/05-encryption
+cd labs/day-1/05-state-encryption
 export TF_VAR_state_passphrase="correct-horse-battery-staple"
 tofu destroy -auto-approve
-cd ~ && rm -rf ~/tofu-labs/05-encryption
+git checkout -- encryption.tf                          # undo the enforced edit
+rm -rf .terraform .terraform.lock.hcl terraform.tfstate terraform.tfstate.* \
+  encryption.tf.off variables.tf.off
+git status --short labs/day-1/05-state-encryption      # expect: no output
 ```
 
 No cloud resources are created in this lab, so there is nothing to bill or leak.
+The generated state/`.terraform` are gitignored; the panic reset leaves the
+tracked files exactly as CI verified them.
 
 ## Stretch (optional)
 
