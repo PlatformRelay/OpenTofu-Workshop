@@ -45,7 +45,7 @@ hide: false
 ---
 
 ---
-# S05 · State encryption · recommended · Day 1
+# S05 · State encryption · core · Day 1
 src: ./pages/S05-state-encryption/index.md
 hide: false
 ---
@@ -99,7 +99,7 @@ hide: false
 ---
 
 ---
-# S14 · Security & policy scanners · recommended · Day 2
+# S14 · Security & policy scanners · core · Day 2
 src: ./pages/S14-security-scanners/index.md
 hide: false
 ---
