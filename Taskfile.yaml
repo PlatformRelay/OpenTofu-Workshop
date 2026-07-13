@@ -7,7 +7,9 @@
 # Tasks are grouped: deck (Slidev), lab environment (LocalStack), lab/module
 # (OpenTofu), and the `verify` "tested workshop" gate. Every task has a `desc:`
 # so it shows up in `task --list`. Pass a target dir to lab:* with DIR=...,
-# e.g. `task lab:plan DIR=examples/naming-labels-demo`.
+# e.g. `task lab:plan DIR=examples/naming-labels-demo` or a lab workdir
+# `task lab:validate DIR=labs/day-1/NN-topic` (see AGENT.md · lab workdir &
+# drift contract; the verify.sh self-test fixture lives at labs/fixtures/drift-demo).
 version: "3"
 
 silent: true
@@ -211,9 +213,20 @@ tasks:
   # The "tested workshop" gate
   # -------------------------------------------------------------------------
   verify:
-    desc: "Tested-workshop gate (unit lane): fmt-check + validate + tofu test. No Docker needed."
+    desc: "Tested-workshop gate (unit lane): fmt-check + validate + tofu test + drift self-test. No Docker needed."
     cmds:
       - bash scripts/verify.sh
+      # Regression guard: prove the slide↔lab drift ENFORCEMENT actually fails on
+      # drift (incl. CRLF-authored). Runs in a throwaway temp copy; see the script.
+      - bash scripts/verify-selftest.sh
+    preconditions:
+      - sh: command -v tofu
+        msg: "tofu is required. Install: brew install opentofu"
+
+  verify:selftest:
+    desc: "Meta-gate: assert scripts/verify.sh fails on annotated-block drift (LF & CRLF)."
+    cmds:
+      - bash scripts/verify-selftest.sh
     preconditions:
       - sh: command -v tofu
         msg: "tofu is required. Install: brew install opentofu"

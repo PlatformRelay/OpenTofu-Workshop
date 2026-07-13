@@ -1,0 +1,8 @@
+# Normalise line endings so the slide↔lab drift check (scripts/verify.sh) never
+# sees CRLF-authored labs: a stray \r must not disarm the annotated-block
+# selectors or spuriously fail the block-body diff. LF is structural here.
+* text=auto eol=lf
+
+*.md text eol=lf
+*.tf text eol=lf
+*.sh text eol=lf

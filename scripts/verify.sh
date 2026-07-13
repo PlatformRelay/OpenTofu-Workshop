@@ -6,7 +6,8 @@
 #   2. tofu fmt -check -recursive
 #   3. per module/example that has *.tf: tofu init -backend=false + validate
 #   4. per module/example that has *.tftest.hcl: tofu test (plan/mock lanes)
-#   5. slide ↔ lab drift smoke check (fenced ```hcl blocks in labs → real files)
+#   5. slide ↔ lab drift smoke check (modules/|examples/ paths cited in labs exist)
+#   6. slide ↔ lab drift ENFORCEMENT (annotated ```hcl blocks diffed vs source)
 #
 # Everything degrades to "nothing to check yet → pass" while the content dirs
 # are empty, so this is safe to wire into CI from day one.
@@ -181,6 +182,99 @@ else
     info "no modules/|examples/ references in labs (all HCL is scratch/inline) — nothing to drift-check yet"
   elif [ "$MISSING_REFS" -eq 0 ]; then
     pass "all shared-code references cited by labs exist on disk"
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# 6. Slide ↔ lab drift ENFORCEMENT (annotated fenced blocks)
+#    Contract (see AGENT.md · "Lab workdir & drift contract"): a fenced ```hcl
+#    block may be tied to a tracked source file by an HTML comment marker on the
+#    line immediately above the fence:
+#
+#        <!-- source: labs/fixtures/drift-demo/main.tf -->
+#        ```hcl
+#        ...exact file contents...
+#        ```
+#
+#    Rules:
+#      · annotated block  → its content is diffed against the named file;
+#        drift OR a missing file FAILS the build, naming the file (criterion #2).
+#      · unannotated block → ignored (only counted/warned) so partially-authored
+#        labs never block unrelated lanes (criterion #3).
+#      · a lab that has ```hcl block(s) but ZERO annotated ones → warn, not fail.
+# ---------------------------------------------------------------------------
+heading "Slide ↔ lab drift enforcement (annotated blocks)"
+if [ "${#LAB_FILES[@]}" -eq 0 ]; then
+  warn "no lab Markdown under labs/ yet — nothing to enforce. (pass)"
+else
+  ANNOTATED=0
+  DRIFTED=0
+  # awk emits one record per annotated block:
+  #   \x01<source-path>\n<block-body...>\x02\n
+  # It only arms on a `<!-- source: PATH -->` line that is IMMEDIATELY followed
+  # by an opening ```hcl fence; a marker not hugging a fence is ignored. Using
+  # \x01/\x02 sentinels avoids any collision with HCL/Markdown content. Written
+  # with plain awk (not multiline `grep -o`) to stay portable on macOS/BSD.
+  # NOTE (F1): the file is piped through `tr -d '\r'` BEFORE awk (see the loop
+  # below), so a CRLF-authored lab can never disarm the selectors. The `\r?`
+  # anchors here are belt-and-suspenders in case awk is ever fed raw bytes.
+  extract='
+    function trim(s){ sub(/^[ \t]+/,"",s); sub(/[ \t\r]+$/,"",s); return s }
+    /^[ \t]*<!--[ \t]*source:[ \t]*.*-->[ \t]*\r?$/ {
+      p=$0
+      sub(/^[ \t]*<!--[ \t]*source:[ \t]*/,"",p); sub(/[ \t]*-->[ \t]*\r?$/,"",p)
+      pending=trim(p); next
+    }
+    pending!="" && /^[ \t]*```hcl[ \t]*\r?$/ { printf "\x01%s\n", pending; incode=1; pending=""; next }
+    pending!="" { pending="" }   # marker not immediately hugging a fence → drop
+    incode && /^[ \t]*```[ \t]*\r?$/ { printf "\x02\n"; incode=0; next }
+    incode { print }
+  '
+  for f in "${LAB_FILES[@]}"; do
+    # Split awk output into per-block records on the \x02 terminator.
+    while IFS= read -r -d $'\x02' record; do
+      # record starts with \x01<path>\n<body...>. Strip leading newline artefacts.
+      record="${record#$'\n'}"
+      case "$record" in
+        $'\x01'*) : ;;      # a real block record
+        *) continue ;;      # trailing/empty chunk after the last terminator
+      esac
+      src="${record#$'\x01'}"     # drop the \x01 sentinel
+      src="${src%%$'\n'*}"         # path is up to the first newline
+      body="${record#*$'\n'}"      # everything after that first newline is the body
+      [ "$body" = "$record" ] && body=""   # empty block (fence right after marker)
+      ANNOTATED=$((ANNOTATED + 1))
+
+      if [ ! -f "$src" ]; then
+        fail "drift: annotated block cites missing file: $src  (in $f)"
+        DRIFTED=$((DRIFTED + 1))
+        continue
+      fi
+
+      # Normalise both sides: strip CR (CRLF→LF) and any trailing newline so a
+      # lone trailing-newline difference is not spurious drift. `$(...)` already
+      # eats trailing newlines; do the same to the block body, and strip \r too.
+      file_norm="$(tr -d '\r' < "$src")"
+      body_norm="$(printf '%s' "$body" | tr -d '\r')"
+      if [ "$body_norm" = "$file_norm" ]; then
+        pass "no drift: $src matches its block in $(basename "$f")"
+      else
+        fail "drift: block in $f does NOT match source file: $src"
+        info "diff (source ↔ block) for $src:"
+        diff <(printf '%s\n' "$file_norm") <(printf '%s\n' "$body_norm") 2>/dev/null \
+          | sed 's/^/    /' | head -n 40 || true
+        DRIFTED=$((DRIFTED + 1))
+      fi
+    done < <(tr -d '\r' < "$f" | awk "$extract")
+  done
+
+  if [ "$ANNOTATED" -eq 0 ]; then
+    warn "no annotated \`\`\`hcl blocks found — drift enforcement is a no-op. (pass)"
+    info "Annotate a block with '<!-- source: PATH -->' above its fence to enforce it (see AGENT.md)."
+  elif [ "$DRIFTED" -eq 0 ]; then
+    pass "all ${ANNOTATED} annotated block(s) match their source files — no slide↔lab drift"
+  else
+    info "${DRIFTED} of ${ANNOTATED} annotated block(s) drifted from source"
   fi
 fi
 
