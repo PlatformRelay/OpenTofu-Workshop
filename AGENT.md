@@ -119,8 +119,39 @@ build, naming the file,** on any drift (or if the file is missing). Rules:
 6. PDF/PNG export clean (magic-move + components render without overflow).
 7. `task verify` green — `tofu fmt -check`, `validate`, and `tofu test` pass
    (plan/mock lane needs no cloud; integration lane uses LocalStack).
-8. Cleanup safe; no guardrail violations.
-9. Conventional Commit + gitmoji.
+8. **Presenter notes on every content slide** (see convention below) so anyone
+   can deliver the deck, not just its author.
+9. Cleanup safe; no guardrail violations.
+10. Conventional Commit + gitmoji.
+
+### Presenter-notes convention
+
+Every **content** slide carries Slidev presenter notes so any facilitator can
+deliver it. Slidev treats the **last HTML comment in a slide** as its presenter
+notes: place it at the very end of the slide's markdown, after all content
+(including any `::notes::` slot / `CodeNote` rail — that slot is a layout region,
+**not** presenter notes) and immediately before the `---` separator. Notes show
+in presenter mode and never render on the slide.
+
+Each note contains three things: **what to say** (the beat's teaching point in
+2–4 sentences), **a timing cue** (e.g. `~3 min`; on `lab` slides match the
+`duration:` frontmatter), and **the transition line** into the next slide (on
+`recap` slides echo the `next:` frontmatter). Anchor claims to what the slide
+actually teaches — don't invent facts. Pure cover/divider slides with no
+teaching content may be skipped; a divider with a spoken framing line is a beat
+and gets a note.
+
+```md
+# Some slide title
+
+- point one
+- point two
+
+<!--
+Say: what this beat teaches, in 2-4 sentences. (~3 min)
+Then: one transition line into the next slide.
+-->
+```
 
 ## Commits
 
