@@ -82,7 +82,7 @@ heading: The encryption block — client-side, OpenTofu-native
 lab: labs/day-1/05-state-encryption.md
 ---
 
-```hcl {none|1-2|3-5|6-8|9-10|12|all}
+```hcl {none|1-2|3-5|6-8|9-16|11,15|all}
 terraform {
   encryption {
     key_provider "pbkdf2" "passphrase" {
@@ -91,10 +91,14 @@ terraform {
     method "aes_gcm" "secure" {
       keys = key_provider.pbkdf2.passphrase
     }
-    state { method = method.aes_gcm.secure }
-    plan { method = method.aes_gcm.secure }
-
-    # enforced = true  # reject any plaintext state/plan
+    state {
+      method = method.aes_gcm.secure
+      # enforced = true  # reject plaintext state
+    }
+    plan {
+      method = method.aes_gcm.secure
+      # enforced = true  # reject plaintext plan
+    }
   }
 }
 ```

@@ -16,8 +16,9 @@ plaintext read get rejected.
 You run **tracked files**, not heredocs — what you apply is exactly what CI
 verified. The config lives in this repo at `labs/day-1/05-state-encryption/`:
 
-- `main.tf` — a tiny project (one `random_password`, written to disk) that puts a
-  secret **into state**. Carried forward: S06 extends the same folder.
+- `main.tf` — a tiny project (one `random_password`) that puts a generated secret
+  **into state** (no file is written — the value lives only in state). Carried
+  forward: S06 extends the same folder.
 - `encryption.tf` — the OpenTofu `encryption` block (PBKDF2 → AES-GCM). This is
   the exact block S05 teaches; the slide and this file are drift-checked to stay
   byte-identical.
@@ -110,10 +111,14 @@ terraform {
     method "aes_gcm" "secure" {
       keys = key_provider.pbkdf2.passphrase
     }
-    state { method = method.aes_gcm.secure }
-    plan { method = method.aes_gcm.secure }
-
-    # enforced = true  # reject any plaintext state/plan
+    state {
+      method = method.aes_gcm.secure
+      # enforced = true  # reject plaintext state
+    }
+    plan {
+      method = method.aes_gcm.secure
+      # enforced = true  # reject plaintext plan
+    }
   }
 }
 ```
@@ -123,7 +128,7 @@ mv encryption.tf.off encryption.tf
 mv variables.tf.off variables.tf
 cat encryption.tf
 export TF_VAR_state_passphrase="correct-horse-battery-staple"
-tofu plan
+tofu plan -lock=false   # -lock=false so the encryption error shows plainly, not wrapped in a lock message
 ```
 
 **Task:** What error do you get, and why?
@@ -131,9 +136,8 @@ tofu plan
 <details><summary>Solution / expected output</summary>
 
 ```console
-│ Error: Encountered unexpected encryption method
-│ The state file already exists as plaintext, but the configuration now
-│ requires it to be encrypted.
+$ tofu plan -lock=false
+Error: error loading state: encountered unencrypted payload without unencrypted method configured
 ```
 
 OpenTofu won't silently re-encrypt existing plaintext state — you must give it an
@@ -200,15 +204,22 @@ state **encrypted**.
 <details><summary>Solution / expected output</summary>
 
 ```console
-$ jq . terraform.tfstate
-parse error: Invalid numeric literal at line 1, column 10
+$ jq 'keys' terraform.tfstate
+[
+  "encrypted_data",
+  "encryption_version",
+  "lineage",
+  "meta",
+  "serial"
+]
 
-$ head -c 120 terraform.tfstate
-{"encrypted_data":"aQh9...base64-ciphertext...","encryption_version":"v0"}
+$ jq -r '.encrypted_data' terraform.tfstate | head -c 48
+NfQ8k1p...base64-ciphertext...          # single opaque blob (illustrative)
 ```
 
-The secret is gone from plaintext — the file is an encrypted envelope. `tofu`
-still reads it transparently because it has the passphrase.
+The file is still valid JSON, but the `resources` array (which held the plaintext
+password) is gone — replaced by one `encrypted_data` envelope. `tofu` reads it
+transparently because it has the passphrase; without it, the payload is opaque.
 </details>
 
 ---
@@ -231,12 +242,21 @@ without the passphrase and runs `tofu plan`?
 
 ```console
 $ unset TF_VAR_state_passphrase
-$ tofu plan
-│ Error: No key provider could produce a key ... encryption is enforced
+$ tofu plan -input=false
+Error: Unable to compute static value
+
+  on encryption.tf line 2, in terraform:
+   2:   encryption {
+
+encryption.key_provider.pbkdf2.passphrase depends on var.state_passphrase
+which is not available
 ```
 
-`enforced = true` refuses to read or write plaintext at all. No passphrase → no
-access. That's the guarantee you want in a shared repo.
+Without the passphrase, OpenTofu can't build the PBKDF2 key provider, so it can't
+decrypt the state at all — and with `enforced = true` there is no unencrypted
+fallback to slip through. No passphrase → no access. (Interactively, `tofu plan`
+would *prompt* for the passphrase; `-input=false` turns that into the hard error
+above — the non-interactive form a CI teammate would hit.)
 </details>
 
 ## Expected observations
@@ -254,10 +274,10 @@ state — no residue, `git status` clean:
 ```bash
 cd labs/day-1/05-state-encryption
 export TF_VAR_state_passphrase="correct-horse-battery-staple"
-tofu destroy -auto-approve
-git checkout -- encryption.tf                          # undo the enforced edit
+git checkout -- encryption.tf                          # restore canonical config first
+tofu destroy -auto-approve                             # tear down the random_password
 rm -rf .terraform .terraform.lock.hcl terraform.tfstate terraform.tfstate.* \
-  encryption.tf.off variables.tf.off
+  encryption.tf.off variables.tf.off encryption.tf.bak
 git status --short labs/day-1/05-state-encryption      # expect: no output
 ```
 

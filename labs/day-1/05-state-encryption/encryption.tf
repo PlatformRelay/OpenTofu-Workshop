@@ -6,9 +6,13 @@ terraform {
     method "aes_gcm" "secure" {
       keys = key_provider.pbkdf2.passphrase
     }
-    state { method = method.aes_gcm.secure }
-    plan { method = method.aes_gcm.secure }
-
-    # enforced = true  # reject any plaintext state/plan
+    state {
+      method = method.aes_gcm.secure
+      # enforced = true  # reject plaintext state
+    }
+    plan {
+      method = method.aes_gcm.secure
+      # enforced = true  # reject plaintext plan
+    }
   }
 }
