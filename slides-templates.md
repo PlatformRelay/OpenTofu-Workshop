@@ -318,16 +318,75 @@ PBKDF2 passphrase, migrate, and prove the file on disk is ciphertext.
 Every task ships a `<details>` spoiler. Panic reset is always `task lab:down`.
 
 ---
+clicks: 4
+---
+
+<span class="kw-kicker">Component: PlanApplyFlow — the core workflow, click-stepped</span>
+
+# init → plan → apply, and the state it writes
+
+<PlanApplyFlow :step="$clicks" class="mt-10" />
+
+<div v-click="4" class="mt-8 kw-muted text-sm text-center">
+
+Each click lights the next stage: **config** is what you declare, **plan** is the
+diff, **apply** converges reality, and **state** records what now exists. Bind
+`:step="$clicks"` and the mental model builds itself as you talk.
+
+</div>
+
+<!--
+Say: This is the one diagram behind Part 1. Click through it: config is the .tf
+you write, plan is the diff tofu computes, apply converges reality to match, and
+state is the record it keeps. Four clicks, four stages — the whole desired-state
+loop in one visual. (~2 min)
+Then: the same click-stepped idea powers the testing pyramid, next.
+-->
+
+---
+clicks: 4
+---
+
+<span class="kw-kicker">Component: TestPyramid — Part 2's reusable visual</span>
+
+# The testing pyramid, built bottom-up
+
+<TestPyramid
+  :step="$clicks"
+  :static-tools="['tofu fmt', 'tofu validate', 'tflint']"
+  :unit-tools="['tofu test (mock)']"
+  :integration-tools="['tofu test + LocalStack']"
+  :e2e-tools="['real cloud (optional)']"
+  class="mt-8"
+/>
+
+<div v-click="4" class="mt-6 kw-muted text-sm text-center">
+
+Cheap and many at the **static** base; slow and few at the **e2e** tip. Each
+layer takes its own tool labels via props — S12 and S18 reuse this exact
+component with their own sets.
+
+</div>
+
+<!--
+Say: Every testing discussion in Part 2 hangs off this one pyramid. Build it
+bottom-up: static checks first — fmt, validate, tflint — then mock unit tests,
+then integration against LocalStack, and finally optional end-to-end on real
+cloud. Wide and fast at the base, narrow and slow at the tip. (~2 min)
+Then: that closes the component tour — on to the recap.
+-->
+
+---
 layout: recap
 heading: Design system — recap
-story: 'Ten layouts, three components, one glyph set — reused, never re-invented.'
+story: 'Ten layouts, a component kit with click-stepped diagrams, one glyph set — reused, never re-invented.'
 next: 'Next: the section library under pages/SNN-topic/'
 ---
 
 - **Layouts** carry structure: cover, section-cover, agenda, statement,
   code-walkthrough, code-annotated, comparison, two-cols-code, topology, lab, recap.
 - **Components** carry meaning: `KwCard`, `KwChip`, `CodeNote`, `CodeCallout`,
-  `IacIcon`, `ArchBox`.
+  `IacIcon`, `ArchBox`, and click-stepped diagrams `PlanApplyFlow`, `TestPyramid`.
 - **magic-move** grows HCL; **CodeNote** explains it; **CodeCallout** warns on it.
 
 ---

@@ -28,7 +28,17 @@ How this workshop is built. Read before authoring a section, a lab, or a module.
 - `modules/` + `examples/` — the runnable OpenTofu (see the module DoD below).
 - `theme/` — the local Slidev theme: `layouts/`, `components/` (`IacIcon`,
   `KwCard`, `KwChip`, `CodeNote`, `CodeCallout`, `ArchBox`), `styles/theme.css`.
-- `components/` — animated Vue teaching diagrams (`step` prop bound to `$clicks`).
+- `components/` — animated Vue teaching diagrams (`step` prop bound to `$clicks`;
+  clamp out-of-range `step` — never throw or blank a slide). Auto-imported into
+  every deck from the repo root. Current set:
+  - `PlanApplyFlow` — the core workflow lit stage-by-stage:
+    config → plan → apply → state. Props: `step?: number` (0–4, bind
+    `:step="$clicks"`; clamped). step 0 lights nothing, step 4 lights all four.
+  - `TestPyramid` — the testing pyramid built bottom-up (static → unit →
+    integration → e2e). Props: `step?: number` (0–4, base-first, clamped) plus
+    per-layer label lists `staticTools` / `unitTools` / `integrationTools` /
+    `e2eTools` (`string[]`, default `[]` → bare bands). Reused by S12 and S18
+    with their own tool sets.
 - `agent-context/` — **gitignored** planning docs (roadmap, outline, stories,
   image prompts, ideas, operator board, research brief).
 - `docs/decisions/` — tracked ADRs.
