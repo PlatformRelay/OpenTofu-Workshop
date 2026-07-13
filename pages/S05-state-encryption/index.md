@@ -135,6 +135,33 @@ derives the key (PBKDF2 from a passphrase here, cloud-free for the lab); a metho
 does authenticated AES-GCM; then wire that method into BOTH state and plan —
 stress that a plan leaks the same resolved values as state. The commented
 enforced = true is the safety flip we return to after migrating. (~6 min)
+Then: watch the same block as a flow — plaintext in, ciphertext out.
+-->
+
+---
+clicks: 4
+---
+
+<span class="kw-kicker">The encryption pipeline, click by click</span>
+
+# From plaintext state to a signed envelope
+
+<StateEncryptionFlow :step="$clicks" class="mt-10" />
+
+<div v-click="4" class="mt-8 kw-muted text-sm text-center">
+
+Each click lights the next stage: your **plaintext state** feeds a **PBKDF2 key
+provider**, the derived key drives the **AES-GCM method**, and what lands on disk
+is a **signed ciphertext envelope** — never the secrets themselves.
+
+</div>
+
+<!--
+Say: This is the encryption block redrawn as a pipeline. Click through it:
+plaintext state is what tofu holds in memory; the PBKDF2 key_provider derives a
+key from your passphrase; the aes_gcm method encrypts with that key; and what
+actually touches disk is a signed ciphertext envelope, not the resolved secrets.
+Four clicks, four stages — the whole client-side flow in one visual. (~2 min)
 Then: "But you already have plaintext state on disk — how do you migrate without
 locking yourself out?" — leads into the fallback slide.
 -->

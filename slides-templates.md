@@ -373,6 +373,33 @@ Say: Every testing discussion in Part 2 hangs off this one pyramid. Build it
 bottom-up: static checks first — fmt, validate, tflint — then mock unit tests,
 then integration against LocalStack, and finally optional end-to-end on real
 cloud. Wide and fast at the base, narrow and slow at the tip. (~2 min)
+Then: one more click-stepped diagram — the state-encryption pipeline.
+-->
+
+---
+clicks: 4
+---
+
+<span class="kw-kicker">Component: StateEncryptionFlow — S05's headline visual</span>
+
+# State encryption, plaintext to ciphertext
+
+<StateEncryptionFlow :step="$clicks" class="mt-10" />
+
+<div v-click="4" class="mt-8 kw-muted text-sm text-center">
+
+Four stages, one click each: **plaintext state** → **PBKDF2 key provider** →
+**AES-GCM method** → **ciphertext**. S05 binds `:step="$clicks"` so the client-side
+encryption story builds itself as you talk through the `terraform { encryption }` block.
+
+</div>
+
+<!--
+Say: The third click-stepped diagram powers S05's state-encryption section. Build
+it left to right: plaintext state is what tofu holds, a PBKDF2 key_provider derives
+the key, the aes_gcm method encrypts, and a signed ciphertext envelope is what lands
+on disk. Same clamped step prop as the other two — out-of-range clicks never throw.
+(~2 min)
 Then: that closes the component tour — on to the recap.
 -->
 
@@ -386,7 +413,8 @@ next: 'Next: the section library under pages/SNN-topic/'
 - **Layouts** carry structure: cover, section-cover, agenda, statement,
   code-walkthrough, code-annotated, comparison, two-cols-code, topology, lab, recap.
 - **Components** carry meaning: `KwCard`, `KwChip`, `CodeNote`, `CodeCallout`,
-  `IacIcon`, `ArchBox`, and click-stepped diagrams `PlanApplyFlow`, `TestPyramid`.
+  `IacIcon`, `ArchBox`, and click-stepped diagrams `PlanApplyFlow`, `TestPyramid`,
+  `StateEncryptionFlow`.
 - **magic-move** grows HCL; **CodeNote** explains it; **CodeCallout** warns on it.
 
 ---
