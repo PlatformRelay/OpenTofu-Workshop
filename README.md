@@ -40,6 +40,22 @@ This repo uses a **superset + boil-down** model — one section library, several
 Sections live in `pages/SNN-topic/index.md` and are composed into a deck by `src:`
 imports; set `hide: true` on an import to drop that section from a cut.
 
+## Scope & timing (known issue)
+
+This repo is a **content superset** — the section library (`S00`–`S26`) is deliberately
+**larger than fits in three days**. At a **6.5 h/day** budget (~50/50 explain-then-run), the
+full superset runs well over three days, and even the **`core`** tier makes **Day 1 tight — it
+overflows a single day's budget**. That is a deliberate design choice ("choice over fit"), not
+an oversight.
+
+**Boil it down per delivery — you are not meant to teach every section:**
+
+- **Tiers do the trimming.** Every section is `core`, `recommended`, or `optional`. Cut
+  **`optional` first, then `recommended`**; keep `core`.
+- **`slides-3day.md` is the canonical cut** — the pre-boiled 3-day subset. Start there for a
+  standard delivery; reach for `slides.md` (the full superset) only to choose which sections to
+  include.
+
 ## Layout
 
 ```
