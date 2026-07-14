@@ -55,6 +55,12 @@ hide: false
 ---
 
 ---
+# S15 · Validation, preconditions & checks · core · Day 1
+src: ./pages/S15-validation-checks/index.md
+hide: false
+---
+
+---
 # S07 · Modules · core · Day 1
 src: ./pages/S07-modules/index.md
 hide: false
@@ -99,12 +105,6 @@ hide: false
 ---
 # S14 · Security & policy scanners · core · Day 2
 src: ./pages/S14-security-scanners/index.md
-hide: false
----
-
----
-# S15 · Validation, preconditions & checks · core · Day 2
-src: ./pages/S15-validation-checks/index.md
 hide: false
 ---
 

@@ -1,7 +1,7 @@
 ---
 layout: section-cover
 image: /covers/placeholder-section.svg
-day: Day 2
+day: Day 1
 section: '15'
 tier: core
 ---
