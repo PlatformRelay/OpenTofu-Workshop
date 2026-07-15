@@ -157,9 +157,9 @@ Then: "Let's look at version constraints, the one that only registry sources get
 <div v-click class="mt-6 kw-muted text-sm">
 
 The same constraint syntax pins **providers** (`required_providers { … version }`)
-and **registry modules** (`module { … version }`). A pin with **no available
-release** fails init with *"no available releases match the given constraints"* —
-the lab's break→fix.
+and **registry modules** (`module { … version }`). A pin the registry can't
+satisfy fails at init — the resolver reports *"no available releases match the
+given constraints"*. The lab drives exactly this break→fix.
 
 </div>
 
@@ -310,8 +310,9 @@ next: 'Next: Naming & labelling module'
   namespaced addresses (`module.checkout.*`, `module.payments.*`).
 - **Sources:** local `./…` (no version), Git (`?ref=`), and registry
   (`NS/NAME/PROVIDER` — the only source that takes a `version`).
-- **Version constraints** resolve at **`tofu init`**; an unsatisfiable pin fails
-  with *"no available releases match the given constraints"* — before any plan.
+- **Version constraints** resolve at **`tofu init`** (the lock is checked first);
+  an unsatisfiable pin fails with *"no available releases match the given
+  constraints"* — before any plan.
 - The **OpenTofu registry** is decentralized + GitHub-backed; **mirroring** —
   filesystem/network and **OCI (1.10)** — covers air-gapped orgs.
 

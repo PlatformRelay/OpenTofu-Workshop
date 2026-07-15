@@ -323,8 +323,9 @@ Then re-init so the resolver runs again:
 tofu init
 ```
 
-**Task:** At which command does this fail — `init`, `plan`, or `apply`? Read the
-error: what exactly can't be resolved?
+**Task:** At which command does this fail — `init`, `plan`, or `apply`? The lock
+file from Step 1 is still present — which check trips *first*, and what does it
+tell you to do?
 
 <details><summary>Solution / expected output</summary>
 
@@ -335,11 +336,47 @@ Initializing the backend...
 Initializing modules...
 
 Initializing provider plugins...
-- Finding latest version of hashicorp/random...
-- Finding hashicorp/local versions matching ">= 99.0.0"...
-- Installing hashicorp/random v3.9.0...
-- Installed hashicorp/random v3.9.0 (signed, key ID 0C0AF313E5FD9F80)
-...
+- Reusing previous version of hashicorp/local from the dependency lock file
+- Reusing previous version of hashicorp/random from the dependency lock file
+- Using previously-installed hashicorp/random v3.9.0
+╷
+│ Error: Failed to resolve provider packages
+│ 
+│ Could not resolve provider hashicorp/local: locked provider
+│ registry.opentofu.org/hashicorp/local 2.9.0 does not match configured
+│ version constraint >= 99.0.0; must use tofu init -upgrade to allow
+│ selection of new versions
+╵
+```
+
+It fails at **`init`** — the phase that resolves modules and providers, *before*
+any plan. Because Step 1 already wrote `.terraform.lock.hcl`, the **lock check**
+trips first: the locked `2.9.0` no longer satisfies your new `>= 99.0.0`
+constraint. OpenTofu refuses to silently pick a different version and tells you
+exactly how to opt in: `must use tofu init -upgrade`.
+</details>
+
+Do what it says — re-run with `-upgrade` so the resolver is allowed to look past
+the lock file and actually try to satisfy `>= 99.0.0`:
+
+```bash
+tofu init -upgrade
+```
+
+**Task:** Now that the lock is out of the way, what stops the resolver?
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ tofu init -upgrade
+
+Initializing the backend...
+Initializing modules...
+
+Initializing provider plugins...
+- Reusing previous version of hashicorp/local from the dependency lock file
+- Reusing previous version of hashicorp/random from the dependency lock file
+- Using previously-installed hashicorp/random v3.9.0
 ╷
 │ Error: Failed to resolve provider packages
 │ 
@@ -348,18 +385,12 @@ Initializing provider plugins...
 ╵
 ```
 
-It fails at **`init`** — the phase that resolves modules and providers, *before*
-any plan. Read it top to bottom:
-
-1. `Finding hashicorp/local versions matching ">= 99.0.0"` — the resolver honoured
-   your constraint and went looking.
-2. `Error: Failed to resolve provider packages` — it could not find a match.
-3. `no available releases match the given constraints >= 99.0.0` — the exact
-   reason: no published `hashicorp/local` release satisfies `>= 99.0.0`.
-
-This is the same failure mode as pinning a **module** to a version its registry
-doesn't publish — a version constraint is a hard gate resolved at `init`, so a bad
-pin stops you before you ever plan.
+With the lock bypassed, the resolver goes looking for a `hashicorp/local` release
+matching `>= 99.0.0` and finds **none exist**:
+`no available releases match the given constraints >= 99.0.0`. That is the real
+version-constraint mismatch — the same failure mode as pinning a **registry
+module** to a version its registry doesn't publish. A version constraint is a hard
+gate resolved at `init`, so a bad pin stops you before you ever plan.
 </details>
 
 ---
@@ -384,18 +415,28 @@ tofu init
 
 ```console
 $ tofu init
-...
+
+Initializing the backend...
+Initializing modules...
+
+Initializing provider plugins...
+- Reusing previous version of hashicorp/random from the dependency lock file
+- Reusing previous version of hashicorp/local from the dependency lock file
+- Using previously-installed hashicorp/local v2.9.0
+- Using previously-installed hashicorp/random v3.9.0
+
 OpenTofu has been successfully initialized!
 
 You may now begin working with OpenTofu. Try running "tofu plan" to see
 any changes that are required for your infrastructure.
 ```
 
-Dropping the impossible `>= 99.0.0` pin lets the resolver pick the latest published
-`hashicorp/local` again, so `init` completes. Nothing about the *composition*
-changed — the break was purely a version-constraint mismatch, and the fix was to
-remove the unsatisfiable constraint. `git diff` should now show **no changes** to
-the tracked files.
+Dropping the impossible `>= 99.0.0` pin means the tracked `>= 0` (unconstrained)
+constraint is satisfied by the still-locked `2.9.0` again — the failed `-upgrade`
+never changed the lock — so `init` completes with a plain `tofu init`. Nothing
+about the *composition* changed: the break was purely a version-constraint
+mismatch, and the fix was to remove the unsatisfiable constraint. `git diff` should
+now show **no changes** to the tracked files.
 </details>
 
 ## Expected observations
@@ -407,9 +448,11 @@ the tracked files.
   `Apply complete! Resources: 4 added`.
 - `tofu init` initializes **modules first**, then providers; a module instance is
   named in the `Initializing modules...` list.
-- A **version constraint** is resolved at **`init`**. An unsatisfiable pin fails
-  with `no available releases match the given constraints` — before any plan. The
-  fix is to correct or remove the pin; the composition is untouched.
+- A **version constraint** is resolved at **`init`**. With a lock file present the
+  **lock check fires first** (`must use tofu init -upgrade`); `-upgrade` then lets
+  the resolver run and report `no available releases match the given constraints` —
+  all before any plan. The fix is to correct or remove the pin; the composition is
+  untouched.
 
 ## Cleanup / panic reset
 
