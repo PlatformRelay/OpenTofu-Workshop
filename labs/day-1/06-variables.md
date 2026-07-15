@@ -409,3 +409,10 @@ panic reset leaves the tracked files exactly as CI verified them.
   put it back as an `object` — that's the recommended form.
 - Move the `service` value into a `*.auto.tfvars` file and confirm it still beats
   the default but still loses to `-var`.
+
+---
+
+**Next:** [Lab 15 — Preconditions, postconditions & check blocks](15-conditions-checks.md)
+carries this `service` module forward and layers native assertions onto it — a
+`precondition` and an output precondition at plan, a `postcondition` that breaks on
+apply, and a non-blocking `check` block.
