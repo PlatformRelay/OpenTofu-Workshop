@@ -475,8 +475,10 @@ sweep catches every `terraform.tfstate*` in the root — including the timestamp
 
 ## Stretch (optional)
 
-- Rename the resource cleanly with `state mv`. Change `random_pet` `"service"` to
-  `"svc"` **in `main.tf`**, then run `tofu state mv random_pet.service
+- Rename the resource cleanly with `state mv`. Rename it **everywhere in `main.tf`** —
+  the block label `random_pet "service"` **and both references** to it
+  (`random_pet.service.id` in `local_file.service_name`'s `content`, and in
+  `output "service_name"`) → `svc`. Then run `tofu state mv random_pet.service
   random_pet.svc` **before** planning. The `plan` is then a no-op — you renamed
   the *address* in both config and state, so OpenTofu keeps the same real object
   instead of destroy-recreating it. (Skip the `state mv` and `plan` shows
@@ -490,10 +492,11 @@ sweep catches every `terraform.tfstate*` in the root — including the timestamp
   Successfully moved 1 object(s).
   ```
 
-  With the config also renamed to `random_pet "svc"`, the address in state and the
-  address in config match again, so `tofu plan` reports `No changes`. `state mv` is
-  the tool for refactoring a resource's *address* without touching the real
-  resource. Restore `"service"` in both places afterwards, or run the panic reset.
+  With the config fully renamed to `random_pet "svc"` — the block **and** both
+  references — the address in state and the address in config match again, so
+  `tofu plan` reports `No changes`. `state mv` is the tool for refactoring a
+  resource's *address* without touching the real resource. Restore `"service"`
+  everywhere afterwards, or run the panic reset.
   </details>
 - Inspect the whole state as JSON with `tofu show -json | jq` and find every
   `sensitive_values` block — OpenTofu *marks* which attributes are sensitive, but
