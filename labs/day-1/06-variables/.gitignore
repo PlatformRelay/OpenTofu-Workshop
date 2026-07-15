@@ -1,0 +1,12 @@
+# Learner-generated artifacts from running this lab in place — never committed.
+# The lab's canonical HCL is main.tf (tracked, drift-checked) plus the tracked
+# terraform.tfvars used by the precedence demo.
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.*
+*.tfstate
+*.tfstate.*
+out/
+crash.log
+crash.*.log
