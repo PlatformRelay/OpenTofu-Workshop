@@ -1,0 +1,13 @@
+# Learner-generated artifacts from running this lab in place — never committed.
+# The lab's canonical HCL is main.tf + greeting/ (tracked, drift-checked); the
+# tracked data input is motd.txt. Everything below is generated at apply time.
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.*
+*.tfstate
+*.tfstate.*
+build/
+broken.tf
+crash.log
+crash.*.log
