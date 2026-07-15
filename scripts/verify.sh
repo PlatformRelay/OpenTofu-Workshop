@@ -163,11 +163,18 @@ else
     HCL_BLOCKS=$((HCL_BLOCKS + ${n:-0}))
     # Extract every modules/... or examples/... path the lab references and
     # assert it exists (strip trailing punctuation/backticks the grep may grab).
+    #
+    # A ref may be a REPO-ROOT shared-code path (modules/foo, examples/bar) OR a
+    # path RELATIVE to the lab's own workdir — a lab under labs/day-N/NN-topic/
+    # may carry a local `modules/` subdir (e.g. a child module reached via
+    # `source = "./modules/service-manifest"`). Accept either: pass if the ref
+    # exists at repo root OR under the lab's sibling workdir
+    # (labs/day-N/NN-topic/<ref>). Only a ref resolving under neither fails.
     while IFS= read -r ref; do
       [ -n "$ref" ] || continue
       ref="${ref%%[\`\"\')]*}"
       CHECKED_REFS=$((CHECKED_REFS + 1))
-      if [ -e "$ref" ]; then
+      if [ -e "$ref" ] || [ -e "${f%.md}/$ref" ]; then
         pass "lab ref exists: $ref  ($(basename "$f"))"
       else
         fail "lab ref missing on disk: $ref  (cited in $f)"
@@ -175,7 +182,11 @@ else
       fi
     # -h: never prefix the filename onto the match (BSD/ugrep prefix even a
     # single file); trim trailing slashes so `dir/` and `dir` dedupe under sort.
-    done < <(grep -hoE '(modules|examples)/[A-Za-z0-9_./-]+' "$f" 2>/dev/null | sed 's:/*$::' | sort -u)
+    # Drop `<!-- source: PATH -->` annotation lines first: those paths are
+    # already existence-checked and byte-diffed by the drift-enforcement section
+    # above, and the `NN-modules/` workdir name would otherwise match the
+    # `modules/` substring and manufacture phantom refs (e.g. modules/main.tf).
+    done < <(grep -v '<!-- *source:' "$f" 2>/dev/null | grep -hoE '(modules|examples)/[A-Za-z0-9_./-]+' 2>/dev/null | sed 's:/*$::' | sort -u)
   done
   info "scanned ${#LAB_FILES[@]} lab file(s): ${HCL_BLOCKS} \`\`\`hcl block(s), ${CHECKED_REFS} shared-code reference(s)"
   if [ "$CHECKED_REFS" -eq 0 ]; then
