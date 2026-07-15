@@ -32,9 +32,10 @@ what you apply is exactly what CI verified. The config lives at
 
 ## Prerequisites
 
-- `tofu` ≥ 1.5 (`task setup` installs it). `check` blocks need 1.5+;
-  pre/postconditions need 1.2+. Check: `tofu version` (this lab was verified on
-  `tofu v1.12.3`).
+- `tofu` ≥ 1.6 — OpenTofu's first GA — (`task setup` installs it); any current
+  `tofu` has all four constructs. The feature lineage traces to Terraform:
+  pre/postconditions from 1.2, `check` blocks from 1.5. Check: `tofu version`
+  (this lab was verified on `tofu v1.12.3`).
 - You have done Lab 06 (S06) — this lab continues from that `service`-object shape.
 - Run everything **from the repo clone** — no Docker, no cloud.
 
