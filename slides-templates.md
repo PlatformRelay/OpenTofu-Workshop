@@ -400,6 +400,36 @@ it left to right: plaintext state is what tofu holds, a PBKDF2 key_provider deri
 the key, the aes_gcm method encrypts, and a signed ciphertext envelope is what lands
 on disk. Same clamped step prop as the other two — out-of-range clicks never throw.
 (~2 min)
+Then: one last click-stepped diagram — the dependency graph itself.
+-->
+
+---
+clicks: 8
+---
+
+<span class="kw-kicker">Component: DependencyGraph — the S02 / S07 DAG, click-stepped</span>
+
+# The dependency graph, built in topological order
+
+<DependencyGraph :step="$clicks" class="mt-8" />
+
+<div v-click="8" class="mt-6 kw-muted text-sm text-center">
+
+Eight clicks walk the DAG in dependency order: **`random_pet`** seeds both
+**`module.svc_a`** and **`module.svc_b`** (one module, consumed twice), and both
+feed a single **`local_file`** manifest. A node can only light once everything it
+depends on has — exactly how tofu orders `plan` and `apply`.
+
+</div>
+
+<!--
+Say: The last click-stepped diagram is the graph the other three are built on.
+tofu reads your config, wires up a dependency graph, and walks it in topological
+order — a node runs only after everything it references. Click through it: a
+shared random_pet seeds two instances of one service module — that's reference
+fan-out from S02 and module reuse from S07 — and both fan back in to one local_file
+manifest. Source node, its edge, then the dependent node, eight steps. Same clamped
+step prop as the other three — out-of-range clicks never throw. (~2 min)
 Then: that closes the component tour — on to the recap.
 -->
 
@@ -414,7 +444,7 @@ next: 'Next: the section library under pages/SNN-topic/'
   code-walkthrough, code-annotated, comparison, two-cols-code, topology, lab, recap.
 - **Components** carry meaning: `KwCard`, `KwChip`, `CodeNote`, `CodeCallout`,
   `IacIcon`, `ArchBox`, and click-stepped diagrams `PlanApplyFlow`, `TestPyramid`,
-  `StateEncryptionFlow`.
+  `StateEncryptionFlow`, `DependencyGraph`.
 - **magic-move** grows HCL; **CodeNote** explains it; **CodeCallout** warns on it.
 
 ---

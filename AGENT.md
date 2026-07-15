@@ -43,6 +43,12 @@ How this workshop is built. Read before authoring a section, a lab, or a module.
     plaintext state → PBKDF2 key provider → AES-GCM method → ciphertext.
     Props: `step?: number` (0–4, bind `:step="$clicks"`; clamped). step 0 lights
     nothing, step 4 lights all four. S05's headline visual.
+  - `DependencyGraph` — a resource/module DAG revealed in dependency
+    (topological) order: `random_pet` → `module.svc_a` / `module.svc_b` (one
+    module consumed twice) → `local_file`. Props: `step?: number` (0–8, bind
+    `:step="$clicks"`; clamped) — a source node, then its edge, then the
+    dependent node, per click. step 0 lights nothing, step 8 lights all. The
+    S02 (references between blocks) / S07 (module composition) visual.
 - `agent-context/` — **gitignored** planning docs (roadmap, outline, stories,
   image prompts, ideas, operator board, research brief).
 - `docs/decisions/` — tracked ADRs.
