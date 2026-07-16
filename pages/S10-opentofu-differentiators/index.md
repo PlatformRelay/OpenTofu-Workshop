@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/placeholder-section.svg
+image: /covers/section-10-the-advanced-rig.png
 day: Day 1
 section: '10'
 tier: recommended

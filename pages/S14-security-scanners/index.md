@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/placeholder-section.svg
+image: /covers/section-14-the-gauntlet-of-scanners.png
 day: Day 2
 section: '14'
 tier: recommended

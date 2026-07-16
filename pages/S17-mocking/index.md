@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/placeholder-section.svg
+image: /covers/section-17-the-stand-in-props.png
 day: Day 2
 section: '17'
 tier: core

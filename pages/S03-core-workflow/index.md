@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/placeholder-section.svg
+image: /covers/section-03-plan-then-raise.png
 day: Day 1
 section: '03'
 tier: core

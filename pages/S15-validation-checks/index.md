@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/placeholder-section.svg
+image: /covers/section-15-the-checkpoint-gates.png
 day: Day 1
 section: '15'
 tier: core

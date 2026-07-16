@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/placeholder-section.svg
+image: /covers/section-18-the-full-field-trial.png
 day: Day 2
 section: '18'
 tier: optional

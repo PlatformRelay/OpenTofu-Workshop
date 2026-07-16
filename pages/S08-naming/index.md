@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/placeholder-section.svg
+image: /covers/section-08-tagging-the-works.png
 day: Day 1
 section: '08'
 tier: core

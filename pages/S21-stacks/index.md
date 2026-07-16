@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/placeholder-section.svg
+image: /covers/section-21-mapping-the-districts.png
 day: Day 3
 section: '21'
 tier: core

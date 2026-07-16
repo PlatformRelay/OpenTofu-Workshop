@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/placeholder-section.svg
+image: /covers/section-16-the-dry-run-rehearsal.png
 day: Day 2
 section: '16'
 tier: core

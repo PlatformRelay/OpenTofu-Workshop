@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/placeholder-section.svg
+image: /covers/section-05-sealing-the-ledger.png
 day: Day 1
 section: '05'
 tier: recommended

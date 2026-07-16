@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/placeholder-section.svg
+image: /covers/section-23-conducting-the-fleet.png
 day: Day 3
 section: '23'
 tier: core

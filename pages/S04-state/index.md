@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/placeholder-section.svg
+image: /covers/section-04-the-great-survey-map.png
 day: Day 1
 section: '04'
 tier: core

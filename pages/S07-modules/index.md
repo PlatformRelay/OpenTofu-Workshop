@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/placeholder-section.svg
+image: /covers/section-07-the-parts-depot.png
 day: Day 1
 section: '07'
 tier: core
