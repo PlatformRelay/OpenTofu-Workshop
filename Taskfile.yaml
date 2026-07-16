@@ -138,6 +138,40 @@ tasks:
       - sh: command -v docker
         msg: "docker is required for LocalStack."
 
+  # --- Docker-free alternative: LocalStack on Kubernetes (e.g. kind + podman).
+  #     Same image/services as docker-compose.yml; see setup/localstack.md.
+  lab:up:k8s:
+    desc: "Lab env (k8s): run LocalStack in the current kube context (e.g. kind on podman) and port-forward :4566"
+    cmds:
+      - kubectl apply -f setup/localstack-k8s.yaml
+      - kubectl -n opentofu-workshop rollout status deploy/localstack --timeout=180s
+      - |
+        # Restart any stale port-forward, then background a fresh one.
+        pkill -f "port-forward svc/localstack 4566:4566" 2>/dev/null || true
+        kubectl -n opentofu-workshop port-forward svc/localstack 4566:4566 >/dev/null 2>&1 &
+        echo "Waiting for LocalStack to answer at {{.LOCALSTACK_HEALTH}} ..."
+        for i in $(seq 1 60); do
+          if curl -fsS "{{.LOCALSTACK_HEALTH}}" >/dev/null 2>&1; then
+            echo "LocalStack is healthy -> {{.LOCALSTACK_URL}} (stop with: task lab:down:k8s)"
+            exit 0
+          fi
+          sleep 2
+        done
+        echo "ERROR: LocalStack did not become healthy. Check: kubectl -n opentofu-workshop logs deploy/localstack" >&2
+        exit 1
+    preconditions:
+      - sh: command -v kubectl
+        msg: "kubectl is required. Install: brew install kubectl (cluster: e.g. kind with KIND_EXPERIMENTAL_PROVIDER=podman)."
+
+  lab:down:k8s:
+    desc: "Lab env (k8s): stop the port-forward and delete the LocalStack deployment"
+    cmds:
+      - pkill -f "port-forward svc/localstack 4566:4566" 2>/dev/null || true
+      - kubectl delete -f setup/localstack-k8s.yaml --ignore-not-found
+    preconditions:
+      - sh: command -v kubectl
+        msg: "kubectl is required."
+
   # -------------------------------------------------------------------------
   # Lab / module workflow (OpenTofu). Pass a target dir with DIR=examples/foo.
   # -------------------------------------------------------------------------
@@ -237,12 +271,37 @@ tasks:
       - lab:up
     cmds:
       - bash scripts/verify.sh
-      - |
-        echo ""
-        echo "Integration lane: run apply-based examples against LocalStack here."
-        echo "(Add 'tofu apply' smoke tests per example once lab content grows.)"
+      - task: verify:integration:tests
     preconditions:
       - sh: command -v tofu
         msg: "tofu is required. Install: brew install opentofu"
       - sh: command -v docker
-        msg: "docker is required for the integration lane."
+        msg: "docker is required for the integration lane (Docker-free: task verify:integration:k8s)."
+
+  verify:integration:k8s:
+    desc: "Tested-workshop gate (integration, Docker-free): verify against LocalStack running in the current kube context (e.g. kind + podman)."
+    deps:
+      - lab:up:k8s
+    cmds:
+      - bash scripts/verify.sh
+      - task: verify:integration:tests
+    preconditions:
+      - sh: command -v tofu
+        msg: "tofu is required. Install: brew install opentofu"
+      - sh: command -v kubectl
+        msg: "kubectl is required for the k8s integration lane."
+
+  verify:integration:tests:
+    desc: "Run every examples/* integration tftest against LocalStack on :4566 (started via lab:up or lab:up:k8s)"
+    internal: true
+    cmds:
+      - |
+        # Mirrors the CI verify-integration job (.github/workflows/ci.yml).
+        export AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test
+        export AWS_DEFAULT_REGION=us-east-1 AWS_ENDPOINT_URL={{.LOCALSTACK_URL}}
+        for d in examples/*; do
+          [ -d "$d" ] || continue
+          ls "$d"/tests/integration*.tftest.hcl >/dev/null 2>&1 || continue
+          echo "== $d (integration) =="
+          ( cd "$d" && tofu init -input=false && tofu test -filter=tests/integration.tftest.hcl ) || exit 1
+        done
