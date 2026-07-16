@@ -69,27 +69,64 @@ jobs:
     runs-on: ubuntu-latest
     services:
       localstack:
-        image: localstack/localstack
+        # PINNED (US-F-CI, scope A): 4.9.2 is the last LocalStack community
+        # release that boots without a license. The 2026 CalVer images
+        # (:latest since ~2026-07) exit code 55 demanding LOCALSTACK_AUTH_TOKEN,
+        # which is what broke this job on every push. Bump deliberately.
+        image: localstack/localstack:4.9.2
         ports: ["4566:4566"]
         env:
           SERVICES: s3,dynamodb,iam,sqs,sns,kms,logs
+        # Own health-check (overrides the image's) with a generous start
+        # period so a slow boot reads as "starting", never "unhealthy" —
+        # the runner waits for healthy before running any step.
+        options: >-
+          --health-cmd "curl -fsS http://localhost:4566/_localstack/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 30
+          --health-start-period 30s
     steps:
       - uses: actions/checkout@v4
       - uses: opentofu/setup-opentofu@v1
         with:
           tofu_version: "1.10.3"
+      - name: Wait for LocalStack readiness
+        # Belt-and-braces: the service is already health-gated, but assert the
+        # edge port answers from the job side too, and fail loudly if not.
+        run: |
+          echo "Waiting for http://localhost:4566/_localstack/health ..."
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:4566/_localstack/health >/dev/null 2>&1; then
+              echo "LocalStack is ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::LocalStack did not answer on :4566 within 60s"
+          curl -sv http://localhost:4566/_localstack/health || true
+          exit 1
       - name: Integration tests against LocalStack
         env:
           AWS_ACCESS_KEY_ID: test
           AWS_SECRET_ACCESS_KEY: test
           AWS_DEFAULT_REGION: us-east-1
           AWS_ENDPOINT_URL: http://localhost:4566
+        # One retry per example absorbs transient LocalStack flakiness
+        # (first-touch service init); a genuine failure still fails the job.
         run: |
           for d in examples/*; do
             [ -d "$d" ] || continue
             ls "$d"/tests/integration*.tftest.hcl >/dev/null 2>&1 || continue
             echo "::group::$d (integration)"
-            ( cd "$d" && tofu init -input=false && tofu test -filter=tests/integration.tftest.hcl ) || \
-            ( cd "$d" && tofu test )
+            ok=0
+            for attempt in 1 2; do
+              if ( cd "$d" && tofu init -input=false && tofu test -filter=tests/integration.tftest.hcl ); then
+                ok=1; break
+              fi
+              echo "::warning::$d integration tests failed (attempt $attempt/2)"
+              [ "$attempt" -lt 2 ] && sleep 10
+            done
             echo "::endgroup::"
+            [ "$ok" -eq 1 ] || exit 1
           done

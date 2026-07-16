@@ -7,8 +7,11 @@ terraform {
 
   required_providers {
     aws = {
-      source  = "hashicorp/aws"
-      version = ">= 5.0"
+      source = "hashicorp/aws"
+      # < 6.0: provider v6's DynamoDB waiter is incompatible with LocalStack
+      # community (last release 4.9.2) — apply hangs on "waiting for update …
+      # couldn't find resource" despite DescribeTable => 200. v5 applies clean.
+      version = ">= 5.0, < 6.0"
     }
     random = {
       source  = "hashicorp/random"
