@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/placeholder-section.svg
+image: /covers/section-01-the-two-blueprints.png
 day: Day 1
 section: '01'
 tier: core

@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/placeholder-section.svg
+image: /covers/section-02-the-first-prefabs.png
 day: Day 1
 section: '02'
 tier: core

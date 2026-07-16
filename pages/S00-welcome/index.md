@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/placeholder-section.svg
+image: /covers/section-00-arrival.png
 day: Day 1
 section: '00'
 tier: core

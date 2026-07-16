@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/placeholder-section.svg
+image: /covers/section-26-the-settled-colony.png
 day: Day 3
 section: '26'
 tier: core

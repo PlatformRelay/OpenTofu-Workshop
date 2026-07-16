@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/placeholder-section.svg
+image: /covers/section-09-the-tidy-worksite.png
 day: Day 1
 section: '09'
 tier: recommended

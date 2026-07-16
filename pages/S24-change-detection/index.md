@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/placeholder-section.svg
+image: /covers/section-24-only-what-moved.png
 day: Day 3
 section: '24'
 tier: recommended

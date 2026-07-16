@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/placeholder-section.svg
+image: /covers/section-11-the-contractors-fair.png
 day: Day 1
 section: '11'
 tier: optional

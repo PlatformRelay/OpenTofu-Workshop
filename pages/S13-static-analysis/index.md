@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/placeholder-section.svg
+image: /covers/section-13-the-inspection-bench.png
 day: Day 2
 section: '13'
 tier: core

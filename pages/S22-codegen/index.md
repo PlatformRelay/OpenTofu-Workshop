@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/placeholder-section.svg
+image: /covers/section-22-the-pattern-loom.png
 day: Day 3
 section: '22'
 tier: core
