@@ -13,3 +13,8 @@ Consequences.
 | [0005](./0005-naming-convention.md) | Naming convention | Accepted |
 | [0006](./0006-local-first-lab-environment.md) | Local-first lab environment (LocalStack) | Accepted |
 | [0007](./0007-validation-and-ci.md) | Validation & CI (tested workshop) | Accepted |
+| [0008](./0008-tier-canon-and-deck-headers.md) | Section tier canon & deck-header convention | Accepted |
+| [0009](./0009-lab-workdirs.md) | Labs use in-repo tracked workdirs | Accepted |
+| [0010](./0010-component-budget.md) | Animated-component budget — fund three, defer four | Accepted |
+| [0011](./0011-toolchain-lanes.md) | Toolchain lanes — Infracost optional, Terratest container-first | Accepted |
+| [0012](./0012-s15-into-day-1.md) | S15 (validation & checks) re-sequenced into Day 1 | Accepted |

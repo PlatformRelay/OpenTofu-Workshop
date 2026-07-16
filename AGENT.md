@@ -67,6 +67,14 @@ Reuse the layouts; never invent a per-slide layout. Available: `cover`,
   Use a glyph where a slide names a **specific** construct; keep emoji for
   conceptual/decorative cards. Over-conversion is a defect.
 
+## Section headers & tiers
+
+Every section sets `section: 'NN'`, `day: Day N`,
+`tier: core|recommended|optional` in its `pages/SNN-*/index.md` frontmatter, and is imported in
+`slides.md`/`slides-3day.md` under a `# SNN · Title · tier · Day` comment. Tiers must match across
+both decks and obey `hide:true ⟺ optional` — `task verify` (US-F-TIERS) enforces both.
+Rationale and the full tier canon: [ADR 0008](./docs/decisions/0008-tier-canon-and-deck-headers.md).
+
 ## Lab authoring contract
 
 Flat file `labs/day-N/NN-topic.md`, one per section. Every lab:
