@@ -1,0 +1,89 @@
+# setup/localstack-k8s.yaml — LocalStack on Kubernetes (US-F-CI).
+#
+# The Docker-free alternative to docker-compose.yml: run LocalStack in any
+# local cluster — e.g. a kind cluster on a podman runtime — so the integration
+# lane does not hard-require Docker. Same pinned image, same SERVICES set,
+# same clean-slate semantics (PERSISTENCE=0, no volumes).
+#
+#   task lab:up:k8s      # apply + wait ready + port-forward :4566
+#   task lab:down:k8s    # stop the port-forward + delete everything
+#
+# See setup/localstack.md — "LocalStack on Kubernetes (kind + podman)".
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: opentofu-workshop
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: localstack
+  namespace: opentofu-workshop
+  labels:
+    app.kubernetes.io/name: localstack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: localstack
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: localstack
+    spec:
+      containers:
+        - name: localstack
+          # PINNED — keep in lockstep with .github/workflows/ci.yml. 4.9.2 is
+          # the last LocalStack community release that boots without a
+          # license token (the 2026 CalVer images exit demanding
+          # LOCALSTACK_AUTH_TOKEN).
+          image: localstack/localstack:4.9.2
+          ports:
+            - name: edge
+              containerPort: 4566
+          env:
+            # Only the services the labs touch — fast startup, low memory.
+            - name: SERVICES
+              value: "s3,dynamodb,iam,sqs,sns,kms,logs"
+            - name: DEBUG
+              value: "0"
+            # Clean slate on every restart, matching docker-compose.yml.
+            - name: PERSISTENCE
+              value: "0"
+            - name: AWS_DEFAULT_REGION
+              value: "us-east-1"
+          readinessProbe:
+            httpGet:
+              path: /_localstack/health
+              port: edge
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 24
+          livenessProbe:
+            httpGet:
+              path: /_localstack/health
+              port: edge
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              memory: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: localstack
+  namespace: opentofu-workshop
+  labels:
+    app.kubernetes.io/name: localstack
+spec:
+  selector:
+    app.kubernetes.io/name: localstack
+  ports:
+    - name: edge
+      port: 4566
+      targetPort: edge
