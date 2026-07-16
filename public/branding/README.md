@@ -1,16 +1,16 @@
-# Branding assets — kept, currently **unused**
+# Branding assets
 
-These files (favicon set, logos, OG / social-preview cards) are intentionally kept in the repo but
-are **not wired into anything yet** — no favicon `<link>`, no `og:image` / social meta, no deck use.
-They were landed by the branding branches (favicon+social, repo/workshop logo, Kollect-style social
-cards) so the artwork lives with the project; actually *using* them is a tracked follow-up.
+The workshop's favicon set, logos, and OG / social-preview cards, landed by the branding
+branches (favicon+social, repo/workshop logo, Kollect-style social cards) and **wired in
+2026-07-16 (US-X-BRAND)**.
 
-| File | Intended use (once wired) |
+| File | Wired where |
 | --- | --- |
-| `favicon.ico`, `favicon-32.png`, `favicon-180.png` | Browser tab / apple-touch icon |
-| `logo.png`, `logo-512.png`, `workshop-logo.png` | Repo / deck / README logo |
-| `og-image.png`, `social-preview.png` | `og:image` + Twitter/social preview cards (1200×630) |
+| `favicon-32.png` | Primary favicon — `favicon:` headmatter of all three root decks |
+| `favicon.ico`, `favicon-180.png` | Legacy `.ico` + apple-touch icon links — root `index.html` (merged into every deck's `<head>`) |
+| `logo-512.png` | Cover-slide logo mark — `logo:` frontmatter on each root deck's cover (`theme/layouts/cover.vue`) |
+| `og-image.png` | `og:image` / `twitter:image` — `seoMeta:` headmatter of all three root decks |
+| `logo.png`, `workshop-logo.png`, `social-preview.png` | Staged spares (hi-res logo, README/social alternates) — kept for future use |
 
-**Status:** orphan-by-design. Wiring them into the decks/HTML is tracked as **US-X-BRAND**
-(`agent-context/user-stories.md`). Until then, do **not** treat these as dead files — they are
-staged assets awaiting that story. Keep them.
+Root-absolute `/branding/…` paths are resolved against each deck's build base (`/`, `/3day/`,
+`/templates/`, and the Pages sub-path) by Slidev / the theme's `resolveAsset` helper.

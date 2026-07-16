@@ -5,8 +5,19 @@ info: |
   Open source, vendor-neutral OpenTofu workshop.
   Superset root deck: imports every section S00–S26. Toggle any section
   with `hide: true` on its import block below.
+favicon: '/branding/favicon-32.png'
+seoMeta:
+  ogTitle: OpenTofu Practitioner Workshop
+  ogDescription: >-
+    Open source, vendor-neutral OpenTofu workshop — Infrastructure as Code done
+    right: write it, test it, scale it. 3 days, 50% hands-on, LocalStack labs.
+  ogImage: https://platformrelay.github.io/OpenTofu-Workshop/branding/og-image.png
+  ogUrl: https://platformrelay.github.io/OpenTofu-Workshop/
+  twitterCard: summary_large_image
+  twitterImage: https://platformrelay.github.io/OpenTofu-Workshop/branding/og-image.png
 layout: cover
 meta: 3 days · 50% hands-on · OpenTofu-first · LocalStack labs
+logo: /branding/logo-512.png
 ---
 
 # OpenTofu Practitioner Workshop

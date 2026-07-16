@@ -2,9 +2,16 @@
 const props = defineProps<{
   /** Small mono line under the title block, e.g. "3 days · 50% hands-on". */
   meta?: string
+  /** Optional workshop logo shown above the title, e.g. "/branding/logo-512.png". */
+  logo?: string
 }>()
 
 const base = import.meta.env.BASE_URL
+
+/** Resolve a public-dir absolute path ("/x.png") against the deck's base. */
+function resolveAsset(url: string) {
+  return url.startsWith('/') ? base + url.slice(1) : url
+}
 </script>
 
 <template>
@@ -17,6 +24,13 @@ const base = import.meta.env.BASE_URL
     />
 
     <div class="kw-cover-inner">
+      <img
+        v-if="props.logo"
+        class="kw-cover-logo"
+        :src="resolveAsset(props.logo)"
+        alt=""
+        aria-hidden="true"
+      />
       <slot />
     </div>
 
@@ -46,6 +60,15 @@ const base = import.meta.env.BASE_URL
 .kw-cover-inner {
   position: relative;
   max-width: 70%;
+}
+
+/* Workshop logo mark above the title — dark tile, so soften with rounding. */
+.kw-cover-logo {
+  height: 5rem;
+  width: 5rem;
+  border-radius: 0.75rem;
+  margin-bottom: 1.2rem;
+  border: 1px solid rgb(255 255 255 / 0.08);
 }
 
 .kw-cover-inner :deep(h1) {

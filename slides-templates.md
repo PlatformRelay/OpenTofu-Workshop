@@ -5,8 +5,19 @@ info: |
   The OpenTofu workshop deck's design system, rendered as slides: master theme,
   reusable layouts and components, HCL code-annotation patterns, and the
   block-glyph icon set. Not workshop content — the toolkit every section reuses.
+favicon: '/branding/favicon-32.png'
+seoMeta:
+  ogTitle: OpenTofu Practitioner Workshop — template gallery & design system
+  ogDescription: >-
+    The workshop deck's design system rendered as slides — master theme,
+    reusable layouts, HCL code-annotation patterns, and the block-glyph icon set.
+  ogImage: https://platformrelay.github.io/OpenTofu-Workshop/branding/og-image.png
+  ogUrl: https://platformrelay.github.io/OpenTofu-Workshop/templates/
+  twitterCard: summary_large_image
+  twitterImage: https://platformrelay.github.io/OpenTofu-Workshop/branding/og-image.png
 layout: cover
 meta: slidev-theme-opentofu-workshop · dark · purple accent · brand yellow
+logo: /branding/logo-512.png
 ---
 
 # OpenTofu Practitioner Workshop

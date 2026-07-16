@@ -4,8 +4,19 @@ title: OpenTofu Practitioner Workshop — 3-day cut
 info: |
   Canonical 3-day delivery cut. Same section library as slides.md; optional-tier
   and selected deep-dive sections are hidden here via `hide: true`.
+favicon: '/branding/favicon-32.png'
+seoMeta:
+  ogTitle: OpenTofu Practitioner Workshop — 3-day cut
+  ogDescription: >-
+    The canonical 3-day delivery cut of the open source, vendor-neutral OpenTofu
+    workshop — core and recommended sections, 50% hands-on.
+  ogImage: https://platformrelay.github.io/OpenTofu-Workshop/branding/og-image.png
+  ogUrl: https://platformrelay.github.io/OpenTofu-Workshop/3day/
+  twitterCard: summary_large_image
+  twitterImage: https://platformrelay.github.io/OpenTofu-Workshop/branding/og-image.png
 layout: cover
 meta: 3 days · core + recommended · OpenTofu-first
+logo: /branding/logo-512.png
 ---
 
 # OpenTofu Practitioner Workshop
