@@ -68,7 +68,35 @@ cut.
 > budget**. That is a deliberate design choice ("choice over fit"), not an
 > oversight. For a standard delivery, start with the canonical three-day cut;
 > when trimming further, cut **`optional` first, then `recommended`**, and keep
-> `core`.
+> `core`. Before facilitating Day 1, apply the
+> [executable Day 1 fit plan](#day-1-fit-plan).
+
+### Day 1 fit plan
+
+The planning estimate starts at **655 minutes** for every Day 1 section. Apply
+the rows in order. The first three remove optional/recommended material; the
+remaining rows shorten core delivery while preserving each section's outcome.
+The arithmetic is explicit: **655 → 620 → 575 → 525**, then
+**525 → 510 → 490 → 475 → 460 → 445 → 430 → 415 → 400 → 390**.
+
+| Order | Action | Minutes | Running total | Pedagogical cost |
+| ---: | --- | ---: | ---: | --- |
+| 1 | Skip S11 (optional); its `hide: true` toggle is already set | −35 | 620 | Defer the TACO vendor-selection landscape |
+| 2 | Skip S10 (recommended) at its `DAY1-FIT` marker; keep `hide: false` | −45 | 575 | Defer the differentiator survey; S05 still demonstrates encryption |
+| 3 | Skip S09 (recommended) at its `DAY1-FIT` marker; keep `hide: false` | −50 | 525 | Defer lifecycle/refactoring patterns to follow-up study |
+| 4 | Compress S00 from 40→25 at its marker | −15 | 510 | Move installation checks before class; retain orientation and first apply |
+| 5 | Compress S01 from 40→20 at its marker | −20 | 490 | Make the detailed fork timeline pre-reading; retain why IaC and governance |
+| 6 | Compress S02 from 50→35 at its marker | −15 | 475 | Demo fewer block variants; retain syntax, references, and the break→fix |
+| 7 | Compress S03 from 60→45 at its marker | −15 | 460 | Use one lifecycle run; retain plan reading and destroy |
+| 8 | Compress S04 from 50→35 at its marker | −15 | 445 | Demonstrate state inspection live; assign backend migration as follow-up |
+| 9 | Compress S05 from 60→45 at its marker | −15 | 430 | Demonstrate encryption; assign key rotation as follow-up |
+| 10 | Compress S06 from 50→35 at its marker | −15 | 415 | Teach typed objects and validation; assign precedence variants as follow-up |
+| 11 | Compress S15 from 50→35 at its marker | −15 | 400 | Teach one blocking condition plus `check`; assign the full assertion matrix |
+| 12 | Compress S07 from 60→50 at its marker | −10 | **390** | Keep local module composition; demo registry/OCI lookup instead of running it |
+
+`hide: true` remains reserved for optional sections, so S09/S10 and every core
+section stay `hide: false`. Their comments in
+[the three-day deck](slides-3day.md) are delivery markers, not tier changes.
 
 ## Common local commands
 
