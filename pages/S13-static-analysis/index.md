@@ -19,16 +19,16 @@ layout: topology
 # Stop defects before a plan
 
 <div class="grid grid-cols-4 gap-4 mt-10">
-  <KwCard v-click title="1 · Edit" icon="✍️" tone="neutral">
+  <KwCard v-click heading="1 · Edit" icon="✍️" variant="plain">
     Change tracked HCL in a small, reviewable step.
   </KwCard>
-  <KwCard v-click title="2 · Format" icon="↔️" tone="info">
+  <KwCard v-click heading="2 · Format" icon="↔️" variant="accent">
     Canonical layout removes style debate.
   </KwCard>
-  <KwCard v-click title="3 · Validate" icon="🧩" tone="warning">
+  <KwCard v-click heading="3 · Validate" icon="🧩" variant="warn">
     Parse HCL and check native type contracts.
   </KwCard>
-  <KwCard v-click title="4 · Lint" icon="🔎" tone="success">
+  <KwCard v-click heading="4 · Lint" icon="🔎" variant="ok">
     Apply conventions and semantic rules.
   </KwCard>
 </div>
