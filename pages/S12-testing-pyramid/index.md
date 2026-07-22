@@ -40,6 +40,8 @@ Then: “That cost gradient gives us the testing pyramid.”
 -->
 
 ---
+clicks: 4
+---
 
 <span class="kw-kicker">Build evidence bottom-up</span>
 

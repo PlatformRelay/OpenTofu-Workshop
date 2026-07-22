@@ -136,6 +136,16 @@ main.tftest.hcl... fail
   run "classify_plan_contract"... fail
 
 Error: Test assertion failed
+
+  on main.tftest.hcl line 5, in run "classify_plan_contract":
+   5:     condition     = output.actual_category == var.expected_category
+    ├────────────────
+    │ output.actual_category is "unit-contract"
+    │ var.expected_category is "integration"
+    ├────────────────
+    │ Diff:
+    │     "unit-contract" -> "integration"
+
 Expected integration, classified unit-contract.
 
 Failure! 0 passed, 1 failed.
