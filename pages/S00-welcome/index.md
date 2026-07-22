@@ -22,6 +22,37 @@ build.
 
 ---
 
+<span class="kw-kicker">Your outcome</span>
+
+# What success looks like
+
+By the end of the workshop, you can:
+
+<div class="kw-cols-3 mt-5">
+  <KwCard heading="Author safely" kind="resource">
+    Read and write HCL, predict a plan, manage state, compose modules, and add
+    validation before infrastructure changes.
+  </KwCard>
+  <KwCard heading="Prove behaviour" kind="test">
+    Choose the right layer of the IaC testing pyramid, from formatting and
+    policy checks to native tests, mocks, and integration.
+  </KwCard>
+  <KwCard heading="Scale delivery" kind="stack" variant="plain">
+    Organise stacks, generate repeated configuration, orchestrate changes, and
+    run only what a monorepo change affects.
+  </KwCard>
+</div>
+
+<!--
+Say: Frame the destination in learner language. They will leave able to author
+safely, prove behaviour with an appropriate test layer, and scale delivery
+without copying configuration by hand. These are practical outcomes, not a list
+of product features. (~2 min)
+Then: "Those outcomes form one continuous red line across the three parts."
+-->
+
+---
+
 <span class="kw-kicker">The red line</span>
 
 # What you'll build
@@ -44,7 +75,8 @@ build.
 <div v-click class="mt-6 kw-muted text-sm">
 
 Every block ends with a hands-on lab — roughly half the workshop is your hands
-on the keyboard. Labs run on **LocalStack**, so you never need an AWS account.
+on the keyboard. Labs use local providers, mocks, or **LocalStack**, never a
+required cloud account.
 
 </div>
 
@@ -54,7 +86,8 @@ Part 1 you write it (HCL, state, modules) and it culminates in a tested naming a
 labelling module with encrypted state. Part 2 you learn to trust it (static
 analysis, policy scanners, native tofu test, mocking — the IaC testing pyramid).
 Part 3 you grow it with Terramate — stacks, codegen, orchestration. Land the click
-reveal: every block ends in a lab, ~50% hands-on, all on LocalStack. (~3 min)
+reveal: every block ends in a lab, ~50% hands-on, using local providers, mocks,
+or LocalStack rather than a required cloud account. (~3 min)
 Then: "Before the labs, two ground rules about what we're actually teaching."
 -->
 
@@ -73,27 +106,101 @@ HCL you learn is the shared language, so everything transfers to Terraform — b
 the runtime is open source, and a few headline features (state encryption is the
 one they'll remember) exist only in OpenTofu. We don't run a parallel Terraform
 track; we note compatibility as we go. (~2 min)
-Then: "So what do you actually need installed? Five tools."
+Then: "The workshop alternates explanation with a repeatable hands-on rhythm."
+-->
+
+---
+layout: statement
+kicker: 'The workshop rhythm'
+---
+
+**Explain → run → observe → break → fix → debrief**
+
+Every concept earns keyboard time. We use short explanations, run the real
+tool, read what happened, deliberately trigger a useful failure, repair it,
+then name the lesson together.
+
+<!--
+Say: Make the 50/50 promise concrete: explanation and keyboard time alternate,
+they do not live in separate halves of the day. Break-fix is deliberate and
+safe; learners should read the failure before revealing the repair. Debrief is
+where the command becomes a reusable mental model. (~2 min)
+Then: "That rhythm stays safe because the whole environment is local-first."
+-->
+
+---
+layout: statement
+kicker: 'Local-first by design'
+---
+
+Real OpenTofu. Real provider schemas. **No cloud account, credentials, or bill.**
+
+Pure logic uses `mock_provider`; AWS-shaped integration runs against the pinned
+LocalStack community image on your machine. The environment badge on each lab
+tells you which path it needs before you begin.
+
+<!--
+Say: Draw the boundary precisely. OpenTofu itself and provider schemas are real;
+mock_provider handles logic that needs no service, while LocalStack provides
+AWS-shaped APIs locally. No learner needs cloud credentials. The pinned
+community image makes the LocalStack badge an executable promise, not an
+aspiration. (~2 min)
+Then: "Here is how to read a lab before you type its first command."
+-->
+
+---
+
+<span class="kw-kicker">Lab map</span>
+
+# Badges and spoilers
+
+<div class="kw-cols-2 mt-4">
+  <KwCard heading="Read the environment badge" icon="🏷️">
+    <code>mock ✓ (no docker)</code> is tool-only. <code>localstack ✓</code>
+    needs a healthy local emulator. <code>real-aws (optional)</code> is never
+    required for the workshop path.
+  </KwCard>
+  <KwCard heading="Try, then reveal" icon="🔎">
+    Every task has a <code>Solution / expected output</code> spoiler. Attempt
+    the step first; open the spoiler to unblock yourself or compare observations.
+  </KwCard>
+</div>
+
+<div v-click class="mt-5 kw-muted text-sm">
+
+Every lab also names its files, expected observations, and a safe
+**cleanup / panic reset**.
+
+</div>
+
+<!--
+Say: Teach the lab UI once so it never needs explaining again. Badges answer
+"what must be running?" before a command; spoilers make labs self-service
+without stealing the productive struggle. Land the reveal: every lab ends with
+observations and a panic reset, so experimentation is recoverable. (~3 min)
+Then: "With that map, let's check the required toolchain."
 -->
 
 ---
 
 <span class="kw-kicker">Toolchain</span>
 
-# The five tools
+# Required toolchain
 
 <div class="kw-cols-2 mt-4">
   <KwCard heading="tofu ≥ 1.8" icon="🧊">
     The OpenTofu CLI. Everything runs through <code>tofu init / plan / apply</code>.
   </KwCard>
   <KwCard heading="Docker + LocalStack" icon="🐳">
-    An AWS emulator on <code>:4566</code>. Real resource types, zero cloud bill.
+    The primary local-emulator path on <code>:4566</code>. A Kubernetes path is
+    available when Docker is not.
+  </KwCard>
+  <KwCard heading="Node ≥ 20 + pnpm" icon="📦">
+    Runs the Slidev decks and installs their pinned dependencies.
   </KwCard>
   <KwCard heading="Task (go-task)" icon="✅">
-    One entrypoint: <code>task setup</code>, <code>task lab:up</code>, <code>task verify</code>.
-  </KwCard>
-  <KwCard heading="gum + your editor" icon="🎛️">
-    A friendly interactive setup and lab runner, plus an HCL-aware editor.
+    One entrypoint: <code>task setup</code>, <code>task lab:up</code>, and
+    <code>task verify</code>. Gum, <code>awslocal</code>, and an editor are helpful extras.
   </KwCard>
 </div>
 
@@ -104,11 +211,12 @@ Run <code>task setup</code> — it detects what's missing and walks you through 
 </div>
 
 <!--
-Say: Walk the four cards. tofu (>= 1.8) is the CLI everything runs through. Docker
-plus LocalStack gives an AWS emulator on :4566 — real resource types, zero bill.
-Task (go-task) is the single entrypoint: setup, lab:up, verify. gum plus their
-editor is the friendly runner. Land the reveal: nobody hand-installs — task setup
-detects what's missing and walks them through it. (~2 min)
+Say: Walk the prerequisites exactly as the bootstrap checks them: tofu, the
+Docker/LocalStack primary path, Node plus pnpm for the decks, and Task as the
+single entrypoint. Gum, awslocal, and an editor improve ergonomics but do not
+gate the lab. Mention the documented Kubernetes alternative for a Docker-free
+LocalStack runtime. Land the reveal: task setup reports what is missing and can
+offer installation help. (~3 min)
 Then: "Let's prove the whole loop works — first contact, plan then apply."
 -->
 
@@ -161,7 +269,7 @@ Then: "Your turn — Lab 00 gets this running on your machine."
 layout: lab
 lab: labs/day-1/00-setup.md
 duration: 20 min
-env: 'localstack ✓ · mock ✓'
+env: 'localstack ✓ · local ✓ (no docker)'
 ---
 
 # Lab 00 — set up & first apply
@@ -199,4 +307,3 @@ and the three commands they memorise. (~2 min)
 Then: transition into Infrastructure as Code — and why OpenTofu exists — "now we
 learn what the code actually means."
 -->
-
