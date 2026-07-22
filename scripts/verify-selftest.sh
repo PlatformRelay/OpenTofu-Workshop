@@ -33,7 +33,8 @@
 #     9. broken/absent tool → exit 0 AND an explicit affected-lab skip warning
 #   formatting allowlist contract (section 2):
 #    10. exact S13 messy fixture → exit 0 AND formatting gate remains armed
-#    11. any other unformatted .tf → exit !=0 AND offending path is named
+#    11. another unformatted .tf beside the fixture → exit !=0 AND path is named
+#    12. any other unformatted .tf → exit !=0 AND offending path is named
 #
 # It NEVER mutates the tracked fixture or decks; all edits happen in the temp copy.
 set -euo pipefail
@@ -159,6 +160,12 @@ m_unformatted_outside_allowlist() {
     >"$root/modules/unformatted-regression/main.tf"
 }
 
+m_unformatted_beside_fixture() {
+  local root="$1"
+  printf 'terraform {\n required_version = ">= 1.8"\n}\n' \
+    >"$root/labs/day-2/13-static-analysis/messy/adjacent.tf"
+}
+
 run_case "clean fixture"        pass "no drift: labs/fixtures/drift-demo/main.tf matches" m_clean
 run_case "LF-authored drift"    fail "drift: block in labs/fixtures/drift-demo.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_drift_lf
 run_case "CRLF-authored drift"  fail "drift: block in labs/fixtures/drift-demo.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_drift_crlf
@@ -169,6 +176,7 @@ run_case "deleted README route" fail "README route 'Lab 00' is missing: labs/day
 run_case "unknown README task" fail "README task command does not exist: task dev:ghost" m_unknown_readme_task
 run_case "missing Day-2/3 tool skips" pass "tflint unavailable — skipping tool-dependent checks for S13 static analysis" m_clean
 run_case "exact S13 messy fixture allowlisted" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_clean
+run_case "adjacent S13 file is not allowlisted" fail "labs/day-2/13-static-analysis/messy/adjacent.tf" m_unformatted_beside_fixture
 run_case "unformatted file outside allowlist" fail "modules/unformatted-regression/main.tf" m_unformatted_outside_allowlist
 
 printf '\n'

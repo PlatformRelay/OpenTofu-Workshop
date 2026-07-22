@@ -80,7 +80,7 @@ FORMAT_FILES=()
 while IFS= read -r -d '' tf_file; do
   FORMAT_FILES+=("$tf_file")
 done < <(find . -type f -name '*.tf' \
-  ! -path './labs/day-2/13-static-analysis/messy/*' -print0)
+  ! -path './labs/day-2/13-static-analysis/messy/main.tf' -print0)
 
 if [ "${#FORMAT_FILES[@]}" -eq 0 ] || tofu fmt -check "${FORMAT_FILES[@]}" >/dev/null 2>&1; then
   pass "all tracked .tf files outside the S13 messy fixture are canonically formatted"
