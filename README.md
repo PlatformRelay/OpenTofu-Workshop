@@ -35,6 +35,23 @@ For the standard learner route:
 > Later sections remain visible as curriculum placeholders; do not treat their
 > presence in a deck as completion.
 
+### Prerequisites by workshop day
+
+Run `task setup` before the workshop. It prints every detected version and
+returns non-zero with install guidance and affected labs when something is
+missing. It is safe to rerun and never installs without confirmation.
+
+| Scope | Tools |
+| --- | --- |
+| Decks and Day 1 | OpenTofu ≥1.8, Node.js ≥20, pnpm, Task, Docker |
+| Day 2 static analysis | TFLint |
+| Day 2 security and policy | Trivy, Checkov, Conftest |
+| Day 3 scale labs | Terramate |
+
+`gum`, `awslocal`, and the AWS CLI improve the local experience but are
+optional. Go is intentionally not installed by this bootstrap; the optional
+Terratest lane documents its own container-first prerequisites.
+
 ## Choose your route
 
 | I am a… | Start with | Then use |
