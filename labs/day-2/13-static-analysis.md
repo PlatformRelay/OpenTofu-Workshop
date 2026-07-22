@@ -149,7 +149,7 @@ tflint --config=../../../../.tflint.hcl --minimum-failure-severity=warning
 
 <details><summary>Solution / expected failure</summary>
 
-TFLint exits `2` and reports:
+TFLint exits `2`. The relevant diagnostic excerpt is:
 
 ```console
 1 issue(s) found:
@@ -159,6 +159,9 @@ Warning: [Fixable] variable "legacy_name" is declared but not used (terraform_un
   on main.tf line 11:
   11: variable "legacy_name" {
 ```
+
+TFLint also prints the rule's reference URL after this excerpt; its exact
+versioned path can change when the installed ruleset changes.
 
 The variable is legal HCL, so native validation passes. The repository's
 `terraform_unused_declarations` lint rule adds the stronger convention. Remove
@@ -265,14 +268,15 @@ perl -pi -e 's/default     = "payments"/default     = ["payments"]/' "$tmp_dir/m
 
 <details><summary>Solution / expected observation</summary>
 
-The compact formatter reports the same rule in one line:
+The compact formatter reports the same rule in one diagnostic line. The
+relevant excerpt is:
 
 ```console
 main.tf:11:1: Warning - variable "legacy_name" is declared but not used (terraform_unused_declarations)
 ```
 
-The warning makes this command exit `2`; compact output changes presentation,
-not severity.
+The complete output first prints `1 issue(s) found:`. The warning makes this
+command exit `2`; compact output changes presentation, not severity.
 
 Remove the temporary copy when finished:
 
