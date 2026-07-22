@@ -52,6 +52,16 @@ install_hint() {
     awslocal:*)   echo "pipx install awscli-local   # or: pip install awscli-local" ;;
     aws:macOS)    echo "brew install awscli" ;;
     aws:Linux)    echo "https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html" ;;
+    tflint:macOS) echo "brew install tflint" ;;
+    tflint:Linux) echo "https://github.com/terraform-linters/tflint#installation" ;;
+    trivy:macOS)  echo "brew install trivy" ;;
+    trivy:Linux)  echo "https://trivy.dev/latest/getting-started/installation/" ;;
+    checkov:macOS) echo "brew install checkov   # or: pipx install checkov" ;;
+    checkov:Linux) echo "pipx install checkov" ;;
+    conftest:macOS) echo "brew install conftest" ;;
+    conftest:Linux) echo "https://www.conftest.dev/install/" ;;
+    terramate:macOS) echo "brew install terramate" ;;
+    terramate:Linux) echo "https://terramate.io/docs/cli/installation" ;;
     *)            echo "(see the tool's documentation for $OS)" ;;
   esac
 }
@@ -64,6 +74,11 @@ brew_install_arg() {
     node)   echo "node" ;;
     task)   echo "go-task/tap/go-task" ;;
     aws)    echo "awscli" ;;
+    tflint) echo "tflint" ;;
+    trivy) echo "trivy" ;;
+    checkov) echo "checkov" ;;
+    conftest) echo "conftest" ;;
+    terramate) echo "terramate" ;;
     *)      echo "$1" ;;
   esac
 }
@@ -81,6 +96,11 @@ tool_version() {
     gum)    gum --version 2>/dev/null | awk '{print $NF}' ;;
     awslocal) awslocal --version 2>/dev/null | head -n1 ;;
     aws)    aws --version 2>/dev/null | awk '{print $1}' ;;
+    tflint) tflint --version 2>/dev/null | head -n1 | awk '{print $NF}' ;;
+    trivy) trivy --version 2>/dev/null | head -n1 | awk '{print $NF}' ;;
+    checkov) checkov --version 2>/dev/null | head -n1 ;;
+    conftest) conftest --version 2>/dev/null | head -n1 | awk '{print $NF}' ;;
+    terramate) terramate version 2>/dev/null | head -n1 | awk '{print $NF}' ;;
     *)      echo "" ;;
   esac
 }
@@ -99,6 +119,7 @@ echo
 # Required tools gate the workshop; optional ones are nice-to-have.
 REQUIRED="tofu docker pnpm node task"
 OPTIONAL="gum awslocal aws"
+DAY_TOOLS="tflint trivy checkov conftest terramate"
 
 MISSING=""       # required tools that are absent
 VERSION_WARN=""  # tools present but below minimum
@@ -136,31 +157,70 @@ if ! have awslocal && ! have aws; then
   echo
 fi
 
+# Required by their respective Day-2/3 labs. Always inspect the whole set so a
+# single run reports every gap instead of failing at the first missing tool.
+DAY_MISSING=""
+heading "Day-2/3 lab tools"
+for t in $DAY_TOOLS; do
+  if have "$t"; then
+    ok "$(printf '%-10s %s' "$t" "$(tool_version "$t")")"
+  else
+    bad "$(printf '%-10s missing' "$t")"
+    DAY_MISSING="$DAY_MISSING $t"
+  fi
+done
+echo
+
+affected_labs() {
+  case "$1" in
+    tflint) echo "S13 static analysis" ;;
+    trivy|checkov|conftest) echo "S14 security and policy scanners" ;;
+    terramate) echo "S20-S25 Terramate labs" ;;
+  esac
+}
+
+if [ -n "$DAY_MISSING" ]; then
+  heading "Missing Day-2/3 tools"
+  for t in $DAY_MISSING; do
+    warn "$(printf '%-10s affects %s' "$t" "$(affected_labs "$t")")"
+    info "$(printf '%-10s → %s' "$t" "$(install_hint "$t")")"
+  done
+  note "Other tools were still checked; install failures do not stop the report early."
+  echo
+fi
+
 # ---------------------------------------------------------------------------
 # Offer to install missing required tools
 # ---------------------------------------------------------------------------
-if [ -n "$MISSING" ]; then
-  heading "Install commands for missing required tools"
-  for t in $MISSING; do
+ALL_MISSING="$MISSING$DAY_MISSING"
+if [ -n "$ALL_MISSING" ]; then
+  heading "Install commands for missing tools"
+  for t in $ALL_MISSING; do
     info "$(printf '%-7s → %s' "$t" "$(install_hint "$t")")"
   done
   echo
 
-  # Only auto-install when interactive, brew is available, and the user agrees.
-  if [ "$INTERACTIVE" = 1 ] && [ "$PKG" = "brew" ]; then
-    if confirm "Attempt to install missing tools now with Homebrew?"; then
-      for t in $MISSING; do
+  # Homebrew installs require either interactive confirmation or the explicit
+  # BOOTSTRAP_AUTO_INSTALL=always opt-in (useful for managed setup runners).
+  SHOULD_INSTALL=0
+  if [ "$PKG" = "brew" ]; then
+    if [ "${BOOTSTRAP_AUTO_INSTALL:-ask}" = "always" ]; then
+      SHOULD_INSTALL=1
+    elif [ "${BOOTSTRAP_AUTO_INSTALL:-ask}" != "never" ] && [ "$INTERACTIVE" = 1 ] && \
+      confirm "Attempt to install missing tools now with Homebrew?"; then
+      SHOULD_INSTALL=1
+    fi
+  fi
+  if [ "$SHOULD_INSTALL" = 1 ]; then
+      for t in $ALL_MISSING; do
         [ "$t" = "pnpm" ] && { corepack enable && corepack prepare pnpm@latest --activate || true; continue; }
         heading "brew install $(brew_install_arg "$t")"
         # Word-splitting the brew args is intended (e.g. docker → "--cask docker").
         # shellcheck disable=SC2046
         brew install $(brew_install_arg "$t") || warn "Install of $t failed; run the command above manually."
       done
-    else
-      note "Skipped auto-install. Copy the commands above to install manually."
-    fi
   else
-    note "Auto-install is available only in an interactive shell with Homebrew. Run the commands above manually."
+    note "Skipped auto-install. Homebrew can install after confirmation; other platforms use the commands above."
   fi
   echo
 fi
@@ -172,13 +232,17 @@ heading "Summary"
 # Re-check required tools after any install attempt.
 STILL_MISSING=""
 for t in $REQUIRED; do have "$t" || STILL_MISSING="$STILL_MISSING $t"; done
+DAY_STILL_MISSING=""
+for t in $DAY_TOOLS; do have "$t" || DAY_STILL_MISSING="$DAY_STILL_MISSING $t"; done
 
-if [ -z "$STILL_MISSING" ] && [ -z "$VERSION_WARN" ]; then
+if [ -z "$STILL_MISSING" ] && [ -z "$DAY_STILL_MISSING" ] && [ -z "$VERSION_WARN" ]; then
   ok "READY — all required tools present and meet minimum versions."
+  ok "Day-2/3 tools ready — tflint, Trivy, Checkov, Conftest, and Terramate."
   note "Next: 'task lab:up' to start LocalStack, then 'task lab' for the guided runner."
   exit 0
 else
   [ -n "$STILL_MISSING" ] && bad "Missing:$STILL_MISSING"
+  [ -n "$DAY_STILL_MISSING" ] && bad "Missing Day-2/3 tools:$DAY_STILL_MISSING"
   [ -n "$VERSION_WARN" ]  && bad "Below minimum version:$VERSION_WARN"
   bad "NOT READY — resolve the items above and re-run: bash setup/bootstrap.sh"
   # Non-zero so CI / task preconditions can gate on readiness.
