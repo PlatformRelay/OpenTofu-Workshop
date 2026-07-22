@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# scripts/verify-selftest.sh — regression protection for two ENFORCEMENT gates in
-# scripts/verify.sh: (A) slide↔lab drift enforcement (section 6) and (B) deck tier
-# consistency + hide invariant (section 7). Both gates are positive-only in the
+# scripts/verify-selftest.sh — regression protection for three ENFORCEMENT gates in
+# scripts/verify.sh: (A) slide↔lab drift enforcement (section 6), (B) deck tier
+# consistency + hide invariant (section 7), and (C) the README navigation
+# contract (section 8). These gates are positive-only in the
 # tracked tree (matching fixture / consistent decks), so silently deleting or
-# weakening either would leave the build green and nobody would notice. This
+# weakening any of them would leave the build green and nobody would notice. This
 # meta-test proves each check actually FAILS when it should.
 #
 # How it works: it copies the LIVE verify.sh + setup/lib.sh + the drift-demo
@@ -24,6 +25,10 @@
 #   tier gate (section 7):
 #     4. cross-deck tier mismatch → exit !=0 AND "tier drift: S05 …"   (deck↔deck)
 #     5. hide-invariant violation → exit !=0 AND "hide invariant: S18 …" (3-day cut)
+#   README navigation gate (section 8):
+#     6. clean routes → exit 0 AND "README navigation contract"
+#     7. deleted route → exit !=0 AND the route label + path
+#     8. unknown task → exit !=0 AND the command name
 #
 # It NEVER mutates the tracked fixture or decks; all edits happen in the temp copy.
 set -euo pipefail
@@ -42,20 +47,28 @@ bad()  { printf '  [FAIL] %s\n' "$*"; fail_n=$((fail_n + 1)); }
 
 command -v tofu >/dev/null 2>&1 || { echo "selftest: tofu required" >&2; exit 1; }
 
-printf '\n### verify.sh enforcement self-test (drift + tier) ###\n'
+printf '\n### verify.sh enforcement self-test (drift + tier + README navigation) ###\n'
 
 # Build an isolated temp repo root with only what verify.sh needs. Includes the
 # two content decks so section 7 (tier consistency) has inputs; verify.sh reads
 # them by literal path relative to REPO_ROOT.
 build_root() {
   local root="$1"
-  mkdir -p "$root/scripts" "$root/setup" "$root/labs/fixtures/drift-demo"
+  mkdir -p "$root/scripts" "$root/setup" "$root/labs/fixtures/drift-demo" \
+    "$root/labs/day-1" "$root/docs/decisions"
   cp "$REPO_ROOT/scripts/verify.sh" "$root/scripts/verify.sh"
   cp "$REPO_ROOT/setup/lib.sh"      "$root/setup/lib.sh"
   cp "$REPO_ROOT/$FIXTURE_MD"       "$root/$FIXTURE_MD"
   cp "$REPO_ROOT/$FIXTURE_TF"       "$root/$FIXTURE_TF"
   cp "$REPO_ROOT/slides.md"         "$root/slides.md"
   cp "$REPO_ROOT/slides-3day.md"    "$root/slides-3day.md"
+  cp "$REPO_ROOT/slides-templates.md" "$root/slides-templates.md"
+  cp "$REPO_ROOT/README.md"         "$root/README.md"
+  cp "$REPO_ROOT/AGENT.md"          "$root/AGENT.md"
+  cp "$REPO_ROOT/Taskfile.yaml"     "$root/Taskfile.yaml"
+  cp "$REPO_ROOT/labs/day-1/00-setup.md" "$root/labs/day-1/00-setup.md"
+  cp "$REPO_ROOT/setup/localstack.md" "$root/setup/localstack.md"
+  cp "$REPO_ROOT/docs/decisions/README.md" "$root/docs/decisions/README.md"
 }
 
 # run_case <label> <expect: pass|fail> <needle> <mutator-fn>
@@ -114,11 +127,24 @@ m_hide_violation() { # section 7 (b): optional section left visible in the 3-day
     "$root/slides-3day.md"
 }
 
+m_missing_lab_route() {
+  local root="$1"
+  rm "$root/labs/day-1/00-setup.md"
+}
+
+m_unknown_readme_task() {
+  local root="$1"
+  perl -pi -e 's/task dev:3day/task dev:ghost/' "$root/README.md"
+}
+
 run_case "clean fixture"        pass "no drift: labs/fixtures/drift-demo/main.tf matches" m_clean
 run_case "LF-authored drift"    fail "drift: block in labs/fixtures/drift-demo.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_drift_lf
 run_case "CRLF-authored drift"  fail "drift: block in labs/fixtures/drift-demo.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_drift_crlf
 run_case "cross-deck tier mismatch (S05)" fail "tier drift: S05 is 'recommended' in slides.md but 'core' in slides-3day.md" m_tier_mismatch
 run_case "hide-invariant violation (S18)" fail "hide invariant: S18 is 'optional' but hide='false' in slides-3day.md" m_hide_violation
+run_case "README navigation contract" pass "README navigation contract" m_clean
+run_case "deleted README route" fail "README route 'Lab 00' is missing: labs/day-1/00-setup.md" m_missing_lab_route
+run_case "unknown README task" fail "README task command does not exist: task dev:ghost" m_unknown_readme_task
 
 printf '\n'
 if [ "$fail_n" -eq 0 ]; then
