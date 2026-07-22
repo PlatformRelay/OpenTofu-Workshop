@@ -112,11 +112,11 @@ Then: “The command determines how much reality the run crosses.”
 
 <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
 <div class="kw-panel p-3"><strong>Rule:</strong> prefer plan until the claim requires apply.</div>
-<div class="kw-panel p-3"><strong>Lab:</strong> built-in <code>terraform_data</code> makes the apply lifecycle real without cloud credentials.</div>
+<div class="kw-panel p-3"><strong>Lab:</strong> plan-test <code>modules/naming</code>, then apply its generated S3 name to pinned LocalStack.</div>
 </div>
 
 <!--
-Say: Plan runs are the default because they are fast and avoid resource side effects. Apply runs earn their cost when the assertion needs a value or behaviour that only exists after creation; provider-backed resources then need a real or emulated API. The lab uses a built-in resource so learners can observe native apply and cleanup without Docker. (~3 min)
+Say: Plan runs are the default because they are fast and avoid resource side effects. Apply runs earn their cost when the assertion needs a value or behaviour that only exists after creation; provider-backed resources then need a real or emulated API. The lab first runs the naming module's plan suite, then proves its generated bucket name through a real LocalStack apply. (~3 min)
 Then: “Inputs can be shared or scoped to one scenario.”
 -->
 
@@ -185,21 +185,19 @@ Then: “Put all three patterns into one executable lab.”
 
 ---
 layout: lab
+lab: labs/day-2/16-tofu-test.md
 duration: 35 min
+env: 'localstack ✓ · plan ✓ · real-aws (optional) ✗'
 ---
 
 # Lab — plan, apply, and expected failure
 
-<LabCallout number="16" duration="35 min" environment="mock ✓ · built-in apply · no Docker">
-Run a shared-variable plan contract, a real provider-free apply test, and an
-<code>expect_failures</code> case. Break one assertion through a CLI variable,
-read the diagnostic, then restore the passing contract.
-</LabCallout>
-
-`labs/day-2/16-tofu-test.md`
+- Run the existing `modules/naming` plan suite, including `expect_failures`.
+- Start pinned LocalStack 4.9.2 and apply an S3 bucket named by that module.
+- Break the apply assertion, read expected versus observed, then fix and clean up.
 
 <!--
-Say: Learners execute a tracked native test suite rather than pasting disposable files. They see plan and apply runs, an expected validation failure, then deliberately break an assertion and use its diagnostic to fix the test input. The stretch adds verbose output and filtering. (~35 min)
+Say: Learners execute the naming module's tracked plan suite, including its expected validation failures, rather than a toy substitute. They then start the repository's pinned LocalStack, apply an S3 bucket named by the module, deliberately break that assertion, fix it, and verify cleanup. The stretch uses verbose output and file filtering. (~35 min)
 Then: “Debrief by matching each syntax feature to the risk it covers.”
 -->
 
