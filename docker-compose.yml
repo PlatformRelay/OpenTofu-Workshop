@@ -5,7 +5,7 @@
 # `task lab:down`. The endpoint is http://localhost:4566 for every service.
 services:
   localstack:
-    image: localstack/localstack:stable
+    image: localstack/localstack:4.9.2
     container_name: opentofu-workshop-localstack
     ports:
       - "4566:4566" # unified edge port for all AWS service APIs
