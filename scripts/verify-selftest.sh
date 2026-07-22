@@ -31,6 +31,9 @@
 #     8. unknown task → exit !=0 AND the command name
 #   Day-2/3 tool contract (section 9):
 #     9. broken/absent tool → exit 0 AND an explicit affected-lab skip warning
+#   formatting allowlist contract (section 2):
+#    10. exact S13 messy fixture → exit 0 AND formatting gate remains armed
+#    11. any other unformatted .tf → exit !=0 AND offending path is named
 #
 # It NEVER mutates the tracked fixture or decks; all edits happen in the temp copy.
 set -euo pipefail
@@ -57,7 +60,8 @@ printf '\n### verify.sh enforcement self-test (drift + tier + README navigation)
 build_root() {
   local root="$1"
   mkdir -p "$root/scripts" "$root/setup" "$root/labs/fixtures/drift-demo" \
-    "$root/labs/day-1/00-setup" "$root/docs/decisions"
+    "$root/labs/day-1/00-setup" "$root/labs/day-2/13-static-analysis/messy" \
+    "$root/docs/decisions"
   cp "$REPO_ROOT/scripts/verify.sh" "$root/scripts/verify.sh"
   cp "$REPO_ROOT/setup/lib.sh"      "$root/setup/lib.sh"
   cp "$REPO_ROOT/$FIXTURE_MD"       "$root/$FIXTURE_MD"
@@ -71,6 +75,8 @@ build_root() {
   cp "$REPO_ROOT/labs/day-1/00-setup.md" "$root/labs/day-1/00-setup.md"
   cp "$REPO_ROOT/labs/day-1/00-setup/hello.tf" "$root/labs/day-1/00-setup/hello.tf"
   cp "$REPO_ROOT/labs/day-1/00-setup/bucket.tf" "$root/labs/day-1/00-setup/bucket.tf"
+  cp "$REPO_ROOT/labs/day-2/13-static-analysis/messy/main.tf" \
+    "$root/labs/day-2/13-static-analysis/messy/main.tf"
   cp "$REPO_ROOT/setup/localstack.md" "$root/setup/localstack.md"
   cp "$REPO_ROOT/docs/decisions/README.md" "$root/docs/decisions/README.md"
   mkdir -p "$root/test-bin"
@@ -146,6 +152,13 @@ m_unknown_readme_task() {
   perl -pi -e 's/task dev:3day/task dev:ghost/' "$root/README.md"
 }
 
+m_unformatted_outside_allowlist() {
+  local root="$1"
+  mkdir -p "$root/modules/unformatted-regression"
+  printf 'terraform {\n required_version = ">= 1.8"\n}\n' \
+    >"$root/modules/unformatted-regression/main.tf"
+}
+
 run_case "clean fixture"        pass "no drift: labs/fixtures/drift-demo/main.tf matches" m_clean
 run_case "LF-authored drift"    fail "drift: block in labs/fixtures/drift-demo.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_drift_lf
 run_case "CRLF-authored drift"  fail "drift: block in labs/fixtures/drift-demo.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_drift_crlf
@@ -155,6 +168,8 @@ run_case "README navigation contract" pass "README navigation contract" m_clean
 run_case "deleted README route" fail "README route 'Lab 00' is missing: labs/day-1/00-setup.md" m_missing_lab_route
 run_case "unknown README task" fail "README task command does not exist: task dev:ghost" m_unknown_readme_task
 run_case "missing Day-2/3 tool skips" pass "tflint unavailable — skipping tool-dependent checks for S13 static analysis" m_clean
+run_case "exact S13 messy fixture allowlisted" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_clean
+run_case "unformatted file outside allowlist" fail "modules/unformatted-regression/main.tf" m_unformatted_outside_allowlist
 
 printf '\n'
 if [ "$fail_n" -eq 0 ]; then
