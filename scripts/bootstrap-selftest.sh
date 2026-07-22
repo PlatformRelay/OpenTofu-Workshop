@@ -32,11 +32,17 @@ run_bootstrap() {
     bash "$ROOT/setup/bootstrap.sh" 2>&1
 }
 
-out="$(run_bootstrap)"
-for tool in tflint trivy checkov conftest terramate; do
-  printf '%s\n' "$out" | grep -q "$tool" || { echo "missing version report for $tool" >&2; exit 1; }
-done
-printf '%s\n' "$out" | grep -q 'Day-2/3 tools ready'
+ready_out="$(run_bootstrap)"
+printf '%s\n' "$ready_out" | grep -q 'tflint.*0.58.1'
+printf '%s\n' "$ready_out" | grep -q 'trivy.*0.64.1'
+printf '%s\n' "$ready_out" | grep -q 'checkov.*3.2.450'
+printf '%s\n' "$ready_out" | grep -q 'conftest.*0.61.0'
+printf '%s\n' "$ready_out" | grep -q 'terramate.*0.13.0'
+printf '%s\n' "$ready_out" | grep -q 'Day-2/3 tools ready'
+
+# A second run over the same PATH must be byte-identical and side-effect free.
+second_out="$(run_bootstrap)"
+[ "$ready_out" = "$second_out" ] || { echo 'repeated bootstrap output drifted' >&2; exit 1; }
 
 rm "$BIN/checkov"
 set +e
@@ -48,6 +54,24 @@ printf '%s\n' "$out" | grep -q 'checkov.*missing'
 printf '%s\n' "$out" | grep -q 'S14'
 printf '%s\n' "$out" | grep -q 'Other tools were still checked'
 
+# command -v alone is insufficient: a corrupt executable is unavailable. The
+# loop must still probe and report every later tool.
+fake checkov '3.2.450'
+cat >"$BIN/tflint" <<'EOF'
+#!/bin/sh
+exit 7
+EOF
+chmod +x "$BIN/tflint"
+set +e
+out="$(run_bootstrap)"
+status=$?
+set -e
+[ "$status" -ne 0 ] || { echo 'broken version probe must exit non-zero' >&2; exit 1; }
+printf '%s\n' "$out" | grep -q 'tflint.*unusable'
+printf '%s\n' "$out" | grep -q 'version probe failed'
+printf '%s\n' "$out" | grep -q 'tflint.*affects S13'
+printf '%s\n' "$out" | grep -q 'terramate.*0.13.0'
+
 # Explicit install mode exercises failure continuation with a fake Homebrew.
 fake uname 'Darwin'
 cat >"$BIN/brew" <<'EOF'
@@ -56,7 +80,7 @@ printf '%s\n' "$*" >>"$BOOTSTRAP_TEST_BREW_LOG"
 exit 1
 EOF
 chmod +x "$BIN/brew"
-rm -f "$BIN/tflint"
+rm -f "$BIN/tflint" "$BIN/checkov"
 : >"$TMP/brew.log"
 set +e
 out="$(PATH="$BIN:/usr/bin:/bin" CI=true BOOTSTRAP_AUTO_INSTALL=always \
@@ -69,4 +93,4 @@ grep -q '^install checkov$' "$TMP/brew.log"
 printf '%s\n' "$out" | grep -q 'Install of tflint failed'
 printf '%s\n' "$out" | grep -q 'Install of checkov failed'
 
-echo 'bootstrap self-test PASSED — present, missing, and install-failure paths'
+echo 'bootstrap self-test PASSED — versions, idempotence, missing, corrupt, and install-failure paths'
