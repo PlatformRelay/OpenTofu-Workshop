@@ -390,6 +390,56 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 8. README navigation contract
+# ---------------------------------------------------------------------------
+heading "README navigation contract"
+if [ ! -f README.md ]; then
+  fail "README navigation contract: README.md is missing"
+elif [ ! -f Taskfile.yaml ]; then
+  fail "README navigation contract: Taskfile.yaml is missing"
+else
+  REQUIRED_README_ROUTES=(
+    "canonical 3-day workshop|slides-3day.md"
+    "full superset|slides.md"
+    "template gallery|slides-templates.md"
+    "Lab 00|labs/day-1/00-setup.md"
+    "LocalStack troubleshooting|setup/localstack.md"
+    "contributor guide|AGENT.md"
+    "decision index|docs/decisions/README.md"
+  )
+  NAV_FAILURES=0
+  for route in "${REQUIRED_README_ROUTES[@]}"; do
+    label="${route%%|*}"
+    path="${route#*|}"
+    if [ ! -e "$path" ]; then
+      fail "README route '$label' is missing: $path"
+      NAV_FAILURES=$((NAV_FAILURES + 1))
+    elif ! grep -qF "]($path)" README.md && ! grep -qF "](./$path)" README.md; then
+      fail "README route '$label' is not linked: $path"
+      NAV_FAILURES=$((NAV_FAILURES + 1))
+    fi
+  done
+
+  declare -A TASK_NAMES=()
+  while IFS= read -r task_name; do
+    [ -n "$task_name" ] && TASK_NAMES["$task_name"]=1
+  done < <(awk '/^  [A-Za-z0-9][A-Za-z0-9:_-]*:$/ { name=$1; sub(/:$/, "", name); print name }' Taskfile.yaml)
+
+  while IFS= read -r command; do
+    [ -n "$command" ] || continue
+    task_name="${command#task }"
+    if [ -z "${TASK_NAMES[$task_name]+set}" ]; then
+      fail "README task command does not exist: $command"
+      NAV_FAILURES=$((NAV_FAILURES + 1))
+    fi
+  done < <(grep -oE '`task [A-Za-z0-9:_-]+' README.md | tr -d '`' | sort -u)
+
+  if [ "$NAV_FAILURES" -eq 0 ]; then
+    pass "README navigation contract: required routes and documented task commands resolve"
+  fi
+fi
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 heading "Summary"
