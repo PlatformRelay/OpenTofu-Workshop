@@ -73,15 +73,21 @@ done
 shopt -u nullglob
 
 # ---------------------------------------------------------------------------
-# 2. fmt -check (repo-wide; harmless on an empty tree)
+# 2. fmt -check (repo-wide except the intentional S13 break→fix fixture)
 # ---------------------------------------------------------------------------
-heading "Formatting (tofu fmt -check -recursive)"
-if tofu fmt -check -recursive >/dev/null 2>&1; then
-  pass "all .tf files are canonically formatted"
+heading "Formatting (tofu fmt -check; S13 messy fixture excluded)"
+FORMAT_FILES=()
+while IFS= read -r -d '' tf_file; do
+  FORMAT_FILES+=("$tf_file")
+done < <(find . -type f -name '*.tf' \
+  ! -path './labs/day-2/13-static-analysis/messy/*' -print0)
+
+if [ "${#FORMAT_FILES[@]}" -eq 0 ] || tofu fmt -check "${FORMAT_FILES[@]}" >/dev/null 2>&1; then
+  pass "all tracked .tf files outside the S13 messy fixture are canonically formatted"
 else
   fail "unformatted files found — run 'task lab:fmt' (tofu fmt -recursive)"
   info "offending files:"
-  tofu fmt -check -recursive 2>/dev/null | sed 's/^/    /' || true
+  tofu fmt -check "${FORMAT_FILES[@]}" 2>/dev/null | sed 's/^/    /' || true
 fi
 
 # ---------------------------------------------------------------------------
