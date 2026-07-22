@@ -247,8 +247,11 @@ tasks:
   # The "tested workshop" gate
   # -------------------------------------------------------------------------
   verify:
-    desc: "Tested-workshop gate (unit lane): fmt-check + validate + tofu test + drift self-test. No Docker needed."
+    desc: "Tested-workshop gate (unit lane): bootstrap contract + fmt-check + validate + tofu test + drift self-test. No Docker needed."
     cmds:
+      # Keep setup/bootstrap.sh's clean-machine contract in the same canonical
+      # local gate that CI mirrors.
+      - bash scripts/bootstrap-selftest.sh
       - bash scripts/verify.sh
       # Regression guard: prove the slide↔lab drift ENFORCEMENT actually fails on
       # drift (incl. CRLF-authored). Runs in a throwaway temp copy; see the script.
@@ -270,6 +273,7 @@ tasks:
     deps:
       - lab:up
     cmds:
+      - bash scripts/bootstrap-selftest.sh
       - bash scripts/verify.sh
       - task: verify:integration:tests
     preconditions:
@@ -283,6 +287,7 @@ tasks:
     deps:
       - lab:up:k8s
     cmds:
+      - bash scripts/bootstrap-selftest.sh
       - bash scripts/verify.sh
       - task: verify:integration:tests
     preconditions:

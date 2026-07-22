@@ -58,11 +58,14 @@ jobs:
       - uses: opentofu/setup-opentofu@v1
         with:
           tofu_version: "1.10.3"
-      - name: fmt · validate · test (no cloud)
+      - name: Bootstrap contract · fmt · validate · test (no cloud)
         # Unit lane — the same gate developers run locally as `task verify`:
-        # fmt-check, validate, and `tofu test` (plan/mock) across modules/examples,
-        # excluding integration tests (those run in verify-integration below).
-        run: bash scripts/verify.sh
+        # bootstrap contract, fmt-check, validate, and `tofu test` (plan/mock)
+        # across modules/examples, excluding integration tests (those run in
+        # verify-integration below).
+        run: |
+          bash scripts/bootstrap-selftest.sh
+          bash scripts/verify.sh
 
   verify-integration:
     name: Verify integration (tofu test — LocalStack apply)
