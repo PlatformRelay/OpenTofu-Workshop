@@ -33,12 +33,12 @@ run_bootstrap() {
 }
 
 ready_out="$(run_bootstrap)"
-printf '%s\n' "$ready_out" | grep -q 'tflint.*0.58.1'
-printf '%s\n' "$ready_out" | grep -q 'trivy.*0.64.1'
-printf '%s\n' "$ready_out" | grep -q 'checkov.*3.2.450'
-printf '%s\n' "$ready_out" | grep -q 'conftest.*0.61.0'
-printf '%s\n' "$ready_out" | grep -q 'terramate.*0.13.0'
-printf '%s\n' "$ready_out" | grep -q 'Day-2/3 tools ready'
+printf '%s\n' "$ready_out" | grep -Fqx '  ✓ tflint     0.58.1'
+printf '%s\n' "$ready_out" | grep -Fqx '  ✓ trivy      0.64.1'
+printf '%s\n' "$ready_out" | grep -Fqx '  ✓ checkov    3.2.450'
+printf '%s\n' "$ready_out" | grep -Fqx '  ✓ conftest   0.61.0'
+printf '%s\n' "$ready_out" | grep -Fqx '  ✓ terramate  0.13.0'
+printf '%s\n' "$ready_out" | grep -Fqx '  ✓ Day-2/3 tools ready — tflint, Trivy, Checkov, Conftest, and Terramate.'
 
 # A second run over the same PATH must be byte-identical and side-effect free.
 second_out="$(run_bootstrap)"
@@ -70,6 +70,36 @@ set -e
 printf '%s\n' "$out" | grep -q 'tflint.*unusable'
 printf '%s\n' "$out" | grep -q 'version probe failed'
 printf '%s\n' "$out" | grep -q 'tflint.*affects S13'
+printf '%s\n' "$out" | grep -q 'terramate.*0.13.0'
+
+# Plausible stdout must not mask a failing probe status.
+cat >"$BIN/tflint" <<'EOF'
+#!/bin/sh
+echo 'TFLint version 0.58.1'
+exit 7
+EOF
+chmod +x "$BIN/tflint"
+set +e
+out="$(run_bootstrap)"
+status=$?
+set -e
+[ "$status" -ne 0 ] || { echo 'plausible output with non-zero status must exit non-zero' >&2; exit 1; }
+printf '%s\n' "$out" | grep -q 'tflint.*unusable'
+printf '%s\n' "$out" | grep -q 'terramate.*0.13.0'
+
+# A successful command with empty stdout is equally unusable.
+fake tflint 'TFLint version 0.58.1'
+cat >"$BIN/trivy" <<'EOF'
+#!/bin/sh
+exit 0
+EOF
+chmod +x "$BIN/trivy"
+set +e
+out="$(run_bootstrap)"
+status=$?
+set -e
+[ "$status" -ne 0 ] || { echo 'empty successful version probe must exit non-zero' >&2; exit 1; }
+printf '%s\n' "$out" | grep -q 'trivy.*unusable'
 printf '%s\n' "$out" | grep -q 'terramate.*0.13.0'
 
 # Explicit install mode exercises failure continuation with a fake Homebrew.

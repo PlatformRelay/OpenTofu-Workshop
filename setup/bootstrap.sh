@@ -163,8 +163,10 @@ DAY_MISSING=""
 heading "Day-2/3 lab tools"
 for t in $DAY_TOOLS; do
   if have "$t"; then
-    v="$(tool_version "$t" || true)"
-    if [ -n "$v" ]; then
+    v=""
+    probe_status=0
+    v="$(tool_version "$t")" || probe_status=$?
+    if [ "$probe_status" -eq 0 ] && [ -n "$v" ]; then
       ok "$(printf '%-10s %s' "$t" "$v")"
     else
       bad "$(printf '%-10s unusable' "$t")  (version probe failed)"
@@ -240,7 +242,14 @@ STILL_MISSING=""
 for t in $REQUIRED; do have "$t" || STILL_MISSING="$STILL_MISSING $t"; done
 DAY_STILL_MISSING=""
 for t in $DAY_TOOLS; do
-  if ! have "$t" || [ -z "$(tool_version "$t" || true)" ]; then
+  v=""
+  probe_status=0
+  if have "$t"; then
+    v="$(tool_version "$t")" || probe_status=$?
+  else
+    probe_status=127
+  fi
+  if [ "$probe_status" -ne 0 ] || [ -z "$v" ]; then
     DAY_STILL_MISSING="$DAY_STILL_MISSING $t"
   fi
 done
