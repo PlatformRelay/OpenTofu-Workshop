@@ -6,4 +6,3 @@ run "localstack_apply" {
     error_message = "expected project ${var.expected_project} in bucket name, got ${output.bucket_name}."
   }
 }
-
