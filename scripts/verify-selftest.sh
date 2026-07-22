@@ -55,7 +55,7 @@ printf '\n### verify.sh enforcement self-test (drift + tier + README navigation)
 build_root() {
   local root="$1"
   mkdir -p "$root/scripts" "$root/setup" "$root/labs/fixtures/drift-demo" \
-    "$root/labs/day-1" "$root/docs/decisions"
+    "$root/labs/day-1/00-setup" "$root/docs/decisions"
   cp "$REPO_ROOT/scripts/verify.sh" "$root/scripts/verify.sh"
   cp "$REPO_ROOT/setup/lib.sh"      "$root/setup/lib.sh"
   cp "$REPO_ROOT/$FIXTURE_MD"       "$root/$FIXTURE_MD"
@@ -67,6 +67,8 @@ build_root() {
   cp "$REPO_ROOT/AGENT.md"          "$root/AGENT.md"
   cp "$REPO_ROOT/Taskfile.yaml"     "$root/Taskfile.yaml"
   cp "$REPO_ROOT/labs/day-1/00-setup.md" "$root/labs/day-1/00-setup.md"
+  cp "$REPO_ROOT/labs/day-1/00-setup/hello.tf" "$root/labs/day-1/00-setup/hello.tf"
+  cp "$REPO_ROOT/labs/day-1/00-setup/bucket.tf" "$root/labs/day-1/00-setup/bucket.tf"
   cp "$REPO_ROOT/setup/localstack.md" "$root/setup/localstack.md"
   cp "$REPO_ROOT/docs/decisions/README.md" "$root/docs/decisions/README.md"
 }
