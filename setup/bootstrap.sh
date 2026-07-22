@@ -163,7 +163,13 @@ DAY_MISSING=""
 heading "Day-2/3 lab tools"
 for t in $DAY_TOOLS; do
   if have "$t"; then
-    ok "$(printf '%-10s %s' "$t" "$(tool_version "$t")")"
+    v="$(tool_version "$t" || true)"
+    if [ -n "$v" ]; then
+      ok "$(printf '%-10s %s' "$t" "$v")"
+    else
+      bad "$(printf '%-10s unusable' "$t")  (version probe failed)"
+      DAY_MISSING="$DAY_MISSING $t"
+    fi
   else
     bad "$(printf '%-10s missing' "$t")"
     DAY_MISSING="$DAY_MISSING $t"
@@ -233,7 +239,11 @@ heading "Summary"
 STILL_MISSING=""
 for t in $REQUIRED; do have "$t" || STILL_MISSING="$STILL_MISSING $t"; done
 DAY_STILL_MISSING=""
-for t in $DAY_TOOLS; do have "$t" || DAY_STILL_MISSING="$DAY_STILL_MISSING $t"; done
+for t in $DAY_TOOLS; do
+  if ! have "$t" || [ -z "$(tool_version "$t" || true)" ]; then
+    DAY_STILL_MISSING="$DAY_STILL_MISSING $t"
+  fi
+done
 
 if [ -z "$STILL_MISSING" ] && [ -z "$DAY_STILL_MISSING" ] && [ -z "$VERSION_WARN" ]; then
   ok "READY — all required tools present and meet minimum versions."

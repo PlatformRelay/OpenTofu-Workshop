@@ -2,7 +2,7 @@
 # scripts/verify-selftest.sh — regression protection for three ENFORCEMENT gates in
 # scripts/verify.sh: (A) slide↔lab drift enforcement (section 6), (B) deck tier
 # consistency + hide invariant (section 7), and (C) the README navigation
-# contract (section 8). These gates are positive-only in the
+# contract (section 8), plus the Day-2/3 skip contract (section 9). These gates are positive-only in the
 # tracked tree (matching fixture / consistent decks), so silently deleting or
 # weakening any of them would leave the build green and nobody would notice. This
 # meta-test proves each check actually FAILS when it should.
@@ -29,6 +29,8 @@
 #     6. clean routes → exit 0 AND "README navigation contract"
 #     7. deleted route → exit !=0 AND the route label + path
 #     8. unknown task → exit !=0 AND the command name
+#   Day-2/3 tool contract (section 9):
+#     9. broken/absent tool → exit 0 AND an explicit affected-lab skip warning
 #
 # It NEVER mutates the tracked fixture or decks; all edits happen in the temp copy.
 set -euo pipefail
@@ -71,6 +73,11 @@ build_root() {
   cp "$REPO_ROOT/labs/day-1/00-setup/bucket.tf" "$root/labs/day-1/00-setup/bucket.tf"
   cp "$REPO_ROOT/setup/localstack.md" "$root/setup/localstack.md"
   cp "$REPO_ROOT/docs/decisions/README.md" "$root/docs/decisions/README.md"
+  mkdir -p "$root/test-bin"
+  for tool in tflint trivy checkov conftest terramate; do
+    printf '#!/bin/sh\nexit 127\n' >"$root/test-bin/$tool"
+    chmod +x "$root/test-bin/$tool"
+  done
 }
 
 # run_case <label> <expect: pass|fail> <needle> <mutator-fn>
@@ -82,7 +89,7 @@ run_case() {
   build_root "$tmp"
   "$mutate" "$tmp"
   set +e
-  out="$(bash "$tmp/scripts/verify.sh" 2>&1)"
+  out="$(PATH="$tmp/test-bin:$PATH" bash "$tmp/scripts/verify.sh" 2>&1)"
   rc=$?
   set -e
 
@@ -147,6 +154,7 @@ run_case "hide-invariant violation (S18)" fail "hide invariant: S18 is 'optional
 run_case "README navigation contract" pass "README navigation contract" m_clean
 run_case "deleted README route" fail "README route 'Lab 00' is missing: labs/day-1/00-setup.md" m_missing_lab_route
 run_case "unknown README task" fail "README task command does not exist: task dev:ghost" m_unknown_readme_task
+run_case "missing Day-2/3 tool skips" pass "tflint unavailable — skipping tool-dependent checks for S13 static analysis" m_clean
 
 printf '\n'
 if [ "$fail_n" -eq 0 ]; then

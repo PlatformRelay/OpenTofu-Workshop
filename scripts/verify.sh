@@ -440,6 +440,36 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 9. Day-2/3 optional tool lanes
+#    The bootstrap requires these tools before their labs are taught. The repo
+#    verifier remains usable on a Day-1-only machine: checks owned by an absent
+#    or broken tool skip explicitly instead of turning unrelated work red.
+# ---------------------------------------------------------------------------
+heading "Day-2/3 tool-dependent checks"
+DAY_TOOL_CHECKS=(
+  "tflint|--version|S13 static analysis"
+  "trivy|--version|S14 security scanning"
+  "checkov|--version|S14 security scanning"
+  "conftest|--version|S14 policy checks"
+  "terramate|version|S20-S25 Terramate labs"
+)
+for spec in "${DAY_TOOL_CHECKS[@]}"; do
+  tool="${spec%%|*}"
+  rest="${spec#*|}"
+  version_arg="${rest%%|*}"
+  labs="${rest#*|}"
+  version=""
+  if have "$tool"; then
+    version="$("$tool" "$version_arg" 2>/dev/null | head -n1 || true)"
+  fi
+  if [ -n "$version" ]; then
+    info "$tool available — $labs checks run when their content is authored"
+  else
+    warn "$tool unavailable — skipping tool-dependent checks for $labs"
+  fi
+done
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 heading "Summary"
