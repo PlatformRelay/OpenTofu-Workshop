@@ -65,8 +65,8 @@ trade-off you accepted.
 You run infrastructure for a **small platform team**. The mandate:
 
 - **Must run OpenTofu** (the org standardised on it after the licence change).
-- **Must self-host** (regulated data; no third-party SaaS may hold state or run
-  plans).
+- **Must self-host** (regulated data; no third-party SaaS may run plans — runs
+  must execute inside your own network).
 - **Needs policy-as-code** (a compliance rule must block non-conforming plans).
 - **Small team** — low appetite for operating heavyweight platform infrastructure.
 
@@ -80,9 +80,11 @@ accept?
 
 1. *Must run OpenTofu* → **HCP Terraform is out** (Terraform only; this is the
    binary fact). It cannot be rescued by any other strength.
-2. *Must self-host* → drops any SaaS-only path. Spacelift, Scalr, env0 and
-   Atlantis all offer a self-hosted or self-run option, so they survive; a
-   SaaS-only tier would not.
+2. *Must self-host (runs execute in-network)* → the test is **where plans run**,
+   not where the vendor sits. Spacelift and Atlantis self-host outright; Scalr and
+   env0 keep a SaaS control plane but run plans on **self-hosted agents inside your
+   network**, so they satisfy "no SaaS may run plans" and survive. A tier that ran
+   plans in the vendor's cloud with no in-network agent would be dropped here.
 
 **Survivors:** Spacelift, env0, Scalr, Atlantis. Now score the soft criteria.
 
