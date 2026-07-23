@@ -342,12 +342,22 @@ $ tofu plan -exclude='aws_s3_bucket.regional["eu-west-1"]'
 Plan: 1 to add, 0 to change, 0 to destroy.
 ```
 
-**1 to add — just the `us-east-1` bucket.** OpenTofu does **not** error here.
-Because `aws_s3_object.marker["eu-west-1"]` *depends on* the excluded bucket,
-`-exclude` quietly excludes the **dependent too** — you cannot keep a resource
-while dropping what it needs. That is the real lesson: `-exclude` removes the
-named address *and everything downstream of it*, so a single exclude can prune a
-whole subgraph. Nothing here is broken; this is `-exclude` behaving correctly.
+**1 to add — just the `us-east-1` bucket. Both `marker` objects are gone.**
+OpenTofu does **not** error here; it prunes the dependents. But note *how far* the
+pruning reached: you excluded one bucket instance, yet **neither** object survived
+— not even `us-east-1`'s, whose bucket is still being created.
+
+Contrast with the clean case above. Excluding the `eu-west-1` **leaf object** was
+instance-precise — only that one instance dropped, `us-east-1`'s object stayed.
+Excluding the `eu-west-1` **bucket** pruned the *entire* `aws_s3_object.marker`
+resource, both keys. The difference is the dependency edge: `marker` references
+`aws_s3_bucket.regional[each.key]` through a **dynamic index**, so OpenTofu records
+a coarse, **resource-to-resource** dependency (marker-depends-on-regional), not a
+per-instance one. Exclude *any* instance of the bucket and the whole dependent
+resource goes with it. The real lesson: `-exclude` drops the named address *and
+everything downstream*, and when the downstream edge is resource-level, "downstream"
+can be wider than you expect. Nothing is broken — this is `-exclude` behaving
+correctly. (You also get the *Resource targeting is in effect* warning again.)
 
 </details>
 
@@ -454,8 +464,10 @@ tracked files — the break was purely the temporary edit, and the fix reverted 
 - Apply lands **4 resources**; `tofu state show` records `region = "eu-west-1"` on
   the eu bucket — proof the fan-out worked.
 - `-exclude` (1.9) plans everything **but** the named address **and its
-  dependents**: excluding a leaf drops just that leaf (3 added); excluding a
-  bucket silently drops its dependent object too (1 added) — no error.
+  dependents**: excluding a leaf object is instance-precise (3 added — only that
+  one object drops); excluding one bucket instance prunes the *entire* dependent
+  `marker` resource (1 to add — **both** objects gone, even `us-east-1`'s),
+  because the dependency edge is resource-level. No error either way.
 - Sharing one `for_each` collection between a provider and its resources is
   convenient but couples their lifecycles: shrink the set with resources still in
   state and you get **`Error: Provider instance not present`**. The fix is to
@@ -492,6 +504,10 @@ in Step 4 and did not revert it, `git checkout -- providers.tf` restores it.
   provider instance. *Then* drop it from the provider set. No error, because the
   provider outlived its resources by one apply — the exact sequence the Step 4
   error told you to follow.
-- **`-exclude` a whole region.** Run `tofu apply -exclude='aws_s3_bucket.regional["eu-west-1"]'`
-  from empty state and confirm both `eu-west-1` resources are pruned together —
-  one exclude, a whole region's subgraph gone.
+- **Make the exclude edge instance-precise.** In Step 3 you saw that excluding one
+  bucket instance prunes the *whole* `marker` resource, because `marker` indexes the
+  bucket dynamically. Try `tofu plan -exclude='aws_s3_bucket.regional["eu-west-1"]'`
+  from empty state and confirm `Plan: 1 to add` with **no** `marker` instances at
+  all. Then reason about what a *static* reference (a single-region config with
+  `bucket = aws_s3_bucket.one.id`) would exclude instead — the granularity of the
+  dependency edge decides how far the exclusion reaches.
