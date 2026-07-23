@@ -13,6 +13,12 @@ infrastructure grows in practice:
 
 Roughly **50% is hands-on**.
 
+**Preview it now:** the decks are live on GitHub Pages.
+
+- **Live deck (full superset):** <https://platformrelay.github.io/OpenTofu-Workshop/>
+- **Live deck (canonical 3-day cut):** <https://platformrelay.github.io/OpenTofu-Workshop/3day/>
+- **Template gallery:** <https://platformrelay.github.io/OpenTofu-Workshop/templates/>
+
 > [!IMPORTANT]
 > Labs use `mock_provider` or [LocalStack](https://localstack.cloud), an AWS
 > emulator running on your machine. You need **no cloud account and incur no
