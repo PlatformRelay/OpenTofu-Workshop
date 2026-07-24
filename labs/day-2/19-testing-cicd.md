@@ -64,7 +64,7 @@ rg -n 'fmt -check|UNIT LANE|integration' scripts/verify.sh | head -n 20
 The workflow defines `lint`, `build`, `verify-unit`, and
 `verify-integration`. The unit job runs `bash scripts/verify.sh` (after a
 bootstrap self-test). That script enforces `tofu fmt -check`, validates
-modules/examples, runs plan/mock `tofu test`, and checks slide↔lab drift.
+`modules/` and `examples/`, runs plan/mock `tofu test`, and checks slide↔lab drift.
 Integration tests that match `*integration*.tftest.hcl` are deferred to the
 LocalStack job.
 
@@ -251,7 +251,7 @@ task verify
 <details><summary>Solution / expected observation</summary>
 
 `task verify` invokes `scripts/verify.sh`. It should pass preflight, formatting,
-validate/test for modules/examples, and drift checks. It must not require
+validate/test for `modules/` and `examples/`, and drift checks. It must not require
 LocalStack. Integration coverage remains a separate concern
 (`verify-integration` in CI, or `task verify:integration` when you intentionally
 start the emulator).
