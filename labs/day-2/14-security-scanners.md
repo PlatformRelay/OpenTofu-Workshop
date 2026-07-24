@@ -110,15 +110,19 @@ resource "aws_security_group" "wide_open" {
 
 ```bash
 cd labs/day-2/14-security-scanners/messy
-trivy config --severity HIGH,CRITICAL --format table .
+trivy config --severity HIGH,CRITICAL --format table --exit-code 1 .
 ```
 
 **Task:** How many failures? Which finding is CRITICAL? Does anything mention
-`cost_center`?
+`cost_center`? Why does the command need `--exit-code 1`?
 
 <details><summary>Solution / expected failure (Trivy 0.72.0)</summary>
 
-Trivy exits non-zero. Summary excerpt:
+Trivy prints the findings and exits **1** because of `--exit-code 1` (CI-style
+gate). Without that flag, Trivy 0.72.0 still prints the same report but exits
+**0** — findings alone do not fail the process.
+
+Summary excerpt:
 
 ```console
 main.tf (terraform)
@@ -305,14 +309,14 @@ Conftest:
 1 test, 1 passed, 0 warnings, 0 failures, 0 exceptions
 ```
 
-Trivy (still red on exposure):
+Trivy (still red on exposure — exit 1 with `--exit-code 1`):
 
 ```bash
-trivy config --severity HIGH,CRITICAL --format table .
+trivy config --severity HIGH,CRITICAL --format table --exit-code 1 .
 ```
 
 You should still see failures such as AWS-0104 / AWS-0107 and the public-access
-block findings. Org policy green ≠ misconfig green.
+block findings, and the process exits **1**. Org policy green ≠ misconfig green.
 
 </details>
 
