@@ -1,0 +1,72 @@
+# Intentionally incomplete / incorrect starter workflow for Lab 19.
+# Learners assemble the missing integration lane and repair the false-green
+# formatting gate. Compare with the repository-root
+# `.github/workflows/ci.yml` (the taught artifact).
+#
+# This file is NOT executed by GitHub Actions — it lives under labs/ as a
+# paper fixture. Do not copy it to the repository-root .github/workflows/
+# without review.
+
+name: Workshop CI (lab fixture)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: lab-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: "true"
+
+jobs:
+  lint:
+    name: Lint labs (markdown)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+
+  build:
+    name: Build root decks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build superset, 3-day cut, and templates gallery
+        run: |
+          pnpm run build
+          pnpm run build:3day
+          pnpm run build:templates
+
+  verify-unit:
+    name: Verify modules (fmt · validate · tofu test — mock/plan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: "1.10.3"
+      - name: FALSE GREEN — fmt without -check (planted defect)
+        # BUG: `tofu fmt` rewrites the runner workspace and exits 0 even when
+        # the commit carried formatting drift. A real gate must use
+        # `tofu fmt -check` (as scripts/verify.sh does) or call verify.sh.
+        run: tofu fmt -recursive
+
+  # TODO(lab): add verify-integration with a pinned LocalStack service
+  # container (image localstack/localstack:4.9.2, port 4566) mirroring
+  # `.github/workflows/ci.yml`. Without this job the pyramid tip never runs.
