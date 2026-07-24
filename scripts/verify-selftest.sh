@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # scripts/verify-selftest.sh — regression protection for three ENFORCEMENT gates in
-# scripts/verify.sh: (A) slide↔lab drift enforcement (section 6), (B) deck tier
+# scripts/verify.sh: (A) slide↔lab/pages drift enforcement (section 6), (B) deck tier
 # consistency + hide invariant (section 7), and (C) the README navigation
 # contract (section 8), plus the Day-2/3 skip contract (section 9). These gates are positive-only in the
 # tracked tree (matching fixture / consistent decks), so silently deleting or
@@ -22,22 +22,26 @@
 #     1. clean      → exit 0  AND  "no drift: …main.tf matches"   (enforcement ARMED)
 #     2. LF drift   → exit !=0 AND  "✗ drift: …main.tf"           (catches drift)
 #     3. CRLF drift → exit !=0 AND  "✗ drift: …main.tf"           (locks in F1)
+#     4. pages/ magic-move clean → exit 0 AND "…matches its block in index.md"
+#        (fence metadata ```hcl {none|…}``` tolerated; pages/** scan ARMED)
+#     5. pages/ LF drift → exit !=0 AND pages/…/index.md named
+#     6. pages/ CRLF drift → exit !=0 AND pages/…/index.md named   (F1 on pages)
 #   tier gate (section 7):
-#     4. cross-deck tier mismatch → exit !=0 AND "tier drift: S05 …"   (deck↔deck)
-#     5. hide-invariant violation → exit !=0 AND "hide invariant: S18 …" (3-day cut)
+#     7. cross-deck tier mismatch → exit !=0 AND "tier drift: S05 …"   (deck↔deck)
+#     8. hide-invariant violation → exit !=0 AND "hide invariant: S18 …" (3-day cut)
 #   README navigation gate (section 8):
-#     6. clean routes → exit 0 AND "README navigation contract"
-#     7. deleted route → exit !=0 AND the route label + path
-#     8. unknown task → exit !=0 AND the command name
+#     9. clean routes → exit 0 AND "README navigation contract"
+#    10. deleted route → exit !=0 AND the route label + path
+#    11. unknown task → exit !=0 AND the command name
 #   Day-2/3 tool contract (section 9):
-#     9. broken/absent tool → exit 0 AND an explicit affected-lab skip warning
+#    12. broken/absent tool → exit 0 AND an explicit affected-lab skip warning
 #   formatting allowlist contract (section 2):
-#    10. exact S13 messy fixture → exit 0 AND formatting gate remains armed
-#    11. another unformatted .tf beside the fixture → exit !=0 AND path is named
-#    12. any other unformatted .tf → exit !=0 AND offending path is named
-#    13. unformatted .tf under .claude/worktrees/ → exit 0 (ignored; no false fail)
-#    14. unformatted .tf under node_modules/ → exit 0 (ignored)
-#    15. unformatted .tf under */.terraform/ → exit 0 (ignored)
+#    13. exact S13 messy fixture → exit 0 AND formatting gate remains armed
+#    14. another unformatted .tf beside the fixture → exit !=0 AND path is named
+#    15. any other unformatted .tf → exit !=0 AND offending path is named
+#    16. unformatted .tf under .claude/worktrees/ → exit 0 (ignored; no false fail)
+#    17. unformatted .tf under node_modules/ → exit 0 (ignored)
+#    18. unformatted .tf under */.terraform/ → exit 0 (ignored)
 #
 # It NEVER mutates the tracked fixture or decks; all edits happen in the temp copy.
 set -euo pipefail
@@ -47,6 +51,9 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 FIXTURE_MD="labs/fixtures/drift-demo.md"
 FIXTURE_TF="labs/fixtures/drift-demo/main.tf"
+# Temp-only pages fixture (not tracked): proves section 6 also scans pages/**
+# and tolerates magic-move fence metadata. Points at the same drift-demo .tf.
+PAGES_FIXTURE_MD="pages/S99-drift-selftest/index.md"
 
 pass_n=0
 fail_n=0
@@ -58,6 +65,23 @@ command -v tofu >/dev/null 2>&1 || { echo "selftest: tofu required" >&2; exit 1;
 
 printf '\n### verify.sh enforcement self-test (drift + tier + README navigation) ###\n'
 
+# Plant a pages/** annotated HCL block with a magic-move fence. Body must stay
+# byte-identical to FIXTURE_TF (minus trailing newline handling in verify.sh).
+plant_pages_fixture() {
+  local root="$1"
+  mkdir -p "$(dirname "$root/$PAGES_FIXTURE_MD")"
+  {
+    printf '%s\n' '# Temp pages drift fixture (self-test only)'
+    printf '%s\n' ''
+    printf '%s\n' "<!-- source: $FIXTURE_TF -->"
+    # Magic-move metadata MUST be tolerated on the fence line (US-X-DRIFT2).
+    printf '%s\n' '```hcl {none|1-3|all}'
+    # FIXTURE_TF already ends with a trailing newline — do not add another.
+    cat "$root/$FIXTURE_TF"
+    printf '%s\n' '```'
+  } >"$root/$PAGES_FIXTURE_MD"
+}
+
 # Build an isolated temp repo root with only what verify.sh needs. Includes the
 # two content decks so section 7 (tier consistency) has inputs; verify.sh reads
 # them by literal path relative to REPO_ROOT.
@@ -65,7 +89,7 @@ build_root() {
   local root="$1"
   mkdir -p "$root/scripts" "$root/setup" "$root/labs/fixtures/drift-demo" \
     "$root/labs/day-1/00-setup" "$root/labs/day-2/13-static-analysis/messy" \
-    "$root/docs/decisions"
+    "$root/docs/decisions" "$root/pages/S99-drift-selftest"
   cp "$REPO_ROOT/scripts/verify.sh" "$root/scripts/verify.sh"
   cp "$REPO_ROOT/setup/lib.sh"      "$root/setup/lib.sh"
   cp "$REPO_ROOT/$FIXTURE_MD"       "$root/$FIXTURE_MD"
@@ -83,6 +107,7 @@ build_root() {
     "$root/labs/day-2/13-static-analysis/messy/main.tf"
   cp "$REPO_ROOT/setup/localstack.md" "$root/setup/localstack.md"
   cp "$REPO_ROOT/docs/decisions/README.md" "$root/docs/decisions/README.md"
+  plant_pages_fixture "$root"
   mkdir -p "$root/test-bin"
   for tool in tflint trivy checkov conftest terramate; do
     printf '#!/bin/sh\nexit 127\n' >"$root/test-bin/$tool"
@@ -132,6 +157,19 @@ m_drift_crlf() {   # drift the source AND author the .md as CRLF (F1 regression)
   local root="$1"
   perl -pi -e 's/hello, opentofu/DRIFTED_CRLF/' "$root/$FIXTURE_TF"
   perl -pi -e 's/\n/\r\n/' "$root/$FIXTURE_MD"
+}
+
+m_pages_clean() { :; }   # pages fixture already planted matching + magic-move fence
+
+m_pages_drift_lf() {     # drift ONLY the pages block body — labs fixture stays clean
+  local root="$1"
+  perl -pi -e 's/hello, opentofu/DRIFTED_PAGES_LF/' "$root/$PAGES_FIXTURE_MD"
+}
+
+m_pages_drift_crlf() {   # pages body drift + CRLF-authored pages md (F1 on pages/)
+  local root="$1"
+  perl -pi -e 's/hello, opentofu/DRIFTED_PAGES_CRLF/' "$root/$PAGES_FIXTURE_MD"
+  perl -pi -e 's/\n/\r\n/' "$root/$PAGES_FIXTURE_MD"
 }
 
 m_tier_mismatch() {  # section 7 (a): make S05's tier differ between the two decks
@@ -195,6 +233,9 @@ m_unformatted_under_dot_terraform() {
 run_case "clean fixture"        pass "no drift: labs/fixtures/drift-demo/main.tf matches" m_clean
 run_case "LF-authored drift"    fail "drift: block in labs/fixtures/drift-demo.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_drift_lf
 run_case "CRLF-authored drift"  fail "drift: block in labs/fixtures/drift-demo.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_drift_crlf
+run_case "pages magic-move clean" pass "no drift: labs/fixtures/drift-demo/main.tf matches its block in index.md" m_pages_clean
+run_case "pages LF-authored drift" fail "drift: block in pages/S99-drift-selftest/index.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_pages_drift_lf
+run_case "pages CRLF-authored drift" fail "drift: block in pages/S99-drift-selftest/index.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_pages_drift_crlf
 run_case "cross-deck tier mismatch (S05)" fail "tier drift: S05 is 'recommended' in slides.md but 'core' in slides-3day.md" m_tier_mismatch
 run_case "hide-invariant violation (S18)" fail "hide invariant: S18 is 'optional' but hide='false' in slides-3day.md" m_hide_violation
 run_case "README navigation contract" pass "README navigation contract" m_clean

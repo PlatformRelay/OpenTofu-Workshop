@@ -7,7 +7,8 @@
 #   3. per module/example that has *.tf: tofu init -backend=false + validate
 #   4. per module/example that has *.tftest.hcl: tofu test (plan/mock lanes)
 #   5. slide ↔ lab drift smoke check (modules/|examples/ paths cited in labs exist)
-#   6. slide ↔ lab drift ENFORCEMENT (annotated ```hcl blocks diffed vs source)
+#   6. slide ↔ lab/pages drift ENFORCEMENT (annotated ```hcl blocks diffed vs source;
+#      pages/** fences may carry magic-move metadata like ```hcl {none|…})
 #
 # Everything degrades to "nothing to check yet → pass" while the content dirs
 # are empty, so this is safe to wire into CI from day one.
@@ -207,7 +208,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 6. Slide ↔ lab drift ENFORCEMENT (annotated fenced blocks)
+# 6. Slide ↔ lab/pages drift ENFORCEMENT (annotated fenced blocks)
 #    Contract (see AGENT.md · "Lab workdir & drift contract"): a fenced ```hcl
 #    block may be tied to a tracked source file by an HTML comment marker on the
 #    line immediately above the fence:
@@ -217,27 +218,40 @@ fi
 #        ...exact file contents...
 #        ```
 #
+#    The same contract applies under pages/SNN-*/index.md. Slidev magic-move
+#    fences carry highlight metadata on the opening fence line:
+#
+#        ```hcl {none|1-4|all}
+#
+#    That metadata is fence chrome, not block content — the extractor tolerates
+#    it so annotated slide blocks can be drift-checked instead of false-failing
+#    (or silently disarming) on the bare-```hcl selector.
+#
 #    Rules:
 #      · annotated block  → its content is diffed against the named file;
 #        drift OR a missing file FAILS the build, naming the file (criterion #2).
 #      · unannotated block → ignored (only counted/warned) so partially-authored
 #        labs never block unrelated lanes (criterion #3).
-#      · a lab that has ```hcl block(s) but ZERO annotated ones → warn, not fail.
+#      · a file that has ```hcl block(s) but ZERO annotated ones → warn, not fail.
 # ---------------------------------------------------------------------------
-heading "Slide ↔ lab drift enforcement (annotated blocks)"
-if [ "${#LAB_FILES[@]}" -eq 0 ]; then
-  warn "no lab Markdown under labs/ yet — nothing to enforce. (pass)"
+heading "Slide ↔ lab/pages drift enforcement (annotated blocks)"
+shopt -s nullglob globstar
+DRIFT_FILES=(labs/**/*.md pages/**/*.md)
+shopt -u nullglob globstar
+if [ "${#DRIFT_FILES[@]}" -eq 0 ]; then
+  warn "no lab/pages Markdown yet — nothing to enforce. (pass)"
 else
   ANNOTATED=0
   DRIFTED=0
   # awk emits one record per annotated block:
   #   \x01<source-path>\n<block-body...>\x02\n
   # It only arms on a `<!-- source: PATH -->` line that is IMMEDIATELY followed
-  # by an opening ```hcl fence; a marker not hugging a fence is ignored. Using
-  # \x01/\x02 sentinels avoids any collision with HCL/Markdown content. Written
-  # with plain awk (not multiline `grep -o`) to stay portable on macOS/BSD.
+  # by an opening ```hcl fence (optional magic-move `{…}` metadata allowed); a
+  # marker not hugging a fence is ignored. Using \x01/\x02 sentinels avoids any
+  # collision with HCL/Markdown content. Written with plain awk (not multiline
+  # `grep -o`) to stay portable on macOS/BSD.
   # NOTE (F1): the file is piped through `tr -d '\r'` BEFORE awk (see the loop
-  # below), so a CRLF-authored lab can never disarm the selectors. The `\r?`
+  # below), so a CRLF-authored lab/page can never disarm the selectors. The `\r?`
   # anchors here are belt-and-suspenders in case awk is ever fed raw bytes.
   extract='
     function trim(s){ sub(/^[ \t]+/,"",s); sub(/[ \t\r]+$/,"",s); return s }
@@ -246,12 +260,12 @@ else
       sub(/^[ \t]*<!--[ \t]*source:[ \t]*/,"",p); sub(/[ \t]*-->[ \t]*\r?$/,"",p)
       pending=trim(p); next
     }
-    pending!="" && /^[ \t]*```hcl[ \t]*\r?$/ { printf "\x01%s\n", pending; incode=1; pending=""; next }
+    pending!="" && /^[ \t]*```hcl([ \t]+\{[^}\r]*\})?[ \t]*\r?$/ { printf "\x01%s\n", pending; incode=1; pending=""; next }
     pending!="" { pending="" }   # marker not immediately hugging a fence → drop
     incode && /^[ \t]*```[ \t]*\r?$/ { printf "\x02\n"; incode=0; next }
     incode { print }
   '
-  for f in "${LAB_FILES[@]}"; do
+  for f in "${DRIFT_FILES[@]}"; do
     # Split awk output into per-block records on the \x02 terminator.
     while IFS= read -r -d $'\x02' record; do
       # record starts with \x01<path>\n<body...>. Strip leading newline artefacts.
