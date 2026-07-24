@@ -195,6 +195,10 @@ no trailing period.
 
 ## Build & verify
 
+`task verify` / `scripts/verify.sh` require **Bash ≥4** (`shopt globstar` from
+US-X-DRIFT2). macOS `/bin/bash` 3.2 fails if it is first on `PATH`; Homebrew
+bash 5 and CI Ubuntu are fine.
+
 ```bash
 pnpm install
 pnpm build && pnpm build:3day && pnpm build:templates   # decks

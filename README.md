@@ -141,6 +141,10 @@ task lab:terratest  # optional: run Go tests in the pinned Terratest container
 task verify         # run fmt, validation, tofu tests, and documentation contracts
 ```
 
+`task verify` / `scripts/verify.sh` need **Bash ≥4** (`shopt globstar`). macOS
+`/bin/bash` is still 3.2 and fails if it wins on `PATH`; Homebrew bash 5 (or
+CI's Ubuntu bash) is fine — put `/opt/homebrew/bin` or `/usr/local/bin` first.
+
 No `task`? The underlying commands are plain `pnpm`, `tofu`, and Docker Compose;
 see [Taskfile.yaml](Taskfile.yaml) for their exact definitions.
 
