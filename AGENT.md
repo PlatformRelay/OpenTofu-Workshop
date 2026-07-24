@@ -107,8 +107,9 @@ The `lab:*` tasks all take `DIR=labs/day-N/NN-topic` (see `Taskfile.yaml`).
 > section — never number it into the section namespace.
 
 To make "slide↔lab single source of truth" **CI-verifiable**, tie a fenced
-`hcl` block to its source file with an HTML-comment marker on the line
-immediately above the fence (shown indented so the inner fences render):
+`hcl` block in `labs/**` or `pages/**` to its source file with an HTML-comment
+marker on the line immediately above the fence (shown indented so the inner
+fences render):
 
     <!-- source: labs/fixtures/drift-demo/main.tf -->
     ```hcl
@@ -117,8 +118,9 @@ immediately above the fence (shown indented so the inner fences render):
     }
     ```
 
-`scripts/verify.sh` then diffs the block body against that file and **fails the
-build, naming the file,** on any drift (or if the file is missing). Rules:
+`scripts/verify.sh` scans both `labs/**/*.md` and `pages/**/*.md`, diffs each
+annotated block body against its source file, and **fails the build, naming the
+file,** on any drift (or if the file is missing). Rules:
 
 - **Annotated** block → diffed against its source; drift is a build failure.
 - **Unannotated** `hcl` block → ignored (scratch/inline teaching HCL, or a
@@ -129,10 +131,13 @@ build, naming the file,** on any drift (or if the file is missing). Rules:
   stray CRLF cannot silently disarm detection. Only the block-body **comparison**
   additionally normalises a lone trailing newline — it is not a licence to author
   CRLF.
-- The marker `<!-- source: … -->` and the ` ```hcl ` fence are expected at
-  **column 0** (top level). A block written inside a list/indented context keeps
-  its indentation in the body, so it will diff against the raw file only if the
-  file is indented identically — author drift-checked blocks at top level.
+- The marker `<!-- source: … -->` and the opening fence are expected at
+  **column 0** (top level). Bare `` ```hcl `` and magic-move fences with
+  metadata (`` ```hcl {none|…} ``) are both accepted — only the `hcl` language
+  tag matters; the `{…}` info string is ignored. A block written inside a
+  list/indented context keeps its indentation in the body, so it will diff
+  against the raw file only if the file is indented identically — author
+  drift-checked blocks at top level.
 - The block body must be **byte-identical** to the file. Generate the block
   *from* the file — never hand-sync the two. `labs/fixtures/drift-demo/` is the
   reference example.
