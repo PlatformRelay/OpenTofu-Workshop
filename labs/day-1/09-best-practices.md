@@ -42,8 +42,9 @@ verified. The config lives at `labs/day-1/09-best-practices/`:
 ## Prerequisites
 
 - `tofu` ≥ 1.7 — `count`/`for_each` and the `moved` block are long-GA (`moved`
-  landed in 1.1); 1.7 is only the floor for the loopable `import` shown on the
-  slides. This lab was verified on `tofu v1.12.3` (`tofu version`).
+  has been in OpenTofu since 1.6; Terraform-lineage since 1.1); 1.7 is only the
+  floor for the loopable `import` shown on the slides. This lab was verified on
+  `tofu v1.12.3` (`tofu version`).
 - You have done Lab 07 (S07) — this lab picks up the same "one definition, many
   instances" idea and makes it *evolvable*.
 - Run everything **from the repo clone** — no Docker, no cloud. `tofu init` reaches

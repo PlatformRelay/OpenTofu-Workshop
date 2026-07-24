@@ -213,6 +213,9 @@ Initializing provider plugins...
 OpenTofu has been successfully initialized!
 ```
 
+> Your resolved `hashicorp/aws` patch within `>= 5.0.0, < 6.0.0` may differ —
+> match on the version *range* and the warning text, not the exact `v5.x.y`.
+
 The provider `for_each` and both resources iterate the **same** `local.regions`
 set. That is the simplest, clearest wiring — and it works — but OpenTofu warns
 that if you later *shrink* the set while resources still exist, the provider
