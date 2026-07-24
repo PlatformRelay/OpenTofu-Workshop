@@ -75,12 +75,16 @@ shopt -u nullglob
 # ---------------------------------------------------------------------------
 # 2. fmt -check (repo-wide except the intentional S13 break→fix fixture)
 # ---------------------------------------------------------------------------
-heading "Formatting (tofu fmt -check; S13 messy fixture excluded)"
+heading "Formatting (tofu fmt -check; S13 messy fixture + agent/cache paths excluded)"
 FORMAT_FILES=()
 while IFS= read -r -d '' tf_file; do
   FORMAT_FILES+=("$tf_file")
 done < <(find . -type f -name '*.tf' \
-  ! -path './labs/day-2/13-static-analysis/messy/main.tf' -print0)
+  ! -path './labs/day-2/13-static-analysis/messy/main.tf' \
+  ! -path './.claude/*' \
+  ! -path './node_modules/*' \
+  ! -path '*/.terraform/*' \
+  -print0)
 
 if [ "${#FORMAT_FILES[@]}" -eq 0 ] || tofu fmt -check "${FORMAT_FILES[@]}" >/dev/null 2>&1; then
   pass "all tracked .tf files outside the S13 messy fixture are canonically formatted"

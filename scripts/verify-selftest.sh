@@ -35,6 +35,9 @@
 #    10. exact S13 messy fixture → exit 0 AND formatting gate remains armed
 #    11. another unformatted .tf beside the fixture → exit !=0 AND path is named
 #    12. any other unformatted .tf → exit !=0 AND offending path is named
+#    13. unformatted .tf under .claude/worktrees/ → exit 0 (ignored; no false fail)
+#    14. unformatted .tf under node_modules/ → exit 0 (ignored)
+#    15. unformatted .tf under */.terraform/ → exit 0 (ignored)
 #
 # It NEVER mutates the tracked fixture or decks; all edits happen in the temp copy.
 set -euo pipefail
@@ -166,6 +169,29 @@ m_unformatted_beside_fixture() {
     >"$root/labs/day-2/13-static-analysis/messy/adjacent.tf"
 }
 
+# Plant deliberately unformatted .tf under paths that must NOT poison fmt -check
+# (agent worktrees, package installs, provider caches).
+m_unformatted_under_claude_worktree() {
+  local root="$1"
+  mkdir -p "$root/.claude/worktrees/fake-lane/labs/day-2/13-static-analysis/messy"
+  printf 'terraform {\n required_version = ">= 1.8"\n}\n' \
+    >"$root/.claude/worktrees/fake-lane/labs/day-2/13-static-analysis/messy/main.tf"
+}
+
+m_unformatted_under_node_modules() {
+  local root="$1"
+  mkdir -p "$root/node_modules/some-pkg"
+  printf 'terraform {\n required_version = ">= 1.8"\n}\n' \
+    >"$root/node_modules/some-pkg/main.tf"
+}
+
+m_unformatted_under_dot_terraform() {
+  local root="$1"
+  mkdir -p "$root/modules/example/.terraform/providers"
+  printf 'terraform {\n required_version = ">= 1.8"\n}\n' \
+    >"$root/modules/example/.terraform/providers/cached.tf"
+}
+
 run_case "clean fixture"        pass "no drift: labs/fixtures/drift-demo/main.tf matches" m_clean
 run_case "LF-authored drift"    fail "drift: block in labs/fixtures/drift-demo.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_drift_lf
 run_case "CRLF-authored drift"  fail "drift: block in labs/fixtures/drift-demo.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_drift_crlf
@@ -178,6 +204,9 @@ run_case "missing Day-2/3 tool skips" pass "tflint unavailable — skipping tool
 run_case "exact S13 messy fixture allowlisted" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_clean
 run_case "adjacent S13 file is not allowlisted" fail "labs/day-2/13-static-analysis/messy/adjacent.tf" m_unformatted_beside_fixture
 run_case "unformatted file outside allowlist" fail "modules/unformatted-regression/main.tf" m_unformatted_outside_allowlist
+run_case "unformatted under .claude/worktrees ignored" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_unformatted_under_claude_worktree
+run_case "unformatted under node_modules ignored" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_unformatted_under_node_modules
+run_case "unformatted under .terraform ignored" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_unformatted_under_dot_terraform
 
 printf '\n'
 if [ "$fail_n" -eq 0 ]; then
