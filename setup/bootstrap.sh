@@ -17,6 +17,19 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # ---------------------------------------------------------------------------
 MIN_TOFU="1.8"
 MIN_NODE="20"
+MIN_GO="1.22"
+
+# Optional host-Go lane (US-0-GOTT / ADR 0011). Off by default so a clean
+# machine never needs Go; enable with BOOTSTRAP_WITH_GO=1 or --with-go.
+WITH_GO=0
+for arg in "$@"; do
+  case "$arg" in
+    --with-go) WITH_GO=1 ;;
+  esac
+done
+if [ "${BOOTSTRAP_WITH_GO:-0}" = "1" ] || [ "${BOOTSTRAP_WITH_GO:-}" = "true" ]; then
+  WITH_GO=1
+fi
 
 # ---------------------------------------------------------------------------
 # OS / package-manager detection
@@ -62,6 +75,8 @@ install_hint() {
     conftest:Linux) echo "https://www.conftest.dev/install/" ;;
     terramate:macOS) echo "brew install terramate" ;;
     terramate:Linux) echo "https://terramate.io/docs/cli/installation" ;;
+    go:macOS)     echo "brew install go" ;;
+    go:Linux)     echo "https://go.dev/doc/install" ;;
     *)            echo "(see the tool's documentation for $OS)" ;;
   esac
 }
@@ -79,6 +94,7 @@ brew_install_arg() {
     checkov) echo "checkov" ;;
     conftest) echo "conftest" ;;
     terramate) echo "terramate" ;;
+    go)     echo "go" ;;
     *)      echo "$1" ;;
   esac
 }
@@ -101,6 +117,7 @@ tool_version() {
     checkov) checkov --version 2>/dev/null | head -n1 ;;
     conftest) conftest --version 2>/dev/null | head -n1 | awk '{print $NF}' ;;
     terramate) terramate version 2>/dev/null | head -n1 | awk '{print $NF}' ;;
+    go)     go version 2>/dev/null | awk '{print $3}' ;;
     *)      echo "" ;;
   esac
 }
@@ -157,6 +174,35 @@ if ! have awslocal && ! have aws; then
   echo
 fi
 
+# Optional host Go for the native Terratest lane (container lane needs no Go).
+GO_MISSING=""
+GO_VERSION_WARN=""
+if [ "$WITH_GO" = 1 ]; then
+  heading "Optional host Go (BOOTSTRAP_WITH_GO / --with-go)"
+  if have go; then
+    v="$(tool_version go)"
+    # go version prints "go1.23.6" — strip the "go" prefix for min_version.
+    v_num="${v#go}"
+    if min_version "$v_num" "$MIN_GO"; then
+      ok "go     ${v:-?}  (>= $MIN_GO)"
+      note "Native Terratest: task lab:up && task lab:terratest:host DIR=…"
+    else
+      bad "go     ${v:-?}  (needs >= $MIN_GO)"
+      GO_VERSION_WARN="go"
+    fi
+  else
+    bad "go     missing"
+    GO_MISSING="go"
+    info "→ $(install_hint go)"
+    note "Container lane (no host Go): task lab:terratest DIR=…"
+  fi
+  echo
+else
+  note "Host Go skipped (default). Terratest uses the container lane: task lab:terratest"
+  note "Opt in: BOOTSTRAP_WITH_GO=1 bash setup/bootstrap.sh   or: bash setup/bootstrap.sh --with-go"
+  echo
+fi
+
 # Required by their respective Day-2/3 labs. Always inspect the whole set so a
 # single run reports every gap instead of failing at the first missing tool.
 DAY_MISSING=""
@@ -200,7 +246,7 @@ fi
 # ---------------------------------------------------------------------------
 # Offer to install missing required tools
 # ---------------------------------------------------------------------------
-ALL_MISSING="$MISSING$DAY_MISSING"
+ALL_MISSING="$MISSING$DAY_MISSING$GO_MISSING"
 if [ -n "$ALL_MISSING" ]; then
   heading "Install commands for missing tools"
   for t in $ALL_MISSING; do
@@ -253,16 +299,36 @@ for t in $DAY_TOOLS; do
     DAY_STILL_MISSING="$DAY_STILL_MISSING $t"
   fi
 done
+GO_STILL_MISSING=""
+GO_STILL_WARN=""
+if [ "$WITH_GO" = 1 ]; then
+  if have go; then
+    v="$(tool_version go)"
+    v_num="${v#go}"
+    if ! min_version "$v_num" "$MIN_GO"; then
+      GO_STILL_WARN="go"
+    fi
+  else
+    GO_STILL_MISSING="go"
+  fi
+fi
 
-if [ -z "$STILL_MISSING" ] && [ -z "$DAY_STILL_MISSING" ] && [ -z "$VERSION_WARN" ]; then
+if [ -z "$STILL_MISSING" ] && [ -z "$DAY_STILL_MISSING" ] && [ -z "$VERSION_WARN" ] \
+  && [ -z "$GO_STILL_MISSING" ] && [ -z "$GO_STILL_WARN" ]; then
   ok "READY — all required tools present and meet minimum versions."
   ok "Day-2/3 tools ready — tflint, Trivy, Checkov, Conftest, and Terramate."
+  if [ "$WITH_GO" = 1 ]; then
+    ok "Host Go ready — native Terratest lane available (task lab:terratest:host)."
+  fi
   note "Next: 'task lab:up' to start LocalStack, then 'task lab' for the guided runner."
   exit 0
 else
   [ -n "$STILL_MISSING" ] && bad "Missing:$STILL_MISSING"
   [ -n "$DAY_STILL_MISSING" ] && bad "Missing Day-2/3 tools:$DAY_STILL_MISSING"
   [ -n "$VERSION_WARN" ]  && bad "Below minimum version:$VERSION_WARN"
+  [ -n "$GO_STILL_MISSING" ] && bad "Missing optional host Go:$GO_STILL_MISSING"
+  [ -n "$GO_STILL_WARN" ] && bad "Below minimum Go version:$GO_STILL_WARN"
+  [ -n "$GO_VERSION_WARN" ] && [ -z "$GO_STILL_WARN" ] && bad "Below minimum Go version:$GO_VERSION_WARN"
   bad "NOT READY — resolve the items above and re-run: bash setup/bootstrap.sh"
   # Non-zero so CI / task preconditions can gate on readiness.
   exit 1

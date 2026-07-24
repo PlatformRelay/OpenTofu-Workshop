@@ -233,6 +233,29 @@ tasks:
         msg: "tofu is required. Install: brew install opentofu"
 
   # -------------------------------------------------------------------------
+  # Terratest lane (US-0-GOTT) — container-first; host Go optional
+  # -------------------------------------------------------------------------
+  lab:terratest:
+    desc: "Lab: run Go tests in DIR via pinned Terratest container vs LocalStack (default DIR=labs/fixtures/terratest-smoke)"
+    vars:
+      DIR: '{{.DIR | default "labs/fixtures/terratest-smoke"}}'
+    cmds:
+      - MODE=container bash scripts/lab-terratest.sh "{{.DIR}}"
+    preconditions:
+      - sh: command -v docker
+        msg: "docker is required for the container Terratest lane. Host-Go alternative: BOOTSTRAP_WITH_GO=1 bash setup/bootstrap.sh then 'task lab:up && task lab:terratest:host DIR=…'."
+
+  lab:terratest:host:
+    desc: "Lab: run Go tests in DIR natively on the host (needs Go + LocalStack on :4566)"
+    vars:
+      DIR: '{{.DIR | default "labs/fixtures/terratest-smoke"}}'
+    cmds:
+      - MODE=host bash scripts/lab-terratest.sh "{{.DIR}}"
+    preconditions:
+      - sh: command -v go
+        msg: "Go is required for the host Terratest lane. Install/verify: BOOTSTRAP_WITH_GO=1 bash setup/bootstrap.sh (or: brew install go)."
+
+  # -------------------------------------------------------------------------
   # Interactive runner
   # -------------------------------------------------------------------------
   lab:
@@ -252,6 +275,8 @@ tasks:
       # Keep setup/bootstrap.sh's clean-machine contract in the same canonical
       # local gate that CI mirrors.
       - bash scripts/bootstrap-selftest.sh
+      # Terratest lane: docker-absent fail-fast (no daemon required).
+      - bash scripts/lab-terratest-selftest.sh
       - bash scripts/verify.sh
       # Regression guard: prove the slide↔lab drift ENFORCEMENT actually fails on
       # drift (incl. CRLF-authored). Runs in a throwaway temp copy; see the script.

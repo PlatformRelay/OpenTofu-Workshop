@@ -3,6 +3,10 @@
 # LocalStack emulates AWS locally so learners need NO AWS account and pay
 # nothing. Start it with `task lab:up` (waits for healthy); stop with
 # `task lab:down`. The endpoint is http://localhost:4566 for every service.
+#
+# The optional `terratest` service (US-0-GOTT) is a pinned Go+OpenTofu runner
+# on the same compose network. Prefer `task lab:terratest DIR=…` — do not add
+# it to `lab:up` (learners without Go labs should not pull the image).
 services:
   localstack:
     image: localstack/localstack:4.9.2
@@ -26,3 +30,27 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
+
+  # Pinned Terratest runner (Go 1.23.6 + OpenTofu 1.9.1). Profile keeps
+  # `docker compose up` / `task lab:up` from building it accidentally.
+  terratest:
+    profiles: ["terratest"]
+    build:
+      context: setup/terratest
+      dockerfile: Dockerfile
+      args:
+        GO_IMAGE: golang:1.23.6-bookworm
+        TOFU_VERSION: "1.9.1"
+    image: opentofu-workshop-terratest:go1.23.6-tofu1.9.1
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
+      # Compose DNS name — reaches LocalStack on the project network.
+      AWS_ENDPOINT_URL: http://localstack:4566
+    depends_on:
+      localstack:
+        condition: service_healthy

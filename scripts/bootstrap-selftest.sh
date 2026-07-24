@@ -123,4 +123,51 @@ grep -q '^install checkov$' "$TMP/brew.log"
 printf '%s\n' "$out" | grep -q 'Install of tflint failed'
 printf '%s\n' "$out" | grep -q 'Install of checkov failed'
 
-echo 'bootstrap self-test PASSED — versions, idempotence, missing, corrupt, and install-failure paths'
+# Restore a clean PATH for the optional host-Go lane (US-0-GOTT).
+fake tflint 'TFLint version 0.58.1'
+fake checkov '3.2.450'
+fake trivy 'Version: 0.64.1'
+rm -f "$BIN/brew" "$BIN/uname"
+
+# Default path must stay Go-free (container-first).
+default_go_out="$(run_bootstrap)"
+printf '%s\n' "$default_go_out" | grep -q 'Host Go skipped'
+printf '%s\n' "$default_go_out" | grep -q 'task lab:terratest'
+
+# BOOTSTRAP_WITH_GO=1 with Go present → verify + ready.
+fake go 'go version go1.23.6 darwin/arm64'
+# tool_version uses `go version` and awk '{print $3}' → need the script to call go correctly.
+# Our fake prints a single line; go version format is "go version go1.23.6 …"
+cat >"$BIN/go" <<'EOF'
+#!/bin/sh
+printf '%s\n' 'go version go1.23.6 darwin/arm64'
+EOF
+chmod +x "$BIN/go"
+set +e
+with_go_out="$(PATH="$BIN:/usr/bin:/bin" CI=true BOOTSTRAP_AUTO_INSTALL=never \
+  BOOTSTRAP_WITH_GO=1 bash "$ROOT/setup/bootstrap.sh" 2>&1)"
+with_go_status=$?
+set -e
+[ "$with_go_status" -eq 0 ] || {
+  echo 'BOOTSTRAP_WITH_GO=1 with Go present must exit 0' >&2
+  printf '%s\n' "$with_go_out" >&2
+  exit 1
+}
+printf '%s\n' "$with_go_out" | grep -q 'Host Go ready'
+printf '%s\n' "$with_go_out" | grep -q 'lab:terratest:host'
+
+# BOOTSTRAP_WITH_GO=1 without Go → non-zero and install hint.
+rm -f "$BIN/go"
+set +e
+missing_go_out="$(PATH="$BIN:/usr/bin:/bin" CI=true BOOTSTRAP_AUTO_INSTALL=never \
+  BOOTSTRAP_WITH_GO=1 bash "$ROOT/setup/bootstrap.sh" 2>&1)"
+missing_go_status=$?
+set -e
+[ "$missing_go_status" -ne 0 ] || {
+  echo 'BOOTSTRAP_WITH_GO=1 without Go must exit non-zero' >&2
+  exit 1
+}
+printf '%s\n' "$missing_go_out" | grep -q 'go.*missing'
+printf '%s\n' "$missing_go_out" | grep -q 'Missing optional host Go'
+
+echo 'bootstrap self-test PASSED — versions, idempotence, missing, corrupt, install-failure, and optional Go paths'

@@ -53,11 +53,21 @@ missing. It is safe to rerun and never installs without confirmation.
 | Day 2 static analysis | TFLint |
 | Day 2 security and policy | Trivy, Checkov, Conftest |
 | Day 3 scale labs | Terramate |
+| Optional Terratest (S18) | Docker (container lane) — or host Go ≥1.22 |
 
 `gum`, `awslocal`, and the AWS CLI improve the local experience but are
-optional. Go is intentionally not installed by this bootstrap; the optional
-Terratest lane documents its own container-first prerequisites.
+optional. Go is **not** installed by default. Terratest is **container-first**
+([ADR 0011](docs/decisions/0011-toolchain-lanes.md)):
 
+```bash
+task lab:terratest DIR=labs/fixtures/terratest-smoke   # pinned Go+tofu container vs LocalStack
+# Host-Go alternative (optional):
+BOOTSTRAP_WITH_GO=1 bash setup/bootstrap.sh            # or: bash setup/bootstrap.sh --with-go
+task lab:up && task lab:terratest:host DIR=labs/fixtures/terratest-smoke
+```
+
+No Docker? The container lane fails fast and points at the host-Go commands
+above.
 ## Choose your route
 
 | I am a… | Start with | Then use |
@@ -127,6 +137,7 @@ section stay `hide: false`. Their comments in
 task setup          # detect/install the workshop toolchain and deck dependencies
 task dev:3day       # serve the canonical workshop at localhost:3030
 task lab:up         # start LocalStack for labs that require it
+task lab:terratest  # optional: run Go tests in the pinned Terratest container
 task verify         # run fmt, validation, tofu tests, and documentation contracts
 ```
 
