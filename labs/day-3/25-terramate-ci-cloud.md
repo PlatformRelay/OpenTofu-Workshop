@@ -54,9 +54,11 @@ terramate {
 
 ## Step 1 — Terramate on `PATH`
 
-From the repository root:
+From the repository root (pin an absolute path for later cleanup — nested
+`cd` into disposable demos must not rely on `$OLDPWD`):
 
 ```bash
+repo_root="$(pwd)"
 command -v terramate >/dev/null \
   || { printf '%s\n' "terramate not found on PATH — run: task setup"; exit 1; }
 terramate version
@@ -151,11 +153,11 @@ jobs:
           tofu_wrapper: false
 
       - name: List changed stacks
-        id: list
         run: terramate list --changed
 
       - name: Init and plan changed stacks
-        if: steps.list.outputs.stdout != ''
+        # Unguarded — matches the S25 slide. A plain `run:` step does NOT set
+        # steps.*.outputs.stdout; gating on that would skip plan forever.
         run: |
           terramate run --changed -- tofu init -input=false
           terramate run --changed -- tofu plan -input=false -no-color
@@ -182,7 +184,7 @@ wrong).
 
 ```bash
 demo="$(mktemp -d)"
-cp -R labs/day-3/25-terramate-ci-cloud/. "$demo/"
+cp -R "$repo_root/labs/day-3/25-terramate-ci-cloud/." "$demo/"
 cd "$demo"
 git init -q
 git checkout -q -b main
@@ -333,7 +335,7 @@ Restore the lab fixture workflow (planted defects must stay in the tracked
 tree for the next cohort):
 
 ```bash
-cd "$OLDPWD" 2>/dev/null || true
+cd "${repo_root:?set repo_root in Step 1}"
 rm -rf "${demo:-}" "${shallow:-}"
 git restore -- labs/day-3/25-terramate-ci-cloud/.github/workflows/terramate-pr.yml
 git status --short -- labs/day-3/25-terramate-ci-cloud
