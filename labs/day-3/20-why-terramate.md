@@ -174,7 +174,7 @@ cp -R labs/day-3/20-why-terramate/. "$demo/"
 cd "$demo"
 git init -q
 git add -A
-git commit -qm 'why-terramate skeleton'
+git -c user.email=learner@example.invalid -c user.name=Learner commit -qm 'why-terramate skeleton'
 pwd
 terramate version
 terramate list; echo "list exit: $?"
