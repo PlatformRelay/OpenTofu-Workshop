@@ -272,7 +272,7 @@ consciously out-of-scope themes:
 | IaC concepts / purpose | S01 |
 | Terraform/OpenTofu basics & HCL | S02 |
 | Core workflow (init/plan/apply/destroy) | S03 |
-| State & backends (+ security) | S04, **S05** |
+| State & backends (+ security) | S04 |
 | Variables, outputs, validation | S06, S15 |
 | Modules (use, sources, versioning, registry) | S07, S08 |
 | Meta-args, lifecycle, refactoring | S09 |
