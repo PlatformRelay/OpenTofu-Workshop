@@ -1,0 +1,49 @@
+# Intentionally incomplete / incorrect starter workflow for Lab 25.
+# Learners repair change-detection for PR runs. Compare with the fixed
+# shape in labs/day-3/25-terramate-ci-cloud.md spoilers and the S25 slides.
+#
+# This file is NOT executed by the workshop repository's GitHub Actions —
+# it lives under labs/ as a paper fixture. Do not copy it to the
+# repository-root .github/workflows/ without review.
+
+name: Terramate PR (lab fixture)
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: terramate-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  plan-changed:
+    name: Plan changed stacks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        # BUG: default fetch-depth is 1 (shallow). Change detection needs
+        # full history vs default_branch — set fetch-depth: 0.
+        # with:
+        #   fetch-depth: 0
+
+      - name: Install Terramate
+        uses: terramate-io/terramate-action@v3
+        with:
+          version: "0.17.1"
+
+      - name: Install OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: "1.10.3"
+          tofu_wrapper: false
+
+      - name: List stacks (PLANTED DEFECT — no --changed)
+        # BUG: lists / plans the whole fleet. A PR gate must use --changed.
+        run: terramate list --run-order
+
+      - name: Plan all stacks (PLANTED DEFECT — no --changed)
+        run: |
+          terramate run -- tofu init -input=false
+          terramate run -- tofu plan -input=false -no-color
