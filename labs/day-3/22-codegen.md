@@ -113,7 +113,7 @@ cd "$demo"
 rm -f stacks/*/_backend.tf stacks/*/_providers.tf
 git init -q
 git add -A
-git commit -qm 'stacks without generated HCL'
+git -c user.email=learner@example.invalid -c user.name=Learner commit -qm 'stacks without generated HCL'
 terramate list
 ls stacks/network/
 ```

@@ -240,7 +240,7 @@ layout: code-annotated
 # One set of dials
 
 <!-- source: labs/day-3/22-codegen/globals.tm.hcl -->
-```hcl {1|2-4|1-5}
+```hcl {1|2-3|4|1-5}
 globals {
   terraform_version      = ">= 1.8"
   local_provider_version = "~> 2.5"
