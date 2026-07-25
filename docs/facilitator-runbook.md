@@ -60,7 +60,7 @@ Canonical visible order: `S20 → S21 → S22 → S23 → S24 → S26` (+ option
 | Ship | S20 → S21 → S22 (generate) → S23 (order) → S24 (`--changed` / `--tags`) → **S26** capstone |
 | If short | Skip **S24** (recommended) — deepen S23 Q&A; keep core S20–S23; **keep S26** wrap if at all possible |
 | Optional | **S25** (`hide: true` in 3-day cut) — `--changed` CI + Cloud overview; skip unless time |
-| Keep | **S26** — drives `examples/capstone/`; Associate table is a design check, not exam prep |
+| Keep | **S26** — drives `examples/capstone/`; Associate table is a design check, not exam prep ([full appendix](associate-alignment.md)) |
 
 ---
 

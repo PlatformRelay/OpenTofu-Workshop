@@ -263,7 +263,9 @@ Then: Closing design check — Associate coverage map.
 
 Coverage map for the **fundamentals**. Themes the workshop deliberately
 goes **beyond** (state encryption, provider `for_each`, `-exclude`, Terramate)
-are OpenTofu-current — not Associate material.
+are OpenTofu-current — not Associate material. Fuller map, notes, and
+consciously out-of-scope themes:
+[`docs/associate-alignment.md`](../../docs/associate-alignment.md).
 
 | Associate objective (theme) | Covered by |
 | --- | --- |
