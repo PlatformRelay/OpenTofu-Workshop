@@ -52,6 +52,7 @@ How this workshop is built. Read before authoring a section, a lab, or a module.
 - `agent-context/` — **gitignored** planning docs (roadmap, outline, stories,
   image prompts, ideas, operator board, research brief).
 - `docs/decisions/` — tracked ADRs.
+- `docs/facilitator-runbook.md` — delivery guide for facilitators (timing cuts, morning checklist, known traps).
 
 ## Design system
 

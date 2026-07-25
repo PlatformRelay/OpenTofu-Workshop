@@ -73,7 +73,7 @@ above.
 | I am a… | Start with | Then use |
 | --- | --- | --- |
 | Learner | [Canonical three-day workshop](slides-3day.md) — the standard delivery cut | [Lab 00](labs/day-1/00-setup.md) and the linked labs that follow |
-| Facilitator | [Canonical three-day workshop](slides-3day.md) | The scope and timing warning below to plan cuts |
+| Facilitator | [Facilitator runbook](docs/facilitator-runbook.md) | [Canonical three-day workshop](slides-3day.md) and the scope and timing warning below to plan cuts |
 | Contributor | [Contributor guide](AGENT.md) | [Template gallery](slides-templates.md) for design patterns and the [decision index](docs/decisions/README.md) for architectural context |
 
 ## Deck choices
@@ -160,6 +160,7 @@ theme/                local Slidev theme (layouts, components, IacIcon)
 components/           animated Vue teaching diagrams
 public/icons/         OpenTofu marks + HCL block glyphs
 docs/decisions/       architectural decision records (ADRs)
+docs/facilitator-runbook.md  facilitator delivery guide
 setup/                bootstrap, lab runner, and environment guides
 ```
 
