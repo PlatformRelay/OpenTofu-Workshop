@@ -5,9 +5,9 @@ Practical delivery notes for the **canonical three-day cut**
 slide and the [scope and timing](../README.md#scope-and-timing-known-issue)
 warning in the README.
 
-**Shipped** = authored slides + lab (not a stub). Stub section **S26** stays
-out of live delivery until it clears the section DoD — including a row in the
-table below.
+**Shipped** = authored slides + lab (not a stub). All canonical sections
+through **S26** are shipped; optional sections stay skippable via cut-order /
+`hide:`.
 
 | Day | Serve | Preflight |
 | --- | --- | --- |
@@ -51,16 +51,16 @@ Canonical visible order: `S12 → S13 → S14 → S16 → S17 → S19`.
 | If short | Shorten explain on S12; keep S13→S14→S16 chain intact |
 | Keep | S17 mock path (Docker-down proof) and S19 `fmt -check` false-green |
 
-### Day 3 (scale) — shipped only
+### Day 3 (scale)
 
-Canonical visible order today: `S20 → S21 → S22 → S23 → S24` (+ optional S25).
+Canonical visible order: `S20 → S21 → S22 → S23 → S24 → S26` (+ optional S25).
 
 | Priority | Action |
 | --- | --- |
-| Ship | S20 → S21 → S22 (generate) → S23 (order) → S24 (`--changed` / `--tags`) |
-| If short | Skip **S24** (recommended) — deepen S23 Q&A; keep core S20–S23 |
+| Ship | S20 → S21 → S22 (generate) → S23 (order) → S24 (`--changed` / `--tags`) → **S26** capstone |
+| If short | Skip **S24** (recommended) — deepen S23 Q&A; keep core S20–S23; **keep S26** wrap if at all possible |
 | Optional | **S25** (`hide: true` in 3-day cut) — `--changed` CI + Cloud overview; skip unless time |
-| Defer | **S26** is still a **stub** — do not present until authored |
+| Keep | **S26** — drives `examples/capstone/`; Associate table is a design check, not exam prep |
 
 ---
 
@@ -105,6 +105,9 @@ nobody hunts for “their” bucket from before the crash. Detail:
 | Terramate `repository has uncommitted files` | Dirty worktree + `run --changed` (S24) | Teaching moment — `list --changed --why` still works; commit (identity pin) or discard |
 | `--changed` needs two commits | Learner stuck on baseline-only `main` | Expected — branch + second commit before `--changed` |
 | `--changed` fails in Actions / shallow clone | Missing `fetch-depth: 0` (S25) | Teaching moment — default checkout depth breaks change detection |
+| Capstone passphrase / encryption errors | `state_passphrase` < 16 chars or unset | Export `TF_VAR_state_passphrase` (≥16); lab Step 2 is the deliberate break |
+| Capstone SQS apply slow / hangs | LocalStack SQS create latency; AWS provider ≥6 | Wait ~30 s; keep AWS provider `< 6.0` (pinned in `providers.tf`) |
+| Half-applied capstone residue | Crash mid-apply | Panic reset: `destroy` + delete local state + `task lab:down` (lab Step 6) |
 
 ---
 
@@ -157,11 +160,7 @@ as a compressible core delivery beat.
 | S23 | Orchestration | core | 30 | Keep | Why does plain `list` disagree with `--run-order`? | Cycle fail-closed; one `after` edge enough |
 | S24 | Change detection | recommended | 25 | Keep / skip if short | Prove only the changed stack runs — what did network do? | Dirty `run --changed`; two-commit baseline; identity pin |
 | S25 | Terramate CI + Cloud | optional | 25 | **Skip** (`hide`) unless time | Does the PR gate use `--changed`? Does Cloud manage state? (**no**) | Paper fixture; `fetch-depth: 0`; **no Cloud signup**; restore planted YAML |
-
-### Not shipped (stubs — no live row yet)
-
-S26 Capstone — placeholder slides only. Authoring must add a runbook row
-(see `AGENT.md` DoD) before facilitating it.
+| S26 | Capstone & wrap-up | core | 60 | Keep | Can the room green the unit lane and clean up with `lab:down`? Associate table = design check? | Drive `examples/capstone/` (no rewrite); short-passphrase break; panic-reset no residue; Terramate stretch optional |
 
 ---
 
