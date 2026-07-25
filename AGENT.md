@@ -154,8 +154,13 @@ file,** on any drift (or if the file is missing). Rules:
    (plan/mock lane needs no cloud; integration lane uses LocalStack).
 8. **Presenter notes on every content slide** (see convention below) so anyone
    can deliver the deck, not just its author.
-9. Cleanup safe; no guardrail violations.
-10. Conventional Commit + gitmoji.
+9. **Facilitator runbook row** in
+   [`docs/facilitator-runbook.md`](docs/facilitator-runbook.md) for the section
+   (timing cues from README fit plan / lab `duration:`, one checkpoint question,
+   known failure modes, and the live cut-order note). Stub sections must not
+   claim a shipped row until this lands with the authored content.
+10. Cleanup safe; no guardrail violations.
+11. Conventional Commit + gitmoji.
 
 ### Presenter-notes convention
 
