@@ -5,8 +5,8 @@ Practical delivery notes for the **canonical three-day cut**
 slide and the [scope and timing](../README.md#scope-and-timing-known-issue)
 warning in the README.
 
-**Shipped** = authored slides + lab (not a stub). Stub sections (S25–S26) stay
-out of live delivery until they clear the section DoD — including a row in the
+**Shipped** = authored slides + lab (not a stub). Stub section **S26** stays
+out of live delivery until it clears the section DoD — including a row in the
 table below.
 
 | Day | Serve | Preflight |
@@ -14,7 +14,7 @@ table below.
 | Any | `task setup` then `task dev:3day` | `tofu version` ≥1.8; Docker (or k8s path) for LocalStack labs |
 | 1–2 LocalStack labs | `task lab:up` before the first `localstack ✓` step | Health: <http://localhost:4566/_localstack/health> |
 | 2 scanners | TFLint, Trivy, Checkov, Conftest on `PATH` | `task setup` optional Day-2 tools |
-| 3 Terramate | Terramate on `PATH` (spoilers pinned ~0.17.x) | No Docker required for S20–S24 path |
+| 3 Terramate | Terramate on `PATH` (spoilers pinned ~0.17.x) | No Docker required for S20–S25 path |
 
 ---
 
@@ -53,14 +53,14 @@ Canonical visible order: `S12 → S13 → S14 → S16 → S17 → S19`.
 
 ### Day 3 (scale) — shipped only
 
-Canonical visible order today: `S20 → S21 → S22 → S23 → S24`.
+Canonical visible order today: `S20 → S21 → S22 → S23 → S24` (+ optional S25).
 
 | Priority | Action |
 | --- | --- |
 | Ship | S20 → S21 → S22 (generate) → S23 (order) → S24 (`--changed` / `--tags`) |
 | If short | Skip **S24** (recommended) — deepen S23 Q&A; keep core S20–S23 |
-| Defer | S25–S26 are **stubs** — do not present until authored |
-| When authored | Re-extend: S24 path already shipped; add S26 (skip S25 optional); add rows |
+| Optional | **S25** (`hide: true` in 3-day cut) — `--changed` CI + Cloud overview; skip unless time |
+| Defer | **S26** is still a **stub** — do not present until authored |
 
 ---
 
@@ -104,6 +104,7 @@ nobody hunts for “their” bucket from before the crash. Detail:
 | Terramate `cycle detected` | Mutual `after`/`before` (S23 break) | Teaching moment — read the path; remove one edge; don’t add a third stack |
 | Terramate `repository has uncommitted files` | Dirty worktree + `run --changed` (S24) | Teaching moment — `list --changed --why` still works; commit (identity pin) or discard |
 | `--changed` needs two commits | Learner stuck on baseline-only `main` | Expected — branch + second commit before `--changed` |
+| `--changed` fails in Actions / shallow clone | Missing `fetch-depth: 0` (S25) | Teaching moment — default checkout depth breaks change detection |
 
 ---
 
@@ -155,11 +156,12 @@ as a compressible core delivery beat.
 | S22 | Code generation | core | 30 | Keep | What restores a hand-edited `_backend.tf`? | `terramate generate`; detailed exit `2` |
 | S23 | Orchestration | core | 30 | Keep | Why does plain `list` disagree with `--run-order`? | Cycle fail-closed; one `after` edge enough |
 | S24 | Change detection | recommended | 25 | Keep / skip if short | Prove only the changed stack runs — what did network do? | Dirty `run --changed`; two-commit baseline; identity pin |
+| S25 | Terramate CI + Cloud | optional | 25 | **Skip** (`hide`) unless time | Does the PR gate use `--changed`? Does Cloud manage state? (**no**) | Paper fixture; `fetch-depth: 0`; **no Cloud signup**; restore planted YAML |
 
 ### Not shipped (stubs — no live row yet)
 
-S25 Terramate CI (optional) · S26 Capstone — placeholder slides only. Authoring
-must add a runbook row (see `AGENT.md` DoD) before facilitating them.
+S26 Capstone — placeholder slides only. Authoring must add a runbook row
+(see `AGENT.md` DoD) before facilitating it.
 
 ---
 
