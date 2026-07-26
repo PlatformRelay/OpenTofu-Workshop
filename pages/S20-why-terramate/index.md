@@ -153,7 +153,7 @@ stacks/
 
 <!--
 Say: Left is the pain in the lab fixture — two stacks with byte-identical backend and provider files; only main.tf differs. Right is where Day 3 is headed: a root terramate.tm.hcl, stack metadata in S21, and generated shared HCL in S22 so leaves keep only what is unique. Do not pretend the after tree already exists in the lab — the skeleton starts on the left and grows. (~3 min)
-Then: Preview the four-phase orchestration loop without building the Vue component.
+Then: Click through TerramateOrchestration on the next slide — the four-phase loop in one visual.
 -->
 
 ---
