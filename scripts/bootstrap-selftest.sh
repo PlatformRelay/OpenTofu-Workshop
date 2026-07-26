@@ -7,7 +7,25 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 BIN="$TMP/bin"
-mkdir -p "$BIN"
+SYSBIN="$TMP/sysbin"
+mkdir -p "$BIN" "$SYSBIN"
+
+# Symlink host utilities needed by bootstrap (awk, sort, uname, …) but never go/gofmt.
+# GHA ubuntu runners ship /usr/bin/go; a bare PATH="$BIN:/usr/bin:/bin" lets host Go
+# satisfy BOOTSTRAP_WITH_GO=1 after rm BIN/go (actions run 30149989911).
+for dir in /usr/bin /bin; do
+  [ -d "$dir" ] || continue
+  for exe in "$dir"/*; do
+    [ -x "$exe" ] || continue
+    base="$(basename "$exe")"
+    case "$base" in go|gofmt) continue ;; esac
+    ln -sf "$exe" "$SYSBIN/$base"
+  done
+done
+PATH="$SYSBIN" command -v go >/dev/null 2>&1 && {
+  echo 'SYSBIN must not expose go (PATH isolation broken)' >&2
+  exit 1
+}
 
 fake() {
   local name="$1" output="$2"
@@ -28,7 +46,7 @@ fake conftest 'Conftest: 0.61.0'
 fake terramate 'terramate version 0.13.0'
 
 run_bootstrap() {
-  PATH="$BIN:/usr/bin:/bin" CI=true BOOTSTRAP_AUTO_INSTALL=never \
+  PATH="$BIN:$SYSBIN" CI=true BOOTSTRAP_AUTO_INSTALL=never \
     bash "$ROOT/setup/bootstrap.sh" 2>&1
 }
 
@@ -113,7 +131,7 @@ chmod +x "$BIN/brew"
 rm -f "$BIN/tflint" "$BIN/checkov"
 : >"$TMP/brew.log"
 set +e
-out="$(PATH="$BIN:/usr/bin:/bin" CI=true BOOTSTRAP_AUTO_INSTALL=always \
+out="$(PATH="$BIN:$SYSBIN" CI=true BOOTSTRAP_AUTO_INSTALL=always \
   BOOTSTRAP_TEST_BREW_LOG="$TMP/brew.log" bash "$ROOT/setup/bootstrap.sh" 2>&1)"
 status=$?
 set -e
@@ -144,7 +162,7 @@ printf '%s\n' 'go version go1.23.6 darwin/arm64'
 EOF
 chmod +x "$BIN/go"
 set +e
-with_go_out="$(PATH="$BIN:/usr/bin:/bin" CI=true BOOTSTRAP_AUTO_INSTALL=never \
+with_go_out="$(PATH="$BIN:$SYSBIN" CI=true BOOTSTRAP_AUTO_INSTALL=never \
   BOOTSTRAP_WITH_GO=1 bash "$ROOT/setup/bootstrap.sh" 2>&1)"
 with_go_status=$?
 set -e
@@ -157,9 +175,28 @@ printf '%s\n' "$with_go_out" | grep -q 'Host Go ready'
 printf '%s\n' "$with_go_out" | grep -q 'lab:terratest:host'
 
 # BOOTSTRAP_WITH_GO=1 without Go → non-zero and install hint.
+# Regression harness: GHA-style host go on legacy PATH (actions run 30149989911).
+LEAKBIN="$TMP/leak-go"
+mkdir -p "$LEAKBIN"
+cat >"$LEAKBIN/go" <<'EOF'
+#!/bin/sh
+printf '%s\n' 'go version go1.23.6 linux/amd64'
+EOF
+chmod +x "$LEAKBIN/go"
 rm -f "$BIN/go"
 set +e
-missing_go_out="$(PATH="$BIN:/usr/bin:/bin" CI=true BOOTSTRAP_AUTO_INSTALL=never \
+leak_out="$(PATH="$BIN:$LEAKBIN:/usr/bin:/bin" CI=true BOOTSTRAP_AUTO_INSTALL=never \
+  BOOTSTRAP_WITH_GO=1 bash "$ROOT/setup/bootstrap.sh" 2>&1)"
+leak_status=$?
+set -e
+[ "$leak_status" -eq 0 ] || {
+  echo 'regression harness: simulated host go on legacy PATH must exit 0 (leak repro)' >&2
+  exit 1
+}
+printf '%s\n' "$leak_out" | grep -q 'Host Go ready'
+
+set +e
+missing_go_out="$(PATH="$BIN:$SYSBIN" CI=true BOOTSTRAP_AUTO_INSTALL=never \
   BOOTSTRAP_WITH_GO=1 bash "$ROOT/setup/bootstrap.sh" 2>&1)"
 missing_go_status=$?
 set -e
