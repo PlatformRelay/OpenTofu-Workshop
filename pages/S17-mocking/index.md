@@ -62,49 +62,22 @@ Then: “Watch a plan test grow from empty run to fully mocked contract.”
 
 ---
 layout: two-cols-code
-clicks: 3
+clicks: 5
 ---
 
-<span class="kw-kicker">Magic-move · provider swap</span>
+<span class="kw-kicker">Mock swap · click by click</span>
 
 # From apply appetite to mocked plan
 
-````md magic-move
-```hcl
-run "bucket_contract" {
-  command = apply
-}
-```
-```hcl
-mock_provider "aws" {}
+<MockProviderFlow :step="$clicks" class="mt-6" />
 
-run "bucket_contract" {
-  command = plan
-}
-```
-```hcl
-mock_provider "aws" {
-  mock_resource "aws_s3_bucket" {
-    defaults = {
-      id  = "s3-crmapp-d-web-lab"
-      arn = "arn:aws:s3:::s3-crmapp-d-web-lab"
-    }
-  }
-}
+<div v-click="5" class="mt-6 kw-muted text-sm">
 
-run "bucket_contract" {
-  command = plan
+Each click lights the next swap: an **apply run** on a real provider, a
+**mock_provider** stand-in, a **plan-only** run, **mock_resource defaults** for
+computed ids, then a **run-level override** so assertions read concrete values.
 
-  override_resource {
-    target = aws_s3_bucket.web
-    values = {
-      id  = "s3-crmapp-d-web-lab"
-      arn = "arn:aws:s3:::s3-crmapp-d-web-lab"
-    }
-  }
-}
-```
-````
+</div>
 
 ::right::
 
@@ -123,7 +96,7 @@ An apply run wants a reachable API — LocalStack or cloud credentials.
 </div>
 
 <!--
-Say: Start from the apply-shaped appetite learners saw in S16. First swap: mock the provider and drop to plan. Second swap: add mock_resource defaults and a run-level override so assertions can read concrete ids and ARNs. This magic-move is the fallback for the deferred MockProviderFlow animation. (~4 min)
+Say: Start from the apply-shaped appetite learners saw in S16. Click through MockProviderFlow: apply run on a real provider, swap in mock_provider, drop to command = plan, add mock_resource defaults for computed ids, then pin values with a run-level override_resource so assertions read concrete ARNs. (~4 min)
 Then: “Choose mocking when the claim does not need a real service.”
 -->
 
