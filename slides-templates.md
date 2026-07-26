@@ -441,6 +441,90 @@ shared random_pet seeds two instances of one service module — that's reference
 fan-out from S02 and module reuse from S07 — and both fan back in to one local_file
 manifest. Source node, its edge, then the dependent node, eight steps. Same clamped
 step prop as the other three — out-of-range clicks never throw. (~2 min)
+Then: three more click-stepped diagrams shipped from the deferred budget — start
+with the reconcile model.
+-->
+
+---
+clicks: 5
+---
+
+<span class="kw-kicker">Component: StateReconcile — S04 / S09 reconciliation, click-stepped</span>
+
+# desired → state → actual → refresh → reconcile
+
+<StateReconcile :step="$clicks" class="mt-10" />
+
+<div v-click="5" class="mt-8 kw-muted text-sm text-center">
+
+Five clicks walk the reconcile model: **desired** is your config, **state** is
+what OpenTofu last built, **actual** is the real world, **refresh** reads actual
+back and catches drift, and **reconcile** is the plan that steers reality toward
+what you declared. S04 introduces it; S09 reuses it when reading a plan diff.
+
+</div>
+
+<!--
+Say: The fifth click-stepped diagram is the reconcile pipeline behind S04 and S09.
+Desired is what you wrote, state is the last-built record, actual is what's deployed,
+refresh catches hand-made drift, reconcile is the plan. Five clicks, five stages —
+same clamped step prop as the others. (~2 min)
+Then: one more deferred component — the mock-provider swap for plan tests.
+-->
+
+---
+clicks: 5
+---
+
+<span class="kw-kicker">Component: MockProviderFlow — S17's mock swap, click-stepped</span>
+
+# From apply appetite to mocked plan
+
+<MockProviderFlow :step="$clicks" class="mt-6" />
+
+<div v-click="5" class="mt-6 kw-muted text-sm text-center">
+
+Five clicks light the mock swap: an **apply run** on a real provider, a
+**mock_provider** stand-in, a **plan-only** run, **mock_resource defaults** for
+computed ids, then a **run-level override** so assertions read concrete values.
+S17 binds `:step="$clicks"` so the apply-to-plan conversion builds as you talk.
+
+</div>
+
+<!--
+Say: The sixth click-stepped diagram powers S17's mocking section. Start from the
+apply-shaped appetite learners saw in S16: apply run, swap in mock_provider, drop
+to command = plan, add mock_resource defaults, pin values with override_resource.
+Five clicks, same clamped step contract. (~2 min)
+Then: the last deferred component — Day 3's Terramate orchestration loop.
+-->
+
+---
+clicks: 4
+---
+
+<span class="kw-kicker">Component: TerramateOrchestration — Day 3 pipeline, click-stepped</span>
+
+# discover → generate → order → filter
+
+<TerramateOrchestration :step="$clicks" class="mt-8" />
+
+<div v-click="4" class="mt-8 kw-muted text-sm text-center">
+
+Four clicks walk the Day-3 pipeline: **discover** finds <code>stack {}</code>
+directories, **generate** emits shared backend/provider HCL, **order** walks
+<code>after</code> / <code>before</code>, and **filter** runs only what changed
+or matches a tag. S20 shows the full loop; S21–S24 emphasise one phase each via
+the <code>phase</code> prop.
+
+</div>
+
+<!--
+Say: The seventh click-stepped diagram is the Day-3 red line in four verbs.
+Discover finds stack directories, generate writes duplicated boilerplate once,
+order walks after/before so dependents wait, filter shrinks a PR run to what
+changed. S20 binds the full loop; later sections pass phase="discover" and friends
+to highlight one stage. (~2 min)
 Then: that closes the component tour — on to the recap.
 -->
 
@@ -455,7 +539,8 @@ next: 'Next: the section library under pages/SNN-topic/'
   code-walkthrough, code-annotated, comparison, two-cols-code, topology, lab, recap.
 - **Components** carry meaning: `KwCard`, `KwChip`, `CodeNote`, `CodeCallout`,
   `IacIcon`, `ArchBox`, and click-stepped diagrams `PlanApplyFlow`, `TestPyramid`,
-  `StateEncryptionFlow`, `DependencyGraph`.
+  `StateEncryptionFlow`, `DependencyGraph`, `StateReconcile`, `MockProviderFlow`,
+  `TerramateOrchestration`.
 - **magic-move** grows HCL; **CodeNote** explains it; **CodeCallout** warns on it.
 
 ---

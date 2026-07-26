@@ -15,7 +15,7 @@ weeks; building none leaves every referencing section without its headline visua
   (S12/S18) — the components whose sections sit earliest on the critical path.
 - **Defer four as P3 stories:** `DependencyGraph`, `StateReconcile`, `MockProviderFlow`,
   `TerramateOrchestration` — built when their sections are authored and the value is proven,
-  not speculatively.
+  not speculatively. *(All four now shipped — see Consequences.)*
 - **Sections never block on a component.** Every section that wants a diagram names its
   **magic-move fallback** so authoring proceeds with or without the component.
 - Component contract (see `AGENT.md`): a `step` prop bound to `$clicks`, out-of-range values
@@ -25,7 +25,11 @@ weeks; building none leaves every referencing section without its headline visua
 
 - Content lanes and component lanes parallelize; a missing diagram degrades to a magic-move,
   never to a blocked section.
-- Deferred components are re-scored when their sections land — `DependencyGraph` was built
-  exactly this way (2026-07-15, after S02 and S07 were authored made it well-timed).
+- Deferred components are re-scored when their sections land — each shipped after its
+  section(s) were authored, exactly as intended:
+  - `DependencyGraph` — 2026-07-15, after S02 and S07 were authored.
+  - `StateReconcile` — `5a4c68b`, S04 (reused in S09).
+  - `MockProviderFlow` — `329a97e`, S17.
+  - `TerramateOrchestration` — `c1a7b9a`, S20 overview plus S21–S24 phase highlights.
 - All components live in `components/`, auto-imported into every deck; new ones enter only
   through a funded story, keeping the deck's animation surface deliberate.

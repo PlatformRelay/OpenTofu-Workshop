@@ -49,6 +49,22 @@ How this workshop is built. Read before authoring a section, a lab, or a module.
     `:step="$clicks"`; clamped) — a source node, then its edge, then the
     dependent node, per click. step 0 lights nothing, step 8 lights all. The
     S02 (references between blocks) / S07 (module composition) visual.
+  - `StateReconcile` — the desired / state / actual reconciliation model lit
+    stage-by-stage: desired → state → actual → refresh → reconcile. Props:
+    `step?: number` (0–5, bind `:step="$clicks"`; clamped). step 0 lights
+    nothing, step 5 lights all five. S04's headline visual; reused in S09 when
+    reading a plan diff.
+  - `MockProviderFlow` — converting an apply-shaped test into a mocked plan
+    contract lit stage-by-stage: apply run → mock_provider → plan run →
+    mock_resource → override_resource. Props: `step?: number` (0–5, bind
+    `:step="$clicks"`; clamped). step 0 lights nothing, step 5 lights all
+    five. S17's headline visual.
+  - `TerramateOrchestration` — the Day-3 Terramate pipeline lit phase-by-phase:
+    discover → generate → order → filter. Props: `step?: number` (0–4, bind
+    `:step="$clicks"`; clamped), optional `phase?: 'discover' | 'generate' |
+    'order' | 'filter'` or `highlight?: number` (0-based) to emphasise one
+    stage without suppressing others. step 0 lights nothing, step 4 lights all
+    four. S20 shows the full loop; S21–S24 pass `phase` to highlight one verb.
 - `agent-context/` — **gitignored** planning docs (roadmap, outline, stories,
   image prompts, ideas, operator board, research brief).
 - `docs/decisions/` — tracked ADRs.
