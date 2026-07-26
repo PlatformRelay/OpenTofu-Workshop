@@ -157,35 +157,24 @@ Then: Preview the four-phase orchestration loop without building the Vue compone
 -->
 
 ---
-layout: topology
 clicks: 4
 ---
 
-<span class="kw-kicker">orchestration · static fallback</span>
+<span class="kw-kicker">orchestration · four phases</span>
 
 # Four phases — one loop
 
-<div class="grid grid-cols-4 gap-3 mt-8">
-  <KwCard v-click heading="1 · Discover" icon="🔍" variant="plain">
-    Find directories that declare <code>stack {}</code>.
-  </KwCard>
-  <KwCard v-click heading="2 · Generate" icon="🧱" variant="accent">
-    Emit shared backend/provider HCL from globals.
-  </KwCard>
-  <KwCard v-click heading="3 · Order" icon="🔗" variant="warn">
-    Honour <code>after</code> / <code>before</code> — run the graph safely.
-  </KwCard>
-  <KwCard v-click heading="4 · Filter" icon="🎯" variant="ok">
-    <code>--changed</code> / <code>--tags</code> — run only what matters.
-  </KwCard>
+<TerramateOrchestration :step="$clicks" class="mt-8" />
+
+<div v-click="4" class="mt-8 kw-muted text-sm text-center">
+
+**Discover** finds <code>stack {}</code> directories. **Generate** emits shared backend/provider HCL.
+**Order** walks <code>after</code> / <code>before</code>. **Filter** runs only what changed or matches a tag.
+
 </div>
 
-<p v-click class="mt-8 text-center text-sm opacity-75">
-Animated <code>TerramateOrchestration</code> is deferred — this static topology is the teaching stand-in for S20–S24.
-</p>
-
 <!--
-Say: This is the Day-3 red line in four verbs. Discover finds stack directories. Generate writes the duplicated boilerplate once. Order walks after/before so dependents wait. Filter shrinks a PR run to what changed or matches a tag. Each later section highlights one phase; today you only need the shape. We are not shipping the Vue animation yet — the static cards are the intentional fallback. (~3 min)
+Say: This is the Day-3 red line in four verbs. Discover finds stack directories. Generate writes the duplicated boilerplate once. Order walks after/before so dependents wait. Filter shrinks a PR run to what changed or matches a tag. Each later section highlights one phase; today you only need the shape. (~3 min)
 Then: Put the skeleton and the DRY diff into the learners' hands.
 -->
 

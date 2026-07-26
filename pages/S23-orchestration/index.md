@@ -31,7 +31,6 @@ Then: Put the accent on order in the four-phase loop.
 -->
 
 ---
-layout: topology
 clicks: 4
 ---
 
@@ -39,27 +38,16 @@ clicks: 4
 
 # Four phases — today is order
 
-<div class="grid grid-cols-4 gap-3 mt-8">
-  <KwCard v-click heading="1 · Discover" icon="🔍" variant="plain">
-    Find directories that declare <code>stack {}</code> — <strong>S21</strong>.
-  </KwCard>
-  <KwCard v-click heading="2 · Generate" icon="🧱" variant="plain">
-    Emit shared backend/provider HCL — <strong>S22</strong>.
-  </KwCard>
-  <KwCard v-click heading="3 · Order" icon="🔗" variant="accent">
-    Honour <code>after</code> / <code>before</code>; walk the run-graph.
-  </KwCard>
-  <KwCard v-click heading="4 · Filter" icon="🎯" variant="plain">
-    <code>--changed</code> / <code>--tags</code> — <strong>S24</strong>.
-  </KwCard>
+<TerramateOrchestration phase="order" :step="$clicks" class="mt-8" />
+
+<div v-click="4" class="mt-8 kw-muted text-sm text-center">
+
+Discover and generate are done. Filter waits for <strong>S24</strong>.
+
 </div>
 
-<p v-click class="mt-8 text-center text-sm opacity-75">
-Static order highlight — <code>TerramateOrchestration</code> remains deferred.
-</p>
-
 <!--
-Say: Same four-phase loop. Discover and generate stay grey. Order is lit. Filter waits for S24. No Vue animation — static cards on purpose. (~2 min)
+Say: Same four-phase loop. Discover and generate stay grey. Order is lit. Filter waits for S24. (~2 min)
 Then: Show after and before as two ways to declare the same edge.
 -->
 

@@ -31,7 +31,6 @@ Then: Put the accent on filter in the four-phase loop.
 -->
 
 ---
-layout: topology
 clicks: 4
 ---
 
@@ -39,27 +38,16 @@ clicks: 4
 
 # Four phases — today is filter
 
-<div class="grid grid-cols-4 gap-3 mt-8">
-  <KwCard v-click heading="1 · Discover" icon="🔍" variant="plain">
-    Find directories that declare <code>stack {}</code> — <strong>S21</strong>.
-  </KwCard>
-  <KwCard v-click heading="2 · Generate" icon="🧱" variant="plain">
-    Emit shared backend/provider HCL — <strong>S22</strong>.
-  </KwCard>
-  <KwCard v-click heading="3 · Order" icon="🔗" variant="plain">
-    Honour <code>after</code> / <code>before</code> — <strong>S23</strong>.
-  </KwCard>
-  <KwCard v-click heading="4 · Filter" icon="🎯" variant="accent">
-    <code>--changed</code> / <code>--tags</code> — select the run set.
-  </KwCard>
+<TerramateOrchestration phase="filter" :step="$clicks" class="mt-8" />
+
+<div v-click="4" class="mt-8 kw-muted text-sm text-center">
+
+Discover, generate, and order are done. Filter selects which stacks enter the ordered run.
+
 </div>
 
-<p v-click class="mt-8 text-center text-sm opacity-75">
-Static filter highlight — <code>TerramateOrchestration</code> remains deferred.
-</p>
-
 <!--
-Say: Same four-phase loop. Discover, generate, and order stay grey. Filter is lit. No Vue animation — static cards on purpose. (~2 min)
+Say: Same four-phase loop. Discover, generate, and order stay grey. Filter is lit. (~2 min)
 Then: Show why default_branch matters for Git change detection.
 -->
 

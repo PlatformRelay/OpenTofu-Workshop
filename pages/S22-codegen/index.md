@@ -31,7 +31,6 @@ Then: Put the accent on generate in the four-phase loop.
 -->
 
 ---
-layout: topology
 clicks: 4
 ---
 
@@ -39,27 +38,16 @@ clicks: 4
 
 # Four phases — today is generate
 
-<div class="grid grid-cols-4 gap-3 mt-8">
-  <KwCard v-click heading="1 · Discover" icon="🔍" variant="plain">
-    Find directories that declare <code>stack {}</code> — <strong>S21</strong>.
-  </KwCard>
-  <KwCard v-click heading="2 · Generate" icon="🧱" variant="accent">
-    Emit shared backend/provider HCL from globals.
-  </KwCard>
-  <KwCard v-click heading="3 · Order" icon="🔗" variant="plain">
-    Honour <code>after</code> / <code>before</code> — <strong>S23</strong>.
-  </KwCard>
-  <KwCard v-click heading="4 · Filter" icon="🎯" variant="plain">
-    <code>--changed</code> / <code>--tags</code> — <strong>S24</strong>.
-  </KwCard>
+<TerramateOrchestration phase="generate" :step="$clicks" class="mt-8" />
+
+<div v-click="4" class="mt-8 kw-muted text-sm text-center">
+
+Discover is done (<strong>S21</strong>). Order and filter come in <strong>S23</strong>–<strong>S24</strong>.
+
 </div>
 
-<p v-click class="mt-8 text-center text-sm opacity-75">
-Static generate highlight — <code>TerramateOrchestration</code> remains deferred.
-</p>
-
 <!--
-Say: Same four-phase loop. Discover is done. Generate is lit. Order and filter stay for later. No Vue animation — static cards on purpose. (~2 min)
+Say: Same four-phase loop. Discover is done. Generate is lit. Order and filter stay for later. (~2 min)
 Then: Contrast the two generate block kinds.
 -->
 

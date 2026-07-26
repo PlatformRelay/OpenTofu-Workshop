@@ -31,7 +31,6 @@ Then: Highlight the discover phase on the Day-3 loop.
 -->
 
 ---
-layout: topology
 clicks: 4
 ---
 
@@ -39,27 +38,16 @@ clicks: 4
 
 # Four phases — today is discover
 
-<div class="grid grid-cols-4 gap-3 mt-8">
-  <KwCard v-click heading="1 · Discover" icon="🔍" variant="accent">
-    Find directories that declare <code>stack {}</code>.
-  </KwCard>
-  <KwCard v-click heading="2 · Generate" icon="🧱" variant="plain">
-    Emit shared backend/provider HCL — <strong>S22</strong>.
-  </KwCard>
-  <KwCard v-click heading="3 · Order" icon="🔗" variant="plain">
-    Honour <code>after</code> / <code>before</code> — <strong>S23</strong>.
-  </KwCard>
-  <KwCard v-click heading="4 · Filter" icon="🎯" variant="plain">
-    <code>--changed</code> / <code>--tags</code> — <strong>S24</strong>.
-  </KwCard>
+<TerramateOrchestration phase="discover" :step="$clicks" class="mt-8" />
+
+<div v-click="4" class="mt-8 kw-muted text-sm text-center">
+
+Generate, order, and filter come in <strong>S22</strong>–<strong>S24</strong>. Tags already appear in list filters today; change-detection filtering is S24.
+
 </div>
 
-<p v-click class="mt-8 text-center text-sm opacity-75">
-Static discover highlight — <code>TerramateOrchestration</code> remains deferred.
-</p>
-
 <!--
-Say: Same four-phase loop as S20, but the accent is on discover. Generate, order, and filter stay greyed as later sections. Tags already appear in list filters today; change-detection filtering is S24. No Vue animation yet — the static cards are intentional. (~2 min)
+Say: Same four-phase loop as S20, but the accent is on discover. Generate, order, and filter stay greyed as later sections. Tags already appear in list filters today; change-detection filtering is S24. (~2 min)
 Then: Show the file that makes discovery real.
 -->
 
