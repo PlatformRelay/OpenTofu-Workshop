@@ -70,6 +70,34 @@ find what you changed in config, and state to actual to find drift — changes s
 made by hand outside OpenTofu. Without state there's no diff at all; every apply
 would be a blind from-scratch create. State is the memory that makes idempotency and
 drift-detection possible. (~4 min)
+Then: "Watch that reconcile light up, stage by stage."
+-->
+
+---
+clicks: 5
+---
+
+<span class="kw-kicker">The reconcile, click by click</span>
+
+# desired → state → actual → refresh → reconcile
+
+<StateReconcile :step="$clicks" class="mt-10" />
+
+<div v-click="5" class="mt-8 kw-muted text-sm text-center">
+
+Each click lights the next stage: **desired** is your config, **state** is what
+OpenTofu last built, **actual** is the real world, **refresh** reads actual back
+and catches **drift**, and **reconcile** is the plan that steers reality toward
+what you declared.
+
+</div>
+
+<!--
+Say: The whole reconcile model as one pipeline, five clicks. Desired is what you
+wrote. State is the last-built record. Actual is what's deployed right now.
+Refresh reads actual back and catches hand-made drift. Reconcile is the plan —
+comparing desired to state for config changes and state to actual for drift. Five
+clicks, five stages — the mental model every plan diff assumes. (~2 min)
 Then: "Watch that reconcile happen field by field."
 -->
 

@@ -283,6 +283,31 @@ one carefully."
 -->
 
 ---
+clicks: 5
+---
+
+<span class="kw-kicker">Back to the reconcile</span>
+
+# Every plan diff assumes three things
+
+<StateReconcile :step="$clicks" class="mt-10" />
+
+<div v-click="5" class="mt-8 kw-muted text-sm text-center">
+
+The same **desired → state → actual** model from S04 — a plan diff is
+**reconcile** output. Read replacement signals knowing which comparison failed.
+
+</div>
+
+<!--
+Say: Before reading a diff line by line, re-ground the reconcile model from S04.
+Click through: desired, state, actual, refresh catching drift, reconcile as the
+plan. Every -/+ and "must be replaced" in the next slide is this pipeline
+surfacing a mismatch — config change or drift — not random noise. (~2 min)
+Then: "Now read one plan carefully — the replacement signals to never miss."
+-->
+
+---
 layout: two-cols-code
 heading: Read the plan — the replacement signals to never miss
 ---
@@ -328,8 +353,8 @@ and OpenTofu can't edit in place. Second click: the "# forces replacement" annot
 names the exact attribute to blame — here a one-word filename change from .env to .conf.
 Third click: the bottom-line tally. Seeing "three to destroy" on what you thought was a
 cosmetic edit is the moment to stop, not to auto-approve. The lab's break-fix is exactly
-this plan — you'll trigger it, read it line by line, and revert. This is the fallback
-plan-diff view, read as plain diff, no tooling needed. (~4 min)
+this plan — you'll trigger it, read it line by line, and revert. Read the diff as plain
+text — the reconcile model from the previous slide is what every line assumes. (~4 min)
 Then: "Now go make count-to-for-each churn, then fix it with moved — Lab 09."
 -->
 
