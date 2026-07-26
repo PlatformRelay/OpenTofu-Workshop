@@ -14,6 +14,7 @@ run "unit_plan_with_mock" {
     use_localstack   = true
     project          = "colony"
     environment      = "dev"
+    state_passphrase = "unit-test-passphrase-ok"
     artifacts_suffix = "a1b2"
     index_suffix     = "c3d4"
     queue_suffix     = "e5f6"

@@ -9,9 +9,10 @@ run "localstack_apply" {
   command = apply
 
   variables {
-    use_localstack = true
-    project        = "colony"
-    environment    = "dev"
+    use_localstack   = true
+    project          = "colony"
+    environment      = "dev"
+    state_passphrase = "integration-test-passphrase"
   }
 
   assert {

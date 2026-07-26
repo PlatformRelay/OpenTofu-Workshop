@@ -59,6 +59,7 @@ out-of-band (`TF_VAR_state_passphrase`); never commit a real secret.
 | File | Command | Needs LocalStack? | Covered by |
 |------|---------|:-----------------:|------------|
 | `tests/unit.tftest.hcl` | `plan` + aliased `mock_provider` | no | `task verify` |
+| `tests/encryption.tftest.hcl` | `plan` + PBKDF2 contract check | no | `task verify` |
 | `tests/integration.tftest.hcl` | `apply` | **yes** | `task verify:integration` |
 
 ```sh
