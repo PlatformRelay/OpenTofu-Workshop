@@ -10,20 +10,34 @@ BIN="$TMP/bin"
 SYSBIN="$TMP/sysbin"
 mkdir -p "$BIN" "$SYSBIN"
 
-# Symlink host utilities needed by bootstrap (awk, sort, uname, …) but never go/gofmt.
-# GHA ubuntu runners ship /usr/bin/go; a bare PATH="$BIN:/usr/bin:/bin" lets host Go
-# satisfy BOOTSTRAP_WITH_GO=1 after rm BIN/go (actions run 30149989911).
-for dir in /usr/bin /bin; do
-  [ -d "$dir" ] || continue
-  for exe in "$dir"/*; do
-    [ -x "$exe" ] || continue
-    base="$(basename "$exe")"
-    case "$base" in go|gofmt) continue ;; esac
-    ln -sf "$exe" "$SYSBIN/$base"
+# Link only utilities bootstrap exercises under PATH=$BIN:$SYSBIN. Do not glob-link
+# /usr/bin: GHA ubuntu runners include recursive/special entries (e.g. X11 → X11)
+# that ln -s cannot recreate (actions run 30211547949).
+SYSBIN_UTILS=(
+  awk bash cat cut dirname env false grep head mktemp sed sh sort tr true uname
+  apt-get dnf pacman
+)
+link_sysbin() {
+  local util="$1"
+  case "$util" in go|gofmt) return 0 ;; esac
+  for dir in /usr/bin /bin; do
+    local src="$dir/$util"
+    [ -f "$src" ] || continue
+    [ -x "$src" ] || continue
+    ln -sf "$src" "$SYSBIN/$util"
+    return 0
   done
+  return 1
+}
+for util in "${SYSBIN_UTILS[@]}"; do
+  link_sysbin "$util" || true
 done
 PATH="$SYSBIN" command -v go >/dev/null 2>&1 && {
   echo 'SYSBIN must not expose go (PATH isolation broken)' >&2
+  exit 1
+}
+[ -e "$SYSBIN/X11" ] && {
+  echo 'SYSBIN must not mirror special /usr/bin entries like X11 (selective link only)' >&2
   exit 1
 }
 
