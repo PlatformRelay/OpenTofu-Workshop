@@ -19,6 +19,14 @@ env:
   # dependency-build allowlist. (GitHub Actions also sets CI=true itself.)
   CI: "true"
 
+# Least-privilege GITHUB_TOKEN (CodeQL actions/missing-workflow-permissions).
+# Every job here only checks out the repo and lints/builds/tests — none push,
+# comment, deploy, or otherwise mutate the repo — so read-only contents access
+# is all any of them needs. Pages deploy and release live in their own
+# workflows with their own (wider) scopes; this cap does not touch them.
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: Lint labs (markdown)
