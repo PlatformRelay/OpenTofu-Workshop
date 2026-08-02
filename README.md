@@ -36,10 +36,12 @@ For the standard learner route:
    [LocalStack setup and troubleshooting guide](setup/localstack.md).
 
 > [!NOTE]
-> This workshop is under construction. The authored, usable path currently
-> covers Day 1 sections **S00–S08 and S15**, with runnable labs **00–08 and 15**.
-> Later sections remain visible as curriculum placeholders; do not treat their
-> presence in a deck as completion.
+> All three days are authored: sections **S00–S26** and their labs, plus the
+> capstone, are shipped (not stubs). Optional sections stay skippable via the
+> cut-order / `hide:` toggles. The section library is a deliberate **superset**
+> that runs longer than three days — read
+> [Scope and timing](#scope-and-timing-known-issue) and apply the
+> [Day 1 fit plan](#day-1-fit-plan) before facilitating.
 
 ### Prerequisites by workshop day
 
