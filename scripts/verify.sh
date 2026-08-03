@@ -4,8 +4,9 @@
 # Unit lane (no Docker needed):
 #   1. deps preflight (tofu present, version)
 #   2. tofu fmt -check -recursive
-#   3. per module/example that has *.tf: tofu init -backend=false + validate
-#   4. per module/example that has *.tftest.hcl: tofu test (plan/mock lanes)
+#   3. per module/example/day-2-lab that has *.tf: tofu init -backend=false + validate
+#   4. per module/example/day-2-lab that has *.tftest.hcl: tofu test (plan/mock lanes;
+#      *integration*.tftest.hcl deferred to verify:integration)
 #   5. slide ↔ lab drift smoke check (modules/|examples/ paths cited in labs exist)
 #   6. slide ↔ lab/pages drift ENFORCEMENT (annotated ```hcl blocks diffed vs source;
 #      pages/** fences may carry magic-move metadata like ```hcl {none|…})
@@ -59,7 +60,10 @@ else
   exit 1
 fi
 
-# Collect module/example dirs that actually contain Terraform/OpenTofu code.
+# Collect module/example dirs that actually contain Terraform/OpenTofu code,
+# plus day-2 lab workdirs that ship *.tftest.hcl (audit TEST-A2). Lab dirs
+# without a tftest suite stay out of the validate/test loop — they are learner
+# scratch or tool-only fixtures (e.g. S13 messy) and are covered elsewhere.
 # nullglob makes empty globs vanish instead of expanding to a literal '*'.
 shopt -s nullglob
 CODE_DIRS=()
@@ -70,6 +74,15 @@ for base in modules examples; do
     tf=("$d"*.tf)
     [ "${#tf[@]}" -gt 0 ] && CODE_DIRS+=("${d%/}")
   done
+done
+# Day-2 labs: discover workdirs that contain both *.tf and *.tftest.hcl
+# (top-level or under tests/). Integration-named suites are filtered later.
+for d in labs/day-2/*/; do
+  [ -d "$d" ] || continue
+  tf=("$d"*.tf)
+  [ "${#tf[@]}" -gt 0 ] || continue
+  lab_tests=("$d"*.tftest.hcl "$d"tests/*.tftest.hcl)
+  [ "${#lab_tests[@]}" -gt 0 ] && CODE_DIRS+=("${d%/}")
 done
 shopt -u nullglob
 
@@ -100,7 +113,7 @@ fi
 # ---------------------------------------------------------------------------
 heading "Validate & test"
 if [ "${#CODE_DIRS[@]}" -eq 0 ]; then
-  warn "no modules/* or examples/* with .tf files yet — nothing to validate."
+  warn "no modules/* / examples/* / labs/day-2 tftest roots with .tf files yet — nothing to validate."
   info "This is expected before lab content is authored. (pass)"
 else
   for d in "${CODE_DIRS[@]}"; do

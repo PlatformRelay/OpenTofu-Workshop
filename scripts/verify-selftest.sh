@@ -42,6 +42,10 @@
 #    16. unformatted .tf under .claude/worktrees/ → exit 0 (ignored; no false fail)
 #    17. unformatted .tf under node_modules/ → exit 0 (ignored)
 #    18. unformatted .tf under */.terraform/ → exit 0 (ignored)
+#   day-2 lab tftest discovery (TEST-A2 / section 3–4 CODE_DIRS):
+#    19. planted labs/day-2/*/tests/*.tftest.hcl → exit 0 AND "…: tofu test (plan/mock)"
+#    20. broken lab unit assert → exit !=0 AND the lab path named (discovery ARMED)
+#    21. lab with only *integration*.tftest.hcl → exit 0 AND deferred message (unit skip)
 #
 # It NEVER mutates the tracked fixture or decks; all edits happen in the temp copy.
 set -euo pipefail
@@ -230,6 +234,79 @@ m_unformatted_under_dot_terraform() {
     >"$root/modules/example/.terraform/providers/cached.tf"
 }
 
+# Minimal provider-free day-2 lab with a plan-only unit suite — proves CODE_DIRS
+# discovery includes labs/day-2/** that ship *.tftest.hcl (TEST-A2).
+LAB_TFTTEST_DIR="labs/day-2/99-lab-tftest-selftest"
+plant_lab_unit_tftest() {
+  local root="$1"
+  mkdir -p "$root/$LAB_TFTTEST_DIR/tests"
+  cat >"$root/$LAB_TFTTEST_DIR/main.tf" <<'EOF'
+terraform {
+  required_version = ">= 1.8"
+}
+
+locals {
+  marker = "lab-unit-ok"
+}
+
+output "marker" {
+  value = local.marker
+}
+EOF
+  cat >"$root/$LAB_TFTTEST_DIR/tests/unit.tftest.hcl" <<'EOF'
+run "lab_unit_plan" {
+  command = plan
+
+  assert {
+    condition     = output.marker == "lab-unit-ok"
+    error_message = "expected lab-unit-ok"
+  }
+}
+EOF
+}
+
+m_lab_tftest_clean() {
+  plant_lab_unit_tftest "$1"
+}
+
+m_lab_tftest_fail() {
+  local root="$1"
+  plant_lab_unit_tftest "$root"
+  perl -pi -e 's/lab-unit-ok/lab-unit-BROKEN/' \
+    "$root/$LAB_TFTTEST_DIR/tests/unit.tftest.hcl"
+}
+
+m_lab_integration_only() {
+  local root="$1"
+  mkdir -p "$root/$LAB_TFTTEST_DIR/tests"
+  # Provider-free stub: init must still parse the integration suite (tofu
+  # validates assert expressions at init), so the condition references config.
+  cat >"$root/$LAB_TFTTEST_DIR/main.tf" <<'EOF'
+terraform {
+  required_version = ">= 1.8"
+}
+
+locals {
+  marker = "integration-only"
+}
+
+output "marker" {
+  value = local.marker
+}
+EOF
+  # Apply-style name only — unit lane must skip without requiring LocalStack.
+  cat >"$root/$LAB_TFTTEST_DIR/tests/integration.tftest.hcl" <<'EOF'
+run "would_need_localstack" {
+  command = apply
+
+  assert {
+    condition     = output.marker == "integration-only"
+    error_message = "unreachable in unit lane"
+  }
+}
+EOF
+}
+
 run_case "clean fixture"        pass "no drift: labs/fixtures/drift-demo/main.tf matches" m_clean
 run_case "LF-authored drift"    fail "drift: block in labs/fixtures/drift-demo.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_drift_lf
 run_case "CRLF-authored drift"  fail "drift: block in labs/fixtures/drift-demo.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_drift_crlf
@@ -248,6 +325,9 @@ run_case "unformatted file outside allowlist" fail "modules/unformatted-regressi
 run_case "unformatted under .claude/worktrees ignored" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_unformatted_under_claude_worktree
 run_case "unformatted under node_modules ignored" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_unformatted_under_node_modules
 run_case "unformatted under .terraform ignored" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_unformatted_under_dot_terraform
+run_case "day-2 lab unit tftest gated" pass "labs/day-2/99-lab-tftest-selftest: tofu test (plan/mock)" m_lab_tftest_clean
+run_case "day-2 lab unit tftest failure armed" fail "labs/day-2/99-lab-tftest-selftest: tofu test" m_lab_tftest_fail
+run_case "day-2 lab integration tftest deferred" pass "labs/day-2/99-lab-tftest-selftest: only integration test(s) — deferred to verify:integration" m_lab_integration_only
 
 printf '\n'
 if [ "$fail_n" -eq 0 ]; then
