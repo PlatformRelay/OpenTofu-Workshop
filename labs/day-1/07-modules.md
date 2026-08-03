@@ -463,6 +463,7 @@ residue, `git status` clean:
 
 ```bash
 cd labs/day-1/07-modules
+git checkout -- modules/service-manifest/main.tf             # restore canonical module before destroy (Step 3 pin breaks provider resolve)
 tofu destroy -auto-approve                                   # tear down both instances' local_file + random_pet
 rm -rf .terraform .terraform.lock.hcl out
 find . -maxdepth 1 -name 'terraform.tfstate*' -delete        # sweep any state/backup files safely
@@ -476,9 +477,9 @@ panic reset leaves the tracked files exactly as CI verified them.
 > The `find … -delete` sweep is shell-agnostic: a raw `terraform.tfstate.*` glob
 > aborts under zsh's `nomatch` when no such file exists, and `tofu` can leave
 > timestamped `.backup` files behind. `find` matches zero-or-more without erroring.
-> If you edited `modules/service-manifest/main.tf` in Step 3, `git checkout --
-> modules/service-manifest/main.tf` restores it (Step 4's revert should already
-> have).
+> Checkout before destroy matters if you bailed mid-Step-3 with an unsatisfiable
+> provider pin still in `modules/service-manifest/main.tf` (Step 4's revert should
+> already have cleaned it).
 
 ## Stretch (optional)
 

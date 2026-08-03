@@ -480,7 +480,8 @@ tracked files — the break was purely the temporary edit, and the fix reverted 
 
 ```bash
 cd labs/day-1/10-differentiators
-tofu destroy -auto-approve                              # remove all buckets + objects
+git checkout -- providers.tf                            # restore canonical providers before destroy (Step 4 shrink breaks provider instances)
+tofu destroy -auto-approve                              # remove all buckets + objects (needs LocalStack up)
 rm -rf .terraform .terraform.lock.hcl
 find . -maxdepth 1 -name 'terraform.tfstate*' -delete   # sweep state/backup safely
 task lab:down                                           # stop LocalStack, remove volumes
@@ -488,8 +489,9 @@ git status --short .                                    # expect: no output
 ```
 
 Nothing is created on real AWS, so there is nothing to bill or leak. The
-generated state / `.terraform` files are gitignored; if you edited `providers.tf`
-in Step 4 and did not revert it, `git checkout -- providers.tf` restores it.
+generated state / `.terraform` files are gitignored. Checkout still comes first
+even when LocalStack must be running for destroy — a Step-4 `providers.tf` edit
+left unreverted makes destroy fail on missing provider instances.
 
 > The `find … -delete` sweep is shell-agnostic: a raw `terraform.tfstate.*` glob
 > aborts under zsh's `nomatch` when no such file exists, and `tofu` can leave
