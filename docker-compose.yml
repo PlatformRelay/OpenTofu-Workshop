@@ -32,7 +32,7 @@ services:
       retries: 20
       start_period: 10s
 
-  # Pinned Terratest runner (Go 1.23.6 + OpenTofu 1.9.1). Profile keeps
+  # Pinned Terratest runner (Go 1.23.6 + OpenTofu 1.10.3). Profile keeps
   # `docker compose up` / `task lab:up` from building it accidentally.
   terratest:
     profiles: ["terratest"]
@@ -41,8 +41,8 @@ services:
       dockerfile: Dockerfile
       args:
         GO_IMAGE: golang:1.23.6-bookworm
-        TOFU_VERSION: "1.9.1"
-    image: opentofu-workshop-terratest:go1.23.6-tofu1.9.1
+        TOFU_VERSION: "1.10.3"
+    image: opentofu-workshop-terratest:go1.23.6-tofu1.10.3
     working_dir: /workspace
     volumes:
       - .:/workspace
