@@ -41,6 +41,25 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
 
+  # Non-blocking on purpose (US-F-SEC-2): Slidev's transitive tree currently
+  # carries a known baseline of advisories. This job surfaces NEW findings in
+  # CI logs without failing the workflow / gating merge until that baseline is
+  # cleared (do not "fix" by upgrading Slidev in this lane).
+  audit:
+    name: pnpm audit (non-blocking)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: pnpm audit
+        continue-on-error: true
+        run: pnpm audit
+
   build:
     name: Build root decks
     runs-on: ubuntu-latest
