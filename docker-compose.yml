@@ -20,9 +20,10 @@ services:
       # Persist nothing between runs → every `task lab:down`/`up` is a clean slate.
       PERSISTENCE: "0"
       AWS_DEFAULT_REGION: "us-east-1"
-    volumes:
-      # Let LocalStack manage docker for services that need it (optional).
-      - "/var/run/docker.sock:/var/run/docker.sock"
+    # No /var/run/docker.sock mount: labs do not use Lambda-in-docker (or other
+    # LocalStack features that need the host Docker daemon). Omitting the sock
+    # shrinks the container's host privilege surface. Re-add under a compose
+    # profile if a future lab needs it.
     healthcheck:
       # LocalStack exposes readiness at /_localstack/health.
       test: ["CMD-SHELL", "curl -fsS http://localhost:4566/_localstack/health || exit 1"]
