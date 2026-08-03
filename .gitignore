@@ -1,6 +1,5 @@
 # OpenTofu / Terraform working files
 .terraform/
-.terraform.lock.hcl
 *.tfstate
 *.tfstate.*
 crash.log
@@ -61,4 +60,4 @@ references/
 *.tfstate.*
 crash.log
 *.tfplan
-# keep provider lock files (.terraform.lock.hcl) — they pin versions
+# Provider lock files (.terraform.lock.hcl) are tracked — they pin versions
