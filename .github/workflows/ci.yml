@@ -143,10 +143,12 @@ jobs:
           AWS_SECRET_ACCESS_KEY: test
           AWS_DEFAULT_REGION: us-east-1
           AWS_ENDPOINT_URL: http://localhost:4566
-        # One retry per example absorbs transient LocalStack flakiness
+        # One retry per root absorbs transient LocalStack flakiness
         # (first-touch service init); a genuine failure still fails the job.
+        # Covers examples/* and labs/day-2/*/tests/integration*.tftest.hcl
+        # (e.g. lab 16) — same discovery as Taskfile verify:integration:tests.
         run: |
-          for d in examples/*; do
+          for d in examples/* labs/day-2/*; do
             [ -d "$d" ] || continue
             ls "$d"/tests/integration*.tftest.hcl >/dev/null 2>&1 || continue
             echo "::group::$d (integration)"

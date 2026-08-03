@@ -322,14 +322,14 @@ tasks:
         msg: "kubectl is required for the k8s integration lane."
 
   verify:integration:tests:
-    desc: "Run every examples/* integration tftest against LocalStack on :4566 (started via lab:up or lab:up:k8s)"
+    desc: "Run examples/* and labs/day-2/*/tests/integration*.tftest.hcl against LocalStack on :4566 (started via lab:up or lab:up:k8s)"
     internal: true
     cmds:
       - |
         # Mirrors the CI verify-integration job (.github/workflows/ci.yml).
         export AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test
         export AWS_DEFAULT_REGION=us-east-1 AWS_ENDPOINT_URL={{.LOCALSTACK_URL}}
-        for d in examples/*; do
+        for d in examples/* labs/day-2/*; do
           [ -d "$d" ] || continue
           ls "$d"/tests/integration*.tftest.hcl >/dev/null 2>&1 || continue
           echo "== $d (integration) =="

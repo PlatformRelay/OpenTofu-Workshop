@@ -6,7 +6,7 @@
 #   2. tofu fmt -check -recursive
 #   3. per module/example/day-2-lab that has *.tf: tofu init -backend=false + validate
 #   4. per module/example/day-2-lab that has *.tftest.hcl: tofu test (plan/mock lanes;
-#      *integration*.tftest.hcl deferred to verify:integration)
+#      *integration*.tftest.hcl deferred to task verify:integration / CI verify-integration)
 #   5. slide ↔ lab drift smoke check (modules/|examples/ paths cited in labs exist)
 #   6. slide ↔ lab/pages drift ENFORCEMENT (annotated ```hcl blocks diffed vs source;
 #      pages/** fences may carry magic-move metadata like ```hcl {none|…})
@@ -132,8 +132,9 @@ else
 
     # tofu test if the dir (or its tests/ subdir) ships *.tftest.hcl.
     # UNIT LANE ONLY: integration files (…integration….tftest.hcl) need
-    # LocalStack/Docker and belong to `task verify:integration` — exclude them
-    # here and run each remaining file explicitly with -filter.
+    # LocalStack/Docker and belong to `task verify:integration` / the CI
+    # verify-integration job — exclude them here and run each remaining file
+    # explicitly with -filter.
     shopt -s nullglob
     tests=("$d"/*.tftest.hcl "$d"/tests/*.tftest.hcl)
     shopt -u nullglob
@@ -153,7 +154,7 @@ else
         tofu -chdir="$d" test "${unit_filters[@]}" 2>&1 | sed 's/^/    /' | tail -n 30 || true
       fi
     elif [ "${#tests[@]}" -gt 0 ]; then
-      info "$d: only integration test(s) — deferred to verify:integration"
+      info "$d: only integration test(s) — deferred to task verify:integration / CI verify-integration"
     else
       info "$d: no *.tftest.hcl — skipping tofu test"
     fi
