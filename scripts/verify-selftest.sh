@@ -49,6 +49,7 @@
 #   §5 smoke-check scope (US-F-R4):
 #    22. prose mentioning modules/does-not-exist → exit 0 (NOT a shared-code ref)
 #    23. missing path in HCL source = "…modules/…" → exit !=0 AND path named (ARMED)
+#    24. missing examples/… via -chdir=/cd/DIR= → exit !=0 AND path named (ARMED)
 #
 # It NEVER mutates the tracked fixture or decks; all edits happen in the temp copy.
 set -euo pipefail
@@ -338,6 +339,20 @@ module "ghost" {
 EOF
 }
 
+# §5: shell entrypoints (-chdir=/cd/DIR=) citing a missing shared root must fail.
+m_smoke_chdir_missing_example() {
+  local root="$1"
+  mkdir -p "$root/labs/day-1"
+  cat >>"$root/labs/day-1/00-setup.md" <<'EOF'
+
+## Broken shell entrypoint (self-test only)
+
+cd examples/does-not-exist
+tofu -chdir=examples/does-not-exist init -backend=false
+task lab:apply DIR=examples/does-not-exist
+EOF
+}
+
 run_case "clean fixture"        pass "no drift: labs/fixtures/drift-demo/main.tf matches" m_clean
 run_case "LF-authored drift"    fail "drift: block in labs/fixtures/drift-demo.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_drift_lf
 run_case "CRLF-authored drift"  fail "drift: block in labs/fixtures/drift-demo.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_drift_crlf
@@ -361,6 +376,7 @@ run_case "day-2 lab unit tftest failure armed" fail "labs/day-2/99-lab-tftest-se
 run_case "day-2 lab integration tftest deferred" pass "labs/day-2/99-lab-tftest-selftest: only integration test(s) — deferred to task verify:integration / CI verify-integration" m_lab_integration_only
 run_case "§5 prose fake module ref ignored" pass "no modules/|examples/ references in labs (all HCL is scratch/inline) — nothing to drift-check yet" m_smoke_prose_fake_module
 run_case "§5 HCL source missing module armed" fail "lab ref missing on disk: modules/does-not-exist" m_smoke_hcl_missing_source
+run_case "§5 chdir/cd/DIR missing example armed" fail "lab ref missing on disk: examples/does-not-exist" m_smoke_chdir_missing_example
 
 printf '\n'
 if [ "$fail_n" -eq 0 ]; then

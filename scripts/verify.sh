@@ -7,7 +7,7 @@
 #   3. per module/example/day-2-lab that has *.tf: tofu init -backend=false + validate
 #   4. per module/example/day-2-lab that has *.tftest.hcl: tofu test (plan/mock lanes;
 #      *integration*.tftest.hcl deferred to task verify:integration / CI verify-integration)
-#   5. slide ↔ lab drift smoke check (HCL source = "…modules|examples/…" paths exist)
+#   5. slide ↔ lab drift smoke check (source=/chdir=/cd/DIR= → modules|examples exist)
 #   6. slide ↔ lab/pages drift ENFORCEMENT (annotated ```hcl blocks diffed vs source;
 #      pages/** fences may carry magic-move metadata like ```hcl {none|…})
 #
@@ -169,10 +169,11 @@ fi
 #          and inline teaching blocks — these are NOT expected to exist in-repo.
 #      (b) references to SHARED repo code under modules/ or examples/ — these
 #          MUST exist on disk, or a slide has drifted from runnable source.
-#    We assert (b) only when it appears as a real HCL dependency
-#    (`source = "…modules/…" ` / `source = "…examples/…"`), not every prose or
-#    shell mention of those path prefixes (US-F-R4). Annotated `<!-- source: -->`
-#    paths are existence-checked + byte-diffed by §6 and are out of scope here.
+#    We assert (b) only for real runnable citations (US-F-R4):
+#      · HCL `source = "…modules|examples/…"`
+#      · shell entrypoints: `tofu -chdir=…`, `cd …`, `DIR=…` / `task lab:* DIR=…`
+#    Bare prose / markdown links mentioning those prefixes are ignored.
+#    Annotated `<!-- source: -->` paths are existence-checked + byte-diffed by §6.
 # ---------------------------------------------------------------------------
 heading "Slide ↔ lab drift smoke check"
 shopt -s nullglob globstar
@@ -188,9 +189,9 @@ else
   for f in "${LAB_FILES[@]}"; do
     n="$(grep -c '^```hcl' "$f" 2>/dev/null || true)"
     HCL_BLOCKS=$((HCL_BLOCKS + ${n:-0}))
-    # Extract modules/... or examples/... only from HCL `source = "…"` attributes.
-    # Prose, shell commands, and markdown links mentioning those prefixes are
-    # illustrative and must not hard-fail the smoke check (US-F-R4).
+    # Extract modules/... or examples/... from real runnable citations only:
+    # HCL source = "…", tofu -chdir=…, cd …, and DIR=… (task lab:* DIR=…).
+    # Bare prose mentioning those prefixes must not hard-fail (US-F-R4).
     #
     # A ref may be a REPO-ROOT shared-code path (modules/foo, examples/bar) OR a
     # path RELATIVE to the lab's own workdir — a lab under labs/day-N/NN-topic/
@@ -208,12 +209,15 @@ else
         fail "lab ref missing on disk: $ref  (cited in $f)"
         MISSING_REFS=$((MISSING_REFS + 1))
       fi
-    # -h: never prefix the filename onto the match (BSD/ugrep prefix even a
-    # single file); trim trailing slashes so `dir/` and `dir` dedupe under sort.
-    # Match `source = "…"` first, then peel the modules|examples path out of the
-    # quoted value (relative prefixes like ../../ are discarded by the peel).
-    done < <(grep -hoE 'source[[:space:]]*=[[:space:]]*"[^"]*"' "$f" 2>/dev/null \
-      | grep -hoE '(modules|examples)/[A-Za-z0-9_./-]+' 2>/dev/null \
+    # Collect candidate citation tokens, then peel modules|examples paths.
+    # Relative prefixes (./, ../../) are discarded by the peel. Trailing
+    # punctuation/backticks are stripped by the char class / ref trim above.
+    done < <({
+      grep -hoE 'source[[:space:]]*=[[:space:]]*"[^"]*"' "$f" 2>/dev/null || true
+      grep -hoE -- '-chdir=[^[:space:]]+' "$f" 2>/dev/null || true
+      grep -hoE '(^|[[:space:`$])cd[[:space:]]+[^[:space:]]+' "$f" 2>/dev/null || true
+      grep -hoE 'DIR=[^[:space:]]+' "$f" 2>/dev/null || true
+    } | grep -hoE '(modules|examples)/[A-Za-z0-9_./-]+' 2>/dev/null \
       | sed 's:/*$::' | sort -u)
   done
   info "scanned ${#LAB_FILES[@]} lab file(s): ${HCL_BLOCKS} \`\`\`hcl block(s), ${CHECKED_REFS} shared-code reference(s)"
