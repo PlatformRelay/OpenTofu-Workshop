@@ -278,17 +278,21 @@ diff — still optional for this workshop.
 
 ## Cleanup / panic reset
 
+From the repository root (restore the break file first if you left Step 3
+poisoned):
+
 ```bash
+git checkout -- labs/day-2/18-terratest-cost/bucket_test.go
 task lab:down
 # optional: remove provider / module caches left by Terratest
 rm -rf labs/day-2/18-terratest-cost/.terraform \
-       labs/day-2/18-terratest-cost/.terraform.lock.hcl \
        labs/day-2/18-terratest-cost/terraform.tfstate*
 ```
 
 <details><summary>Solution / expected output</summary>
 
-Compose stops and removes `opentofu-workshop-localstack`. Confirm:
+`git checkout` is a no-op when `bucket_test.go` is already clean. Compose stops
+and removes `opentofu-workshop-localstack`. Confirm:
 
 ```bash
 test -z "$(docker ps -q --filter name=opentofu-workshop-localstack)"
@@ -296,6 +300,8 @@ test -z "$(docker ps -q --filter name=opentofu-workshop-localstack)"
 
 Silent success. Terratest already destroyed the bucket on every green or failed
 run that reached `defer Destroy`. LocalStack persistence is off, so container
-shutdown drops any leftover local service data.
+shutdown drops any leftover local service data. Keep the committed
+`.terraform.lock.hcl` files; only remove `.terraform/` caches and leftover
+state.
 
 </details>

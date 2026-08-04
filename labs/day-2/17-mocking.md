@@ -436,7 +436,7 @@ From `labs/day-2/17-mocking`:
 
 ```bash
 git checkout -- tests/unit.tftest.hcl
-rm -rf .terraform .terraform.lock.hcl
+rm -rf .terraform
 cd ../../..
 test -z "$(docker ps -q --filter name=opentofu-workshop-localstack)" \
   && echo "LocalStack still not running"
@@ -445,8 +445,8 @@ test -z "$(docker ps -q --filter name=opentofu-workshop-localstack)" \
 <details><summary>Solution / expected residue check</summary>
 
 `git checkout` is a no-op when the file is already clean. Removing `.terraform`
-and the generated lock file leaves only the tracked `main.tf` and
-`tests/unit.tftest.hcl`. The LocalStack confirmation should still print
+leaves the tracked `main.tf`, `tests/unit.tftest.hcl`, and committed
+`.terraform.lock.hcl`. The LocalStack confirmation should still print
 `LocalStack still not running` — this lab never started it.
 
 If you edited other files, restore them with `git checkout -- labs/day-2/17-mocking`

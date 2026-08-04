@@ -347,10 +347,10 @@ state after the test completes.
 
 ## Cleanup / panic reset
 
-Return to the repository root and stop LocalStack:
+From `labs/day-2/16-tofu-test`:
 
 ```bash
-rm -rf .terraform .terraform.lock.hcl
+rm -rf .terraform terraform.tfstate terraform.tfstate.*
 cd ../../..
 task lab:down
 ```
@@ -367,7 +367,8 @@ test -z "$(docker ps -q --filter name=opentofu-workshop-localstack)"
 That confirmation is silent on success. Native test resources were already
 destroyed by `tofu test`; LocalStack persistence is disabled, so the container
 shutdown removes any remaining local service data. The first cleanup command
-removes only this lab directory's downloaded providers and generated lock file.
+removes only this lab directory's downloaded providers and any leftover local
+state — keep the committed `.terraform.lock.hcl`.
 
 If a run was interrupted, execute `tofu test` once more while LocalStack is up
 so OpenTofu can retry cleanup, then run `task lab:down`.
