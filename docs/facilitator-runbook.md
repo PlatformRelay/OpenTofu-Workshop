@@ -126,7 +126,7 @@ skip from the fit plan or `hide:` in `slides-3day.md`.
 | S02 | HCL & building blocks | core | 50 → **35** | 20 | Compress | Name the seven block types; which one alone mutates the world? | Reference wiring; `.tofu` vs `.tf` aside |
 | S03 | Core workflow | core | 60 → **45** | 20 | Compress | Read a plan line: `+` / `~` / `-` and “known after apply”? | One lifecycle run when compressed |
 | S04 | State | core | 50 → **35** | 20 | Compress | Why is `terraform.tfstate` a secret store even when the CLI redacts? | Backend migration is follow-up when compressed |
-| S05 | State encryption | recommended\* | 60 → **45** | 25 | Compress | Prove ciphertext on disk; what does `enforced = true` change? | PBKDF2 lab key handling; fallback migrate |
+| S05 | State encryption | core | 60 → **45** | 25 | Compress | Prove ciphertext on disk; what does `enforced = true` change? | PBKDF2 lab key handling; fallback migrate |
 | S06 | Variables & types | core | 50 → **35** | 25 | Compress | Break a validation on purpose — which phase fails? | Precedence variants follow-up when compressed |
 | S15 | Preconditions & checks | core | 50 → **35** | 30 | Compress | Which guards fail at plan vs apply? What is `check` for? | Keep one blocking condition + `check` |
 | S07 | Modules | core | 60 → **50** | 35 | Compress | What is the module contract (inputs/outputs)? Demo registry/OCI only | No registry network on runnable path |
@@ -134,9 +134,6 @@ skip from the fit plan or `hide:` in `slides-3day.md`.
 | S09 | Best practices | recommended | 50 | 30 | **Skip** | (If run) `count` vs `for_each` — which rebuilds on middle removal? | Only if time returns |
 | S10 | Differentiators | recommended | 45 | 25 | **Skip** | (If run) Provider `for_each` / `-exclude` — needs live LocalStack | Heavy emulator use |
 | S11 | TACO landscape | optional | 35 | 20 | **Skip** (`hide`) | (If run) Constraints-first platform pick — paper only | No tooling |
-
-\*S05 is `recommended` in section frontmatter; Day 1 fit plan still budgets it
-as a compressible core delivery beat.
 
 ### Day 2
 
