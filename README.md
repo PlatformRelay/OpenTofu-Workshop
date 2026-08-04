@@ -176,6 +176,8 @@ carries a spoiler and a panic reset.
 
 ## Licence
 
-Content and code are open source — see [LICENSE](LICENSE). “OpenTofu”,
-“Terraform”, and other marks belong to their respective owners; see the
-[artwork attribution](public/icons/README.md).
+**[0BSD](LICENSE)** — use, copy, modify, redistribute, and sell freely. No
+attribution required. Copyright (C) 2026 Platform Relay.
+
+“OpenTofu”, “Terraform”, and other marks belong to their respective owners; see
+the [artwork attribution](public/icons/README.md).
