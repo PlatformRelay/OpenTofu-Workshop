@@ -10,6 +10,9 @@
   // this, so the deck sources are excluded by scoping the globs to `labs/`.
   // The labs are plain, standalone CommonMark where linting earns real value.
   "globs": ["labs/**/*.md"],
+  // Provider/plugin trees under labs (tofu init, npm) ship their own CHANGELOG/
+  // README markdown; do not scan those as workshop content.
+  "ignores": ["**/.terraform/**", "**/node_modules/**"],
   "config": {
     "default": true,
     // Labs embed long command lines, wide YAML blocks, and reference tables.
