@@ -3,7 +3,7 @@ layout: section-cover
 image: /covers/section-05-sealing-the-ledger.png
 day: Day 1
 section: '05'
-tier: recommended
+tier: core
 ---
 
 # State encryption
