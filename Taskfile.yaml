@@ -108,6 +108,32 @@ tasks:
       - sh: command -v pnpm
         msg: "pnpm is required (run 'task setup')."
 
+  pages:build:
+    desc: "Pages: MkDocs landing + hash-routed Slidev under site/deck/ (needs MkDocs)"
+    cmds:
+      - pnpm run pages:build
+    preconditions:
+      - sh: command -v pnpm
+        msg: "pnpm is required (run 'task setup')."
+      - sh: command -v mkdocs
+        msg: "mkdocs is required. Install: python3 -m pip install -r docs/requirements-docs.txt"
+
+  pages:preview:
+    desc: "Pages: serve ./site at http://localhost:4173 (after pages:build)"
+    cmds:
+      - pnpm run pages:preview
+    preconditions:
+      - sh: command -v pnpm
+        msg: "pnpm is required (run 'task setup')."
+
+  test:pages:
+    desc: "Pages: contract tests for pages.yml / pages-build / mkdocs site_url"
+    cmds:
+      - pnpm run test:pages
+    preconditions:
+      - sh: command -v pnpm
+        msg: "pnpm is required (run 'task setup')."
+
   # -------------------------------------------------------------------------
   # Lab environment (LocalStack via Docker Compose)
   # -------------------------------------------------------------------------

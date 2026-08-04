@@ -1,8 +1,9 @@
 # Facilitator runbook
 
 Practical delivery notes for the **canonical three-day cut**
-([`slides-3day.md`](../slides-3day.md)). Pair with presenter notes on each
-slide and the [scope and timing](../README.md#scope-and-timing-known-issue)
+([`slides-3day.md`](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/slides-3day.md)).
+Pair with presenter notes on each slide and the
+[scope and timing](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/README.md#scope-and-timing-known-issue)
 warning in the README.
 
 **Shipped** = authored slides + lab (not a stub). All canonical sections
@@ -21,9 +22,11 @@ through **S26** are shipped; optional sections stay skippable via cut-order /
 ## Live cut-order
 
 Budget is **6.5 h/day** (~50/50 explain-then-run). Full section minutes for Day 1
-come from the [Day 1 fit plan](../README.md#day-1-fit-plan). Lab minutes come from
-section frontmatter / lab headers. Day 2–3 full-section budgets are not published
-in-repo yet — use **lab duration + presenter-note cues**; do not invent totals.
+come from the
+[Day 1 fit plan](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/README.md#day-1-fit-plan).
+Lab minutes come from section frontmatter / lab headers. Day 2–3 full-section
+budgets are not published in-repo yet — use **lab duration + presenter-note cues**;
+do not invent totals.
 
 ### Day 1 (author → guard → package)
 
@@ -84,7 +87,7 @@ stale emulator (connection refused, empty service list, auth-token exit).
 
 `PERSISTENCE=0` means every down/up is a **clean slate** — say that out loud so
 nobody hunts for “their” bucket from before the crash. Detail:
-[`setup/localstack.md`](../setup/localstack.md).
+[`setup/localstack.md`](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/setup/localstack.md).
 
 ---
 

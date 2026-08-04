@@ -11,7 +11,7 @@ Where the syllabus names something we deliberately skip, it is listed as
 **consciously out-of-scope** — never silently omitted.
 
 The compact closing table on the S26 deck
-([`pages/S26-capstone/index.md`](../pages/S26-capstone/index.md)) is the
+([`pages/S26-capstone/index.md`](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/pages/S26-capstone/index.md)) is the
 in-room summary. **This file is the canonical appendix.**
 
 ### OpenTofu-first note
@@ -87,4 +87,4 @@ facilitator never has to guess whether a gap is accidental.
    lightly via **S19** CI — HCP hands-on remains out-of-scope either way.
 
 See also the [facilitator runbook](facilitator-runbook.md) (S26 keep-row) and the
-[contributor guide](../AGENT.md).
+[contributor guide](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/AGENT.md).

@@ -13,11 +13,14 @@ infrastructure grows in practice:
 
 Roughly **50% is hands-on**.
 
-**Preview it now:** the decks are live on GitHub Pages.
+**Preview it now:** docs and decks are live on GitHub Pages.
 
-- **Live deck (full superset):** <https://platformrelay.github.io/OpenTofu-Workshop/>
-- **Live deck (canonical 3-day cut):** <https://platformrelay.github.io/OpenTofu-Workshop/3day/>
-- **Template gallery:** <https://platformrelay.github.io/OpenTofu-Workshop/templates/>
+- **Documentation home:** <https://platformrelay.github.io/OpenTofu-Workshop/>
+- **Live deck (full superset):** <https://platformrelay.github.io/OpenTofu-Workshop/deck/>
+- **Live deck (canonical 3-day cut):** <https://platformrelay.github.io/OpenTofu-Workshop/deck/3day/>
+- **Template gallery:** <https://platformrelay.github.io/OpenTofu-Workshop/deck/templates/>
+
+Legacy `/3day/` and `/templates/` URLs redirect into `/deck/…`.
 
 > [!IMPORTANT]
 > Labs use `mock_provider` or [LocalStack](https://localstack.cloud), an AWS
@@ -74,9 +77,9 @@ above.
 
 | I am a… | Start with | Then use |
 | --- | --- | --- |
-| Learner | [Canonical three-day workshop](slides-3day.md) — the standard delivery cut | [Lab 00](labs/day-1/00-setup.md) and the linked labs that follow |
-| Facilitator | [Facilitator runbook](docs/facilitator-runbook.md) | [Canonical three-day workshop](slides-3day.md), the scope and timing warning below, and the [Associate alignment appendix](docs/associate-alignment.md) (design check, not exam prep) |
-| Contributor | [Contributor guide](AGENT.md) | [Template gallery](slides-templates.md) for design patterns and the [decision index](docs/decisions/README.md) for architectural context |
+| Learner | [Docs home](https://platformrelay.github.io/OpenTofu-Workshop/) or [canonical three-day deck](https://platformrelay.github.io/OpenTofu-Workshop/deck/3day/) — offline: [slides-3day.md](slides-3day.md) / `task dev:3day` | [Lab 00](labs/day-1/00-setup.md) and the [labs index](https://platformrelay.github.io/OpenTofu-Workshop/labs/) |
+| Facilitator | [Facilitator runbook](https://platformrelay.github.io/OpenTofu-Workshop/facilitator-runbook/) (clone: [docs/facilitator-runbook.md](docs/facilitator-runbook.md)) | [3-day deck](https://platformrelay.github.io/OpenTofu-Workshop/deck/3day/), the scope and timing warning below, and [Associate alignment](https://platformrelay.github.io/OpenTofu-Workshop/associate-alignment/) (design check, not exam prep) |
+| Contributor | [Contributor guide](AGENT.md) | [Template gallery](slides-templates.md) / `task dev:templates` and the [decision index](docs/decisions/README.md) |
 
 ## Deck choices
 
@@ -141,6 +144,8 @@ task dev:3day       # serve the canonical workshop at localhost:3030
 task lab:up         # start LocalStack for labs that require it
 task lab:terratest  # optional: run Go tests in the pinned Terratest container
 task verify         # run fmt, validation, tofu tests, and documentation contracts
+task pages:build    # MkDocs + hash-routed decks → ./site (needs MkDocs)
+task pages:preview  # serve ./site at http://localhost:4173
 ```
 
 `task verify` / `scripts/verify.sh` need **Bash ≥4** (`shopt globstar`). macOS
@@ -161,9 +166,11 @@ examples/             runnable roots wiring modules (LocalStack)
 theme/                local Slidev theme (layouts, components, IacIcon)
 components/           animated Vue teaching diagrams
 public/icons/         OpenTofu marks + HCL block glyphs
-docs/decisions/       architectural decision records (ADRs)
+mkdocs.yml            GitHub Pages docs site (Material)
+docs/                 published MkDocs pages + ADRs under docs/decisions/
 docs/facilitator-runbook.md  facilitator delivery guide
 docs/associate-alignment.md  Associate coverage map (design check, not exam prep)
+scripts/pages-build.sh       MkDocs + Slidev /deck/ Pages tree
 setup/                bootstrap, lab runner, and environment guides
 ```
 

@@ -41,6 +41,17 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
 
+  pages-contract:
+    name: Pages site contract (MkDocs + /deck/)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Assert pages.yml / pages-build / mkdocs wiring
+        run: node --test scripts/pages-site.test.mjs
+
   # Non-blocking on purpose (US-F-SEC-2): Slidev's transitive tree currently
   # carries a known baseline of advisories. This job surfaces NEW findings in
   # CI logs without failing the workflow / gating merge until that baseline is

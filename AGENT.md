@@ -17,6 +17,14 @@ How this workshop is built. Read before authoring a section, a lab, or a module.
 5. **Stay current.** Track current OpenTofu behaviour and versions (see
    `agent-context/research-brief.md`). Verify version claims at authoring time.
 
+## Published site (GitHub Pages)
+
+The live site is **MkDocs Material at `/`** plus **hash-routed Slidev** under
+`/deck/` (superset), `/deck/3day/`, and `/deck/templates/`. Build/preview locally
+with `task pages:build` / `task pages:preview` (needs
+`python3 -m pip install -r docs/requirements-docs.txt`). Contract tests:
+`pnpm test:pages` / `task test:pages`.
+
 ## Repository map
 
 - `slides.md` / `slides-3day.md` / `slides-templates.md` — root decks. Mostly

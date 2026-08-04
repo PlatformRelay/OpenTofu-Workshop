@@ -14,7 +14,10 @@
     "export:3day": "slidev export slides-3day.md --output slides-3day-export",
     "export:templates": "slidev export slides-templates.md --output slides-templates-export",
     "lint": "markdownlint-cli2",
-    "lint:fix": "markdownlint-cli2 --fix"
+    "lint:fix": "markdownlint-cli2 --fix",
+    "test:pages": "node --test scripts/pages-site.test.mjs",
+    "pages:build": "bash scripts/pages-build.sh",
+    "pages:preview": "pnpm dlx serve site -p 4173"
   },
   "dependencies": {
     "@slidev/cli": "^52.16.0",
