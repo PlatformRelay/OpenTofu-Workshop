@@ -239,7 +239,8 @@ fi
 #        ...exact file contents...
 #        ```
 #
-#    The same contract applies under pages/SNN-*/index.md. Slidev magic-move
+#    The same contract applies under pages/SNN-*/index.md and the template
+#    gallery deck slides-templates.md (audit TEST-A4). Slidev magic-move
 #    fences carry highlight metadata on the opening fence line:
 #
 #        ```hcl {none|1-4|all}
@@ -257,10 +258,10 @@ fi
 # ---------------------------------------------------------------------------
 heading "Slide ↔ lab/pages drift enforcement (annotated blocks)"
 shopt -s nullglob globstar
-DRIFT_FILES=(labs/**/*.md pages/**/*.md)
+DRIFT_FILES=(labs/**/*.md pages/**/*.md slides-templates.md)
 shopt -u nullglob globstar
 if [ "${#DRIFT_FILES[@]}" -eq 0 ]; then
-  warn "no lab/pages Markdown yet — nothing to enforce. (pass)"
+  warn "no lab/pages/templates Markdown yet — nothing to enforce. (pass)"
 else
   ANNOTATED=0
   DRIFTED=0

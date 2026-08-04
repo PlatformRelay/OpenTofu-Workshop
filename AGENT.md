@@ -119,9 +119,9 @@ pattern is never the primary flow — a learner should be able to
 The `lab:*` tasks all take `DIR=labs/day-N/NN-topic` (see `Taskfile.yaml`).
 
 > **Carve-out:** `labs/fixtures/` is reserved for `scripts/verify.sh` drift
-> self-test fixtures (e.g. `labs/fixtures/drift-demo/`). It is an intentional
-> exception to the `labs/day-N/NN-topic` convention and is **not** a workshop
-> section — never number it into the section namespace.
+> fixtures (e.g. `labs/fixtures/drift-demo/`, `labs/fixtures/templates-demo/`).
+> It is an intentional exception to the `labs/day-N/NN-topic` convention and is
+> **not** a workshop section — never number it into the section namespace.
 
 To make "slide↔lab single source of truth" **CI-verifiable**, tie a fenced
 `hcl` block in `labs/**` or `pages/**` to its source file with an HTML-comment
@@ -135,9 +135,10 @@ fences render):
     }
     ```
 
-`scripts/verify.sh` scans both `labs/**/*.md` and `pages/**/*.md`, diffs each
-annotated block body against its source file, and **fails the build, naming the
-file,** on any drift (or if the file is missing). Rules:
+`scripts/verify.sh` scans `labs/**/*.md`, `pages/**/*.md`, and
+`slides-templates.md`, diffs each annotated block body against its source file,
+and **fails the build, naming the file,** on any drift (or if the file is
+missing). Rules:
 
 - **Annotated** block → diffed against its source; drift is a build failure.
 - **Unannotated** `hcl` block → ignored (scratch/inline teaching HCL, or a

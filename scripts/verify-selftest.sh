@@ -26,6 +26,9 @@
 #        (fence metadata ```hcl {none|…}``` tolerated; pages/** scan ARMED)
 #     5. pages/ LF drift → exit !=0 AND pages/…/index.md named
 #     6. pages/ CRLF drift → exit !=0 AND pages/…/index.md named   (F1 on pages)
+#     6b. slides-templates.md magic-move clean → exit 0 AND
+#         "…matches its block in slides-templates.md" (root deck in DRIFT_FILES)
+#     6c. slides-templates.md LF drift → exit !=0 AND slides-templates.md named
 #   tier gate (section 7):
 #     7. cross-deck tier mismatch → exit !=0 AND "tier drift: S05 …"   (deck↔deck)
 #     8. hide-invariant violation → exit !=0 AND "hide invariant: S18 …" (3-day cut)
@@ -62,6 +65,9 @@ FIXTURE_TF="labs/fixtures/drift-demo/main.tf"
 # Temp-only pages fixture (not tracked): proves section 6 also scans pages/**
 # and tolerates magic-move fence metadata. Points at the same drift-demo .tf.
 PAGES_FIXTURE_MD="pages/S99-drift-selftest/index.md"
+# Temp-only templates-deck annotation (TEST-A4): proves section 6 scans
+# slides-templates.md and tolerates magic-move fence metadata on that root deck.
+TEMPLATES_SELFTEST_TF="labs/fixtures/templates-demo/selftest.tf"
 
 pass_n=0
 fail_n=0
@@ -90,18 +96,45 @@ plant_pages_fixture() {
   } >"$root/$PAGES_FIXTURE_MD"
 }
 
+# Append an annotated HCL block to the copied templates deck. Body must stay
+# byte-identical to TEMPLATES_SELFTEST_TF (sandbox-only; not a tracked product file).
+plant_templates_fixture() {
+  local root="$1"
+  mkdir -p "$(dirname "$root/$TEMPLATES_SELFTEST_TF")"
+  cat >"$root/$TEMPLATES_SELFTEST_TF" <<'EOF'
+# labs/fixtures/templates-demo/selftest.tf — sandbox-only drift marker (TEST-A4).
+locals {
+  templates_drift_selftest = "armed"
+}
+EOF
+  {
+    printf '\n'
+    printf '%s\n' "<!-- source: $TEMPLATES_SELFTEST_TF -->"
+    # Magic-move metadata MUST be tolerated on the root deck too (TEST-A4).
+    printf '%s\n' '```hcl {none|1-3|all}'
+    cat "$root/$TEMPLATES_SELFTEST_TF"
+    printf '%s\n' '```'
+  } >>"$root/slides-templates.md"
+}
+
 # Build an isolated temp repo root with only what verify.sh needs. Includes the
 # two content decks so section 7 (tier consistency) has inputs; verify.sh reads
 # them by literal path relative to REPO_ROOT.
 build_root() {
   local root="$1"
   mkdir -p "$root/scripts" "$root/setup" "$root/labs/fixtures/drift-demo" \
+    "$root/labs/fixtures/templates-demo" \
     "$root/labs/day-1/00-setup" "$root/labs/day-2/13-static-analysis/messy" \
     "$root/docs/decisions" "$root/pages/S99-drift-selftest"
   cp "$REPO_ROOT/scripts/verify.sh" "$root/scripts/verify.sh"
   cp "$REPO_ROOT/setup/lib.sh"      "$root/setup/lib.sh"
   cp "$REPO_ROOT/$FIXTURE_MD"       "$root/$FIXTURE_MD"
   cp "$REPO_ROOT/$FIXTURE_TF"       "$root/$FIXTURE_TF"
+  # Product templates-demo fixtures (TEST-A4 annotations in slides-templates.md).
+  if [ -d "$REPO_ROOT/labs/fixtures/templates-demo" ]; then
+    cp "$REPO_ROOT"/labs/fixtures/templates-demo/*.tf \
+      "$root/labs/fixtures/templates-demo/" 2>/dev/null || true
+  fi
   cp "$REPO_ROOT/slides.md"         "$root/slides.md"
   cp "$REPO_ROOT/slides-3day.md"    "$root/slides-3day.md"
   cp "$REPO_ROOT/slides-templates.md" "$root/slides-templates.md"
@@ -116,6 +149,7 @@ build_root() {
   cp "$REPO_ROOT/setup/localstack.md" "$root/setup/localstack.md"
   cp "$REPO_ROOT/docs/decisions/README.md" "$root/docs/decisions/README.md"
   plant_pages_fixture "$root"
+  plant_templates_fixture "$root"
   mkdir -p "$root/test-bin"
   for tool in tflint trivy checkov conftest terramate; do
     printf '#!/bin/sh\nexit 127\n' >"$root/test-bin/$tool"
@@ -178,6 +212,14 @@ m_pages_drift_crlf() {   # pages body drift + CRLF-authored pages md (F1 on page
   local root="$1"
   perl -pi -e 's/hello, opentofu/DRIFTED_PAGES_CRLF/' "$root/$PAGES_FIXTURE_MD"
   perl -pi -e 's/\n/\r\n/' "$root/$PAGES_FIXTURE_MD"
+}
+
+m_templates_clean() { :; }   # templates selftest block already planted matching
+
+m_templates_drift_lf() {     # drift ONLY the templates-deck planted block body
+  local root="$1"
+  perl -pi -e 's/templates_drift_selftest = "armed"/templates_drift_selftest = "DRIFTED_TEMPLATES_LF"/' \
+    "$root/slides-templates.md"
 }
 
 m_tier_mismatch() {  # section 7 (a): make S05's tier differ between the two decks
@@ -359,6 +401,8 @@ run_case "CRLF-authored drift"  fail "drift: block in labs/fixtures/drift-demo.m
 run_case "pages magic-move clean" pass "no drift: labs/fixtures/drift-demo/main.tf matches its block in index.md" m_pages_clean
 run_case "pages LF-authored drift" fail "drift: block in pages/S99-drift-selftest/index.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_pages_drift_lf
 run_case "pages CRLF-authored drift" fail "drift: block in pages/S99-drift-selftest/index.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_pages_drift_crlf
+run_case "templates magic-move clean" pass "no drift: labs/fixtures/templates-demo/selftest.tf matches its block in slides-templates.md" m_templates_clean
+run_case "templates LF-authored drift" fail "drift: block in slides-templates.md does NOT match source file: labs/fixtures/templates-demo/selftest.tf" m_templates_drift_lf
 run_case "cross-deck tier mismatch (S05)" fail "tier drift: S05 is 'recommended' in slides.md but 'core' in slides-3day.md" m_tier_mismatch
 run_case "hide-invariant violation (S18)" fail "hide invariant: S18 is 'optional' but hide='false' in slides-3day.md" m_hide_violation
 run_case "README navigation contract" pass "README navigation contract" m_clean

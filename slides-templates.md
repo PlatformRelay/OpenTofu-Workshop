@@ -126,12 +126,14 @@ lab: labs/day-1/08-naming.md
 ---
 
 ````md magic-move
+<!-- source: labs/fixtures/templates-demo/naming-step-1.tf -->
 ```hcl
 resource "aws_s3_bucket" "assets" {
   bucket = "assets"
 }
 ```
 
+<!-- source: labs/fixtures/templates-demo/naming-step-2.tf -->
 ```hcl
 module "naming" {
   source        = "../../modules/naming"
@@ -145,6 +147,7 @@ resource "aws_s3_bucket" "assets" {
 }
 ```
 
+<!-- source: labs/fixtures/templates-demo/naming-step-3.tf -->
 ```hcl
 module "naming" {
   source        = "../../modules/naming"
@@ -176,7 +179,8 @@ heading: State encryption — read the block, click by click
 lab: labs/day-1/05-state-encryption.md
 ---
 
-```hcl {none|1-2|3-6|7-11|all}
+<!-- source: labs/fixtures/templates-demo/encryption.tf -->
+```hcl {none|1-2|3-5|6-8|9-10|all}
 terraform {
   encryption {
     key_provider "pbkdf2" "passphrase" {
@@ -186,7 +190,7 @@ terraform {
       keys = key_provider.pbkdf2.passphrase
     }
     state { method = method.aes_gcm.secure }
-    plan  { method = method.aes_gcm.secure }
+    plan { method = method.aes_gcm.secure }
   }
 }
 ```
