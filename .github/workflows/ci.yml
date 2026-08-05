@@ -69,7 +69,9 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
-      - run: pnpm lab:contract
+      # Zero-dependency Node script - no pnpm install needed. Mirrors link-check.
+      - run: node --test scripts/lab-contract-ci.test.mjs
+      - run: node scripts/lab-contract.mjs
 
   link-check:
     name: Link-check docs and labs

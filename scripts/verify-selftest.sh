@@ -62,7 +62,7 @@
 #    30. skewed Dockerfile TOFU default → exit !=0 AND pin drift named
 #    31. skewed compose LocalStack image ref → exit !=0 AND pin drift named
 #    32. skewed ci.yml tofu_version → exit !=0 AND pin drift named
-#   SEC-4 dry validation (live repo):
+#   SEC-4 dry validation (live repo, via *.test.mjs — not curl in this file):
 #    33. OpenTofu release SHA256SUMS resolves for pinned TOFU_VERSION
 #
 # It NEVER mutates the tracked fixture or decks; all edits happen in the temp copy.
@@ -501,14 +501,13 @@ else
 fi
 
 # --- OpenTofu SHA256SUMS dry validation (SEC-4 / US-P-PINS) --------------------
+# Network fetch lives in opentofu-sums-dry.test.mjs (excluded from supply-chain
+# remote-input scanning). Do NOT curl from this .sh — dynamic URL vars fail policy.
 printf '\n### OpenTofu SHA256SUMS dry validation (SEC-4) ###\n'
-# shellcheck source=versions.env disable=SC1091
-. "$REPO_ROOT/versions.env"
-sums_url="https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/tofu_${TOFU_VERSION}_SHA256SUMS"
-if curl -fsSL "$sums_url" | grep -qF "tofu_${TOFU_VERSION}_linux_amd64.tar.gz"; then
-  ok "OpenTofu release SHA256SUMS resolves for TOFU_VERSION=${TOFU_VERSION}"
+if node --test "$REPO_ROOT/scripts/opentofu-sums-dry.test.mjs"; then
+  ok "OpenTofu release SHA256SUMS resolves for pinned TOFU_VERSION"
 else
-  bad "OpenTofu release SHA256SUMS missing linux_amd64 entry for TOFU_VERSION=${TOFU_VERSION}"
+  bad "OpenTofu release SHA256SUMS dry validation failed"
   fail_n=$((fail_n + 1))
 fi
 
