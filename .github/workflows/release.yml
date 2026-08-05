@@ -37,6 +37,11 @@ jobs:
 
       - name: Export decks to PDF
         # slidev appends `.pdf`; GITHUB_REF_NAME is the tag (e.g. v1.2.0).
+        # VITE_WORKSHOP_* stamp tag + short SHA into global-bottom chrome
+        # (US-P-FOOT); vite.config.mjs also falls back to GITHUB_* / git.
+        env:
+          VITE_WORKSHOP_VERSION: ${{ github.ref_name }}
+          VITE_WORKSHOP_SHA: ${{ github.sha }}
         run: |
           pnpm exec slidev export slides.md \
             --output "opentofu-workshop-full-${GITHUB_REF_NAME}"
