@@ -1,0 +1,432 @@
+# Lab 07 — Modules: extract once, consume twice (S07) — solutions
+
+Use this companion after attempting the participant lab. Compare state and meaning
+rather than copying ephemeral resource names, IDs, or timestamps literally.
+
+## Guided solutions
+
+Work from the tracked workdir `labs/day-1/07-modules/` unless a step says otherwise.
+
+### Step 0 — Enter the tracked workdir
+
+```bash
+cd labs/day-1/07-modules
+ls -R
+```
+
+**Task:** Confirm the root and child module files are already present — you author
+nothing.
+
+---
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ ls -R
+.:
+main.tf  modules
+
+./modules:
+service-manifest
+
+./modules/service-manifest:
+main.tf  outputs.tf  variables.tf
+```
+
+The root `main.tf` calls the child module at `modules/service-manifest/`.
+(`.gitignore` is present too but hidden by `ls`.)
+
+</details>
+
+---
+
+### Step 1 — `init` wires up the modules
+
+```bash
+tofu init
+```
+
+Unlike previous labs, `tofu init` now has **modules** to initialize before it even
+looks at providers. Watch the `Initializing modules...` phase list **both**
+instances pointing at the same source.
+
+**Task:** How many module instances does `init` report, and where do they point?
+
+---
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ tofu init
+
+Initializing the backend...
+Initializing modules...
+- checkout in modules/service-manifest
+- payments in modules/service-manifest
+
+Initializing provider plugins...
+- Finding latest version of hashicorp/local...
+- Finding latest version of hashicorp/random...
+- Installing hashicorp/random v3.9.0...
+- Installing hashicorp/local v2.9.0...
+...
+OpenTofu has been successfully initialized!
+```
+
+Two instances — `checkout` and `payments` — **both resolve to the same source**,
+`modules/service-manifest`. That is the whole point of a module: define the shape
+once, instantiate it many times. Providers are still resolved once, at the root.
+
+</details>
+
+---
+
+### Step 2 — Consume the module twice: both instances apply
+
+```bash
+tofu apply -auto-approve
+```
+
+Each `module` block is a separate **instance** with its own resource addresses
+(`module.checkout.*`, `module.payments.*`). Because each renders a file named after
+its `service.name`, the two never collide.
+
+**Task:** How many resources are added? What are the two module addresses, and do
+the two rendered files differ?
+
+---
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ tofu apply -auto-approve
+...
+module.payments.random_pet.release: Creating...
+module.checkout.random_pet.release: Creating...
+module.checkout.random_pet.release: Creation complete after 0s [id=lucky-heron]
+module.payments.random_pet.release: Creation complete after 0s [id=brave-bat]
+module.payments.local_file.manifest: Creating...
+module.checkout.local_file.manifest: Creating...
+module.payments.local_file.manifest: Creation complete after 0s [id=f1a5dc819be04f4b90f44efff900b6e9e141b0a1]
+module.checkout.local_file.manifest: Creation complete after 0s [id=c1eca66696a109ccd205a45b7479fdf1d9890f80]
+
+Apply complete! Resources: 4 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+checkout_manifest = "./out/checkout.env"
+payments_manifest = "./out/payments.env"
+```
+
+**4 resources** — two per instance (a `random_pet` and a `local_file`). The
+addresses are namespaced by the module: `module.checkout.*` and
+`module.payments.*`. Confirm the two files differ:
+
+```console
+$ cat out/checkout.env
+SERVICE_NAME=checkout
+SERVICE_TIER=standard
+REPLICAS=2
+ENVIRONMENT=staging
+RELEASE=lucky-heron
+
+$ cat out/payments.env
+SERVICE_NAME=payments
+SERVICE_TIER=critical
+REPLICAS=4
+ENVIRONMENT=prod
+RELEASE=brave-bat
+```
+
+One module definition, two instances, two distinct results — driven entirely by
+the different **inputs** each caller passed.
+
+</details>
+
+---
+
+### Step 3 — Break: a version constraint the resolver can't satisfy
+
+Version constraints are how you pin *what* a module or provider resolves to. Here
+you'll trip one on purpose. A **local** module (`source = "./…"`) can't take a
+`version` — that's registry-only — so we pin a **provider** to an impossible
+version instead; the resolver error is the same class you'd hit pinning a real
+registry module or provider.
+
+Open `modules/service-manifest/main.tf` and change the `local` provider line to
+demand a version that does not exist:
+
+```hcl
+# EDIT (temporarily) — in modules/service-manifest/main.tf:
+local  = { source = "hashicorp/local", version = ">= 99.0.0" }
+```
+
+Then re-init so the resolver runs again:
+
+```bash
+tofu init
+```
+
+**Task:** At which command does this fail — `init`, `plan`, or `apply`? The lock
+file from Step 1 is still present — which check trips *first*, and what does it
+tell you to do?
+
+Do what it says — re-run with `-upgrade` so the resolver is allowed to look past
+the lock file and actually try to satisfy `>= 99.0.0`:
+
+```bash
+tofu init -upgrade
+```
+
+**Task:** Now that the lock is out of the way, what stops the resolver?
+
+---
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ tofu init
+
+Initializing the backend...
+Initializing modules...
+
+Initializing provider plugins...
+- Reusing previous version of hashicorp/local from the dependency lock file
+- Reusing previous version of hashicorp/random from the dependency lock file
+- Using previously-installed hashicorp/random v3.9.0
+╷
+│ Error: Failed to resolve provider packages
+│ 
+│ Could not resolve provider hashicorp/local: locked provider
+│ registry.opentofu.org/hashicorp/local 2.9.0 does not match configured
+│ version constraint >= 99.0.0; must use tofu init -upgrade to allow
+│ selection of new versions
+╵
+```
+
+It fails at **`init`** — the phase that resolves modules and providers, *before*
+any plan. Because Step 1 already wrote `.terraform.lock.hcl`, the **lock check**
+trips first: the locked `2.9.0` no longer satisfies your new `>= 99.0.0`
+constraint. OpenTofu refuses to silently pick a different version and tells you
+exactly how to opt in: `must use tofu init -upgrade`.
+
+</details>
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ tofu init -upgrade
+
+Initializing the backend...
+Upgrading modules...
+- checkout in modules/service-manifest
+- payments in modules/service-manifest
+
+Initializing provider plugins...
+- Finding latest version of hashicorp/random...
+- Finding hashicorp/local versions matching ">= 99.0.0"...
+- Using previously-installed hashicorp/random v3.9.0
+╷
+│ Error: Failed to resolve provider packages
+│ 
+│ Could not resolve provider hashicorp/local: no available releases match the
+│ given constraints >= 99.0.0
+╵
+```
+
+With the lock bypassed, the resolver goes looking for a `hashicorp/local` release
+matching `>= 99.0.0` and finds **none exist**:
+`no available releases match the given constraints >= 99.0.0`. That is the real
+version-constraint mismatch — the same failure mode as pinning a **registry
+module** to a version its registry doesn't publish. A version constraint is a hard
+gate resolved at `init`, so a bad pin stops you before you ever plan.
+
+</details>
+
+---
+
+### Step 4 — Fix: revert the constraint and re-init clean
+
+The config is fine; only the impossible pin is wrong. Revert that one line back to
+the tracked form (no `version`), then re-init:
+
+```hcl
+# Restore in modules/service-manifest/main.tf:
+local  = { source = "hashicorp/local" }
+```
+
+```bash
+tofu init
+```
+
+**Task:** Confirm `init` succeeds again. What did the fix actually change?
+
+## Expected observations
+
+- A **module** is defined once (`modules/service-manifest/`) and **instantiated
+  many times** — here twice, as `module.checkout` and `module.payments`.
+- Each instance is driven entirely by its **inputs**; distinct inputs
+  (`service.name`) produce distinct results (two files) that apply side by side —
+  `Apply complete! Resources: 4 added`.
+- `tofu init` initializes **modules first**, then providers; a module instance is
+  named in the `Initializing modules...` list.
+- A **version constraint** is resolved at **`init`**. With a lock file present the
+  **lock check fires first** (`must use tofu init -upgrade`); `-upgrade` then lets
+  the resolver run and report `no available releases match the given constraints` —
+  all before any plan. The fix is to correct or remove the pin; the composition is
+  untouched.
+
+## Cleanup / panic reset
+
+Destroy the (local-only) resources and remove every generated artifact — no
+residue, `git status` clean:
+
+```bash
+cd labs/day-1/07-modules
+git checkout -- modules/service-manifest/main.tf             # restore canonical module before destroy (Step 3 pin breaks provider resolve)
+tofu destroy -auto-approve                                   # tear down both instances' local_file + random_pet
+rm -rf .terraform .terraform.lock.hcl out
+find . -maxdepth 1 -name 'terraform.tfstate*' -delete        # sweep any state/backup files safely
+git status --short .                                          # expect: no output
+```
+
+No cloud resources are created in this lab, so there is nothing to bill or leak.
+The generated state / `.terraform` / rendered `out/` files are gitignored; the
+panic reset leaves the tracked files exactly as CI verified them.
+
+> The `find … -delete` sweep is shell-agnostic: a raw `terraform.tfstate.*` glob
+> aborts under zsh's `nomatch` when no such file exists, and `tofu` can leave
+> timestamped `.backup` files behind. `find` matches zero-or-more without erroring.
+> Checkout before destroy matters if you bailed mid-Step-3 with an unsatisfiable
+> provider pin still in `modules/service-manifest/main.tf` (Step 4's revert should
+> already have cleaned it).
+
+## Stretch (optional)
+
+- **Consume with `for_each`.** Replace the two hand-written `module` blocks with a
+  single `module "service"` using `for_each` over a `map` of service objects.
+  Instances become `module.service["checkout"]` / `module.service["payments"]` —
+  the same two files, half the HCL. When is `for_each` clearer than named blocks?
+- **Add an input `validation`.** Move S06's replica rule *into* the child module's
+  `variable "service"` so every caller inherits the guard. A module can carry its
+  own validation, preconditions, and checks — the packaging includes the contract.
+- **Pin to a real registry module.** On a networked machine, add a public registry
+  module (e.g. a well-known `null`/`random` wrapper) with a `version = "~> x.y"`
+  constraint and run `tofu init` — see the registry resolve a *real* version,
+  contrasting the local `source = "./…"` path you used here.
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ tofu init
+
+Initializing the backend...
+Initializing modules...
+
+Initializing provider plugins...
+- Reusing previous version of hashicorp/random from the dependency lock file
+- Reusing previous version of hashicorp/local from the dependency lock file
+- Using previously-installed hashicorp/local v2.9.0
+- Using previously-installed hashicorp/random v3.9.0
+
+OpenTofu has been successfully initialized!
+
+You may now begin working with OpenTofu. Try running "tofu plan" to see
+any changes that are required for your infrastructure.
+```
+
+Dropping the impossible `>= 99.0.0` pin means the tracked `>= 0` (unconstrained)
+constraint is satisfied by the still-locked `2.9.0` again — the failed `-upgrade`
+never changed the lock — so `init` completes with a plain `tofu init`. Nothing
+about the *composition* changed: the break was purely a version-constraint
+mismatch, and the fix was to remove the unsatisfiable constraint. `git diff` should
+now show **no changes** to the tracked files.
+
+</details>
+
+---
+
+## Expected state / output
+
+- A **module** is defined once (`modules/service-manifest/`) and **instantiated
+  many times** — here twice, as `module.checkout` and `module.payments`.
+- Each instance is driven entirely by its **inputs**; distinct inputs
+  (`service.name`) produce distinct results (two files) that apply side by side —
+  `Apply complete! Resources: 4 added`.
+- `tofu init` initializes **modules first**, then providers; a module instance is
+  named in the `Initializing modules...` list.
+- A **version constraint** is resolved at **`init`**. With a lock file present the
+  **lock check fires first** (`must use tofu init -upgrade`); `-upgrade` then lets
+  the resolver run and report `no available releases match the given constraints` —
+  all before any plan. The fix is to correct or remove the pin; the composition is
+  untouched.
+
+Representative console output from the inline spoilers above applies when your
+toolchain versions match the lab pin.
+
+## Explanation
+
+OpenTofu reconciles declared configuration against stored state on every plan and
+apply, so the commands above succeed only when the tracked HCL, provider plugins,
+and backend settings match what the lab authored. Each step therefore wires inputs
+(outputs, variables, modules, or data sources) before the resources that consume
+them, because the graph must be acyclic at evaluation time.
+
+When a step reads remote or emulated cloud APIs (LocalStack or mock providers), the
+provider block binds credentials and endpoints first; resources then call those APIs
+and persist returned attributes into state. That is why init/plan/apply ordering
+matters and why re-running apply without changes reports zero additions.
+
+## Troubleshooting and recovery
+
+If a step fails mid-lab, prefer the documented panic reset before editing tracked files by hand:
+
+Destroy the (local-only) resources and remove every generated artifact — no
+residue, `git status` clean:
+
+```bash
+cd labs/day-1/07-modules
+git checkout -- modules/service-manifest/main.tf             # restore canonical module before destroy (Step 3 pin breaks provider resolve)
+tofu destroy -auto-approve                                   # tear down both instances' local_file + random_pet
+rm -rf .terraform .terraform.lock.hcl out
+find . -maxdepth 1 -name 'terraform.tfstate*' -delete        # sweep any state/backup files safely
+git status --short .                                          # expect: no output
+```
+
+No cloud resources are created in this lab, so there is nothing to bill or leak.
+The generated state / `.terraform` / rendered `out/` files are gitignored; the
+panic reset leaves the tracked files exactly as CI verified them.
+
+> The `find … -delete` sweep is shell-agnostic: a raw `terraform.tfstate.*` glob
+> aborts under zsh's `nomatch` when no such file exists, and `tofu` can leave
+> timestamped `.backup` files behind. `find` matches zero-or-more without erroring.
+> Checkout before destroy matters if you bailed mid-Step-3 with an unsatisfiable
+> provider pin still in `modules/service-manifest/main.tf` (Step 4's revert should
+> already have cleaned it).
+
+Re-enter `labs/day-1/07-modules/` and replay from the failing step once the environment is clean. For provider or module download errors, run `tofu init -upgrade` in the workdir and retry `tofu plan`.
+
+## Stretch solution
+
+### Commands / manifest
+
+- **Consume with `for_each`.** Replace the two hand-written `module` blocks with a
+- **Add an input `validation`.** Move S06's replica rule *into* the child module's
+- **Pin to a real registry module.** On a networked machine, add a public registry
+
+Example verification from the workdir:
+
+```bash
+cd labs/day-1/07-modules
+tofu plan
+```
+
+### Expected state / output
+
+When the stretch applies cleanly, `tofu plan` afterward shows no further changes and stretch-specific outputs appear in state as described in the spoiler blocks above.
+
+### Explanation
+
+Stretch tasks extend the same exercise with additional constraints or outputs; they
+remain optional because they reuse the core method and only deepen the analysis once
+the guided path already converged.
