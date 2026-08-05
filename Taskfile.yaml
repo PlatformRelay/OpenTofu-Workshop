@@ -134,6 +134,30 @@ tasks:
       - sh: command -v pnpm
         msg: "pnpm is required (run 'task setup')."
 
+  link-check:
+    desc: "Docs: offline link check for README, docs/**, and labs/**"
+    cmds:
+      - pnpm run link-check
+    preconditions:
+      - sh: command -v pnpm
+        msg: "pnpm is required (run 'task setup')."
+
+  test:link-check:
+    desc: "Docs: unit tests for scripts/link-check.mjs"
+    cmds:
+      - pnpm run test:link-check
+    preconditions:
+      - sh: command -v pnpm
+        msg: "pnpm is required (run 'task setup')."
+
+  test:deck:
+    desc: "Deck: slide-overflow guards for code-annotated export safety"
+    cmds:
+      - pnpm run test:deck
+    preconditions:
+      - sh: command -v pnpm
+        msg: "pnpm is required (run 'task setup')."
+
   lab:contract:
     desc: "Labs: sibling-solution contract (27 contracted labs)"
     cmds:

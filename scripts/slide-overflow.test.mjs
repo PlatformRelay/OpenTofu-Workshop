@@ -1,39 +1,54 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { readFileSync, readdirSync } from 'node:fs'
+import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, it } from 'node:test'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-
-/** Extract the fenced block that follows a heading substring. */
-function fenceAfterHeading(src, heading, lang = 'hcl') {
-  const idx = src.indexOf(heading)
-  assert.ok(idx >= 0, `heading not found: ${heading}`)
-  const after = src.slice(idx)
-  const re = new RegExp('```' + lang + '[^\\n]*\\n([\\s\\S]*?)```')
-  const m = after.match(re)
-  assert.ok(m, `${lang} fence not found after: ${heading}`)
-  return m[1]
-}
-
 const MAX_CODE_LINE = 64
 
-describe('dense code-annotated slides stay within column width', () => {
-  it('state encryption teaching slide has no ultra-wide hcl lines', () => {
-    const src = readFileSync(join(root, 'pages/S05-state-encryption/index.md'), 'utf8')
-    const block = fenceAfterHeading(src, 'The encryption block — client-side, OpenTofu-native')
-    const long = block.split('\n').filter((l) => l.length > MAX_CODE_LINE)
-    assert.deepEqual(long, [], `lines longer than ${MAX_CODE_LINE}:\n${long.join('\n')}`)
-    assert.match(block, /encryption \{/)
-  })
+function collectPageIndexes(dir, acc = []) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const abs = join(dir, entry.name)
+    if (entry.isDirectory()) collectPageIndexes(abs, acc)
+    else if (entry.isFile() && entry.name === 'index.md') acc.push(abs)
+  }
+  return acc
+}
 
-  it('dynamic blocks slide has no ultra-wide hcl lines', () => {
-    const src = readFileSync(join(root, 'pages/S09-best-practices/index.md'), 'utf8')
-    const block = fenceAfterHeading(src, 'dynamic blocks — generate repeated nested blocks')
-    const long = block.split('\n').filter((l) => l.length > MAX_CODE_LINE)
-    assert.deepEqual(long, [], `lines longer than ${MAX_CODE_LINE}:\n${long.join('\n')}`)
-    assert.match(block, /dynamic "ingress"/)
+/** Return long lines in code-annotated slide fences (relative path, 1-based line). */
+function codeAnnotatedOverflows(src, relPath) {
+  const hits = []
+  for (const slide of src.split(/\n---\n/)) {
+    if (!/^layout:\s*code-annotated/m.test(slide)) continue
+    for (const m of slide.matchAll(/```[\w-]*[^\n]*\n([\s\S]*?)```/g)) {
+      for (const [i, line] of m[1].split('\n').entries()) {
+        if (line.length > MAX_CODE_LINE) {
+          hits.push({ relPath, lineNo: i + 1, line })
+        }
+      }
+    }
+  }
+  return hits
+}
+
+describe('code-annotated slides stay within export-safe column width', () => {
+  it('no page index.md has ultra-wide fenced code on code-annotated slides', () => {
+    const pagesDir = join(root, 'pages')
+    const files = collectPageIndexes(pagesDir)
+    assert.ok(files.length > 0, 'expected pages/**/index.md files')
+    const violations = []
+    for (const abs of files) {
+      const relPath = relative(root, abs)
+      violations.push(...codeAnnotatedOverflows(readFileSync(abs, 'utf8'), relPath))
+    }
+    assert.deepEqual(
+      violations,
+      [],
+      violations.length
+        ? `lines longer than ${MAX_CODE_LINE}:\n${violations.map((v) => `${v.relPath} (fence line ${v.lineNo}): ${v.line}`).join('\n')}`
+        : undefined,
+    )
   })
 })
 
