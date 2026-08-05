@@ -18,3 +18,4 @@ Consequences.
 | [0010](./0010-component-budget.md) | Animated-component budget — fund three, defer four | Accepted |
 | [0011](./0011-toolchain-lanes.md) | Toolchain lanes — Infracost optional, Terratest container-first | Accepted |
 | [0012](./0012-s15-into-day-1.md) | S15 (validation & checks) re-sequenced into Day 1 | Accepted |
+| [0013](./0013-sibling-lab-solutions.md) | Sibling `NN-topic.solution.md` lab companions | Accepted |

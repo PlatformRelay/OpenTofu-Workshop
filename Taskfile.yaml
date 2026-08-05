@@ -134,6 +134,14 @@ tasks:
       - sh: command -v pnpm
         msg: "pnpm is required (run 'task setup')."
 
+  lab:contract:
+    desc: "Labs: sibling-solution contract (27 contracted labs)"
+    cmds:
+      - pnpm run lab:contract
+    preconditions:
+      - sh: command -v pnpm
+        msg: "pnpm is required (run 'task setup')."
+
   # -------------------------------------------------------------------------
   # Lab environment (LocalStack via Docker Compose)
   # -------------------------------------------------------------------------
