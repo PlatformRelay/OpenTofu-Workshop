@@ -1,10 +1,30 @@
 name: Release
 
-# Runs ONLY on version tags (e.g. `v1.2.0`). Exports the two delivery decks —
-# the full superset and the canonical 3-day cut — to PDF and attaches them to a
-# GitHub Release. Ordinary pushes never release; cut a release by tagging:
+# Runs ONLY on version tags (e.g. `v1.2.0`). Ships the full superset and
+# canonical 3-day decks as GitHub Release artifacts:
+#   1. PDF exports of each deck (print / hand-out friendly)
+#   2. a single .zip of the built static HTML decks with relative asset paths,
+#      so anyone can unzip it and open index.html offline (no server needed)
 #
-#   git tag v1.2.0 && git push origin v1.2.0
+# Publication policy (US-P-REL):
+#   - build-then-publish: the publish job needs: build and only uploads
+#     artifacts that already validated (fail_on_unmatched_files: true).
+#   - tags are immutable: scripts/release-tag-guard.sh refuses republishing
+#     when a tag/release already points at a different commit; same-commit
+#     retries are idempotent. API/peel failures fail closed (unknown).
+#     Force-push of a tag onto github.sha still looks idempotent — protect
+#     v* tags with a GitHub ruleset; the workflow is not a hard boundary.
+#   - provenance: VITE_WORKSHOP_VERSION / VITE_WORKSHOP_SHA stamp every export.
+#   - write scope: contents: write only on the publish job.
+#
+# Ordinary pushes never release; cut a release by tagging:
+#
+#   git tag v0.2.0-beta.1 && git push origin v0.2.0-beta.1   # pre-release
+#   git tag v1.2.0 && git push origin v1.2.0                 # stable
+#
+# A tag whose name contains `-` (semver pre-release, e.g. v0.2.0-beta.1) is
+# published with prerelease: true, and docs/beta-limitations.md is prepended to
+# the auto-generated notes so the honesty block is never lost.
 
 on:
   push:
@@ -12,15 +32,21 @@ on:
       - "v*"
 
 permissions:
-  contents: write # create the release and upload the PDF assets
+  contents: read
 
 env:
   CI: "true"
 
 jobs:
-  release:
-    name: Export PDFs and publish release
+  build:
+    name: Export release artifacts
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    outputs:
+      prerelease: ${{ steps.notes.outputs.prerelease }}
+      body_path: ${{ steps.notes.outputs.body_path }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
@@ -29,6 +55,14 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+
+      - name: Validate decks before export
+        # TODO(US-P-MANIFEST): add `pnpm decks:check` once the manifest lane lands.
+        # Tag push does not run ci.yml — refuse drift with the contracts we have today.
+        run: |
+          pnpm test:provenance
+          pnpm test:pages
+          pnpm lab:contract
 
       - name: Install Chromium system dependencies
         # The browser binary itself is fetched by playwright-chromium's
@@ -48,11 +82,75 @@ jobs:
           pnpm exec slidev export slides-3day.md \
             --output "opentofu-workshop-3day-${GITHUB_REF_NAME}"
 
+      - name: Build static HTML decks and bundle them
+        # Relative base ("./") makes every asset path relative, so the decks
+        # open straight from the filesystem after unzip — no web server, no
+        # base-path guesswork. Full deck at bundle root; 3-day + templates nest.
+        env:
+          VITE_WORKSHOP_VERSION: ${{ github.ref_name }}
+          VITE_WORKSHOP_SHA: ${{ github.sha }}
+        run: |
+          pnpm exec slidev build slides.md \
+            --base ./ --out site
+          pnpm exec slidev build slides-3day.md \
+            --base ./ --out site/3day
+          pnpm exec slidev build slides-templates.md \
+            --base ./ --out site/templates
+          ( cd site && zip -qr "../opentofu-workshop-site-${GITHUB_REF_NAME}.zip" . )
+
+      # softprops prepends body_path to generate_release_notes output. Decision
+      # lives in scripts/release-notes-flags.sh so the pre-release branch cannot
+      # silently disappear from the workflow.
+      - name: Select release notes preamble
+        id: notes
+        run: bash scripts/release-notes-flags.sh "${GITHUB_REF_NAME}"
+
+      - name: Stage validated release artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-assets
+          path: |
+            opentofu-workshop-full-*.pdf
+            opentofu-workshop-3day-*.pdf
+            opentofu-workshop-site-*.zip
+            docs/beta-limitations.md
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write # create the release and upload the validated assets
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 1
+
+      - name: Refuse moved release tags
+        # US-P-REL: same-commit retry is idempotent; a tag/release that already
+        # points elsewhere must fail before softprops can rewrite it.
+        # GH_TOKEN is required: `gh api` in Actions does not inherit GITHUB_TOKEN
+        # automatically; without it the fail-closed guard treats the lookup as
+        # unknown and refuses a first publish.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/release-tag-guard.sh check "${{ github.ref_name }}" "${{ github.sha }}"
+
+      - name: Download validated release artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-assets
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           files: |
             opentofu-workshop-full-*.pdf
             opentofu-workshop-3day-*.pdf
+            opentofu-workshop-site-*.zip
           fail_on_unmatched_files: true
           generate_release_notes: true
+          prerelease: ${{ needs.build.outputs.prerelease }}
+          body_path: ${{ needs.build.outputs.body_path }}
