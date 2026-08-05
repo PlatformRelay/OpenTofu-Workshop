@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Mock `gum` for bats — spin runs the real command; confirm/choose are configurable.
+set -eu
+
+echo "gum $*" >>"${MOCK_LOG:?stub requires MOCK_LOG}"
+
+case "${1:-}" in
+  spin)
+    shift
+    while [ "$#" -gt 0 ]; do
+      if [ "$1" = "--" ]; then
+        shift
+        break
+      fi
+      shift
+    done
+    [ "$#" -gt 0 ] && exec "$@"
+    ;;
+  confirm) exit "${MOCK_GUM_CONFIRM_EXIT:-0}" ;;
+  choose)
+    shift
+    echo "${MOCK_GUM_CHOICE:-${1:-}}"
+    ;;
+esac
+
+exit 0

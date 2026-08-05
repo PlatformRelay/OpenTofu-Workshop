@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Mock `tofu` for bats — logs invocations to MOCK_LOG; never touches real state.
+set -eu
+
+echo "tofu $*" >>"${MOCK_LOG:?stub requires MOCK_LOG}"
+
+chdir=""
+if [ "${1:-}" = "-chdir" ]; then
+  chdir="$2"
+  shift 2
+elif [[ "${1:-}" == -chdir=* ]]; then
+  chdir="${1#-chdir=}"
+  shift
+fi
+
+if [ -n "$chdir" ]; then
+  echo "tofu-chdir $chdir $*" >>"$MOCK_LOG"
+fi
+
+case "${1:-}" in
+  destroy) ;;
+  version) echo "OpenTofu v1.12.3" ;;
+esac
+
+exit 0

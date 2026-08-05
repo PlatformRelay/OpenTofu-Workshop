@@ -1,0 +1,8 @@
+# Repo-tuned shellcheck defaults for the OpenTofu workshop shell plane.
+shell=bash
+external-sources=true
+
+# Meta-tests grep workflow YAML for literal ${{ … }} patterns (SC2016) and use
+# pass/fail idioms (SC2015). verify-selftest.sh registers handlers by name for
+# indirect dispatch (SC2329). These are intentional — CI runs at warning severity.
+disable=SC2015,SC2016,SC2329

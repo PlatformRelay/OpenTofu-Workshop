@@ -123,3 +123,50 @@ min_version() {
   min="${min#v}"
   [ "$(printf '%s\n%s\n' "$min" "$have" | sort -V | head -n1)" = "$min" ]
 }
+
+# lab_workdir_for <labs/.../NN-topic.md> — print the OpenTofu workdir on stdout.
+# Paths are relative to the repo root (caller must cd there first). Resolution:
+#   1. sibling workdir  labs/day-N/NN-topic/  (ADR 0009)
+#   2. examples/capstone for the S26 capstone lab (no sibling workdir)
+#   3. legacy examples/<basename> when present
+lab_workdir_for() {
+  local lab_md="$1"
+  local sibling="${lab_md%.md}"
+
+  if [ -d "$sibling" ]; then
+    printf '%s\n' "$sibling"
+    return 0
+  fi
+
+  case "$lab_md" in
+    labs/day-3/26-capstone.md)
+      if [ -d examples/capstone ]; then
+        printf '%s\n' examples/capstone
+        return 0
+      fi
+      ;;
+  esac
+
+  local base="${lab_md##*/}"
+  base="${base%.md}"
+  if [ -d "examples/$base" ]; then
+    printf '%s\n' "examples/$base"
+    return 0
+  fi
+
+  return 1
+}
+
+# lab_panic_reset <workdir> — tofu destroy in workdir, then task lab:down.
+lab_panic_reset() {
+  local workdir="$1"
+  if [ -n "$workdir" ] && [ -d "$workdir" ] && have tofu; then
+    spin "Destroying resources in $workdir…" -- \
+      tofu -chdir="$workdir" destroy -auto-approve || \
+      warn "tofu destroy reported an error (state may be empty — that's fine)."
+  fi
+  if have task; then
+    spin "Stopping LocalStack (task lab:down)…" -- task lab:down || \
+      warn "task lab:down reported an error."
+  fi
+}

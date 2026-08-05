@@ -376,6 +376,17 @@ tasks:
       - sh: command -v tofu
         msg: "tofu is required. Install: brew install opentofu"
 
+  test:shell:
+    desc: "Shell plane: shellcheck tracked *.sh and run bats tests/shell (mocked)"
+    cmds:
+      - git ls-files '*.sh' | xargs shellcheck -S warning
+      - bats tests/shell
+    preconditions:
+      - sh: command -v shellcheck
+        msg: "shellcheck is required. Install: brew install shellcheck"
+      - sh: command -v bats
+        msg: "bats is required. Install: brew install bats-core"
+
   verify:integration:
     desc: "Tested-workshop gate (integration): verify against a live LocalStack. Needs Docker."
     deps:

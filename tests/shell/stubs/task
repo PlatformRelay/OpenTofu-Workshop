@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Mock `task` for bats — logs invocations to MOCK_LOG.
+set -eu
+
+echo "task $*" >>"${MOCK_LOG:?stub requires MOCK_LOG}"
+exit 0

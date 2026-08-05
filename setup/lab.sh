@@ -66,15 +66,13 @@ if have gum && [ "${HAS_GUM:-0}" = 1 ]; then
 else
   note "Open it in your editor, or:  less \"$LAB_CHOICE\""
 fi
-# Convention: the example directory that a lab drives shares the lab's basename.
-LAB_BASE="$(basename "$LAB_CHOICE" .md)"
-ACTIVE_EXAMPLE="examples/$LAB_BASE"
-if [ -d "$ACTIVE_EXAMPLE" ]; then
-  info "Working directory for this lab: $ACTIVE_EXAMPLE"
-  note "Run there:  cd $ACTIVE_EXAMPLE && tofu init && tofu apply"
+# Resolve the tracked workdir (ADR 0009 sibling dir, with capstone carve-out).
+ACTIVE_WORKDIR=""
+if ACTIVE_WORKDIR="$(lab_workdir_for "$LAB_CHOICE")"; then
+  info "Working directory for this lab: $ACTIVE_WORKDIR"
+  note "Run there:  cd $ACTIVE_WORKDIR && tofu init && tofu apply"
 else
-  ACTIVE_EXAMPLE=""
-  note "No matching examples/$LAB_BASE dir yet — follow the lab's own instructions."
+  note "No sibling workdir yet — follow the lab's own instructions."
 fi
 echo
 
@@ -84,15 +82,7 @@ echo
 if [ "$INTERACTIVE" = 1 ]; then
   heading "Panic reset"
   if confirm "Reset environment? (tofu destroy + stop LocalStack)"; then
-    if [ -n "$ACTIVE_EXAMPLE" ] && [ -d "$ACTIVE_EXAMPLE" ] && have tofu; then
-      spin "Destroying resources in $ACTIVE_EXAMPLE…" -- \
-        tofu -chdir="$ACTIVE_EXAMPLE" destroy -auto-approve || \
-        warn "tofu destroy reported an error (state may be empty — that's fine)."
-    fi
-    if have task; then
-      spin "Stopping LocalStack (task lab:down)…" -- task lab:down || \
-        warn "task lab:down reported an error."
-    fi
+    lab_panic_reset "$ACTIVE_WORKDIR"
     ok "Environment reset. Re-run 'task lab' to start again."
   else
     note "Leaving the environment running. Reset any time with 'task lab:down'."

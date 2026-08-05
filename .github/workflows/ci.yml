@@ -132,6 +132,18 @@ jobs:
           pnpm run build:3day
           pnpm run build:templates
 
+  shell:
+    name: Shell scripts (shellcheck + bats)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install bats and shellcheck
+        run: sudo apt-get update && sudo apt-get install -y bats shellcheck
+      - name: Shellcheck tracked shell scripts
+        run: git ls-files '*.sh' | xargs shellcheck -S warning
+      - name: Run bats tests (mocked binaries — no docker/network)
+        run: bats tests/shell
+
   verify-unit:
     name: Verify modules (fmt · validate · tofu test — mock/plan)
     runs-on: ubuntu-latest
