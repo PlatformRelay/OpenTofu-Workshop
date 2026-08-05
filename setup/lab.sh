@@ -6,7 +6,7 @@
 #   2. Start LocalStack via `task lab:up` (gum spin).
 #   3. Show the lab path and how to open it.
 #   4. Offer a one-key panic reset: `task lab:down` + `tofu destroy` in the
-#      active example directory.
+#      lab's tracked workdir (sibling `labs/day-N/NN-topic/` per ADR 0009).
 #
 # Degrades gracefully with no gum and is safe in non-interactive shells.
 set -euo pipefail
@@ -35,7 +35,11 @@ if [ "${#LABS[@]}" -eq 0 ]; then
 fi
 
 heading "Choose a lab"
-LAB_CHOICE="$(choose "${LABS[@]}")"
+if [ -n "${LAB_SH_LAB_CHOICE:-}" ]; then
+  LAB_CHOICE="$LAB_SH_LAB_CHOICE"
+else
+  LAB_CHOICE="$(choose "${LABS[@]}")"
+fi
 [ -n "$LAB_CHOICE" ] || { warn "No lab selected."; exit 0; }
 ok "Selected: $LAB_CHOICE"
 echo
@@ -43,7 +47,9 @@ echo
 # ---------------------------------------------------------------------------
 # 2. Start LocalStack
 # ---------------------------------------------------------------------------
-if have task; then
+if [ "${LAB_SH_SKIP_UP:-0}" = "1" ]; then
+  note "Skipping LocalStack start (LAB_SH_SKIP_UP)."
+elif have task; then
   heading "Starting LocalStack"
   if spin "Bringing up LocalStack (task lab:up)…" -- task lab:up; then
     ok "LocalStack is up on http://localhost:4566"

@@ -364,6 +364,13 @@ tasks:
       # drift (incl. CRLF-authored). Runs in a throwaway temp copy; see the script.
       # Also runs release script self-tests (US-P-REL) against the live repo.
       - bash scripts/verify-selftest.sh
+      # Shell plane when shellcheck + bats are on PATH (CI also runs the dedicated job).
+      - |
+        if command -v shellcheck >/dev/null 2>&1 && command -v bats >/dev/null 2>&1; then
+          task test:shell
+        else
+          echo "note: skipping test:shell (install shellcheck + bats for the full gate)"
+        fi
     preconditions:
       - sh: command -v tofu
         msg: "tofu is required. Install: brew install opentofu"

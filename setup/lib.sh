@@ -21,7 +21,10 @@ if have gum; then HAS_GUM=1; else HAS_GUM=0; fi
 
 # Interactive means: a TTY is attached to stdin AND we are not in CI.
 # `[ ! -t 0 ]` (no TTY) or CI=true both force non-interactive mode.
-if [ -t 0 ] && [ "${CI:-}" != "true" ]; then
+# WORKSHOP_FORCE_INTERACTIVE=1 is a bats-only hook to exercise confirm/spin paths.
+if [ "${WORKSHOP_FORCE_INTERACTIVE:-0}" = "1" ]; then
+  INTERACTIVE=1
+elif [ -t 0 ] && [ "${CI:-}" != "true" ]; then
   INTERACTIVE=1
 else
   INTERACTIVE=0
@@ -161,7 +164,7 @@ lab_workdir_for() {
 lab_panic_reset() {
   local workdir="$1"
   if [ -n "$workdir" ] && [ -d "$workdir" ] && have tofu; then
-    spin "Destroying resources in $workdir…" -- \
+    spin "Destroying resources in ${workdir}…" -- \
       tofu -chdir="$workdir" destroy -auto-approve || \
       warn "tofu destroy reported an error (state may be empty — that's fine)."
   fi
