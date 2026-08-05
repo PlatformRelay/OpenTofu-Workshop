@@ -53,6 +53,8 @@
 #    22. prose mentioning modules/does-not-exist → exit 0 (NOT a shared-code ref)
 #    23. missing path in HCL source = "…modules/…" → exit !=0 AND path named (ARMED)
 #    24. missing examples/… via -chdir=/cd/DIR= → exit !=0 AND path named (ARMED)
+#   release script self-tests (US-P-REL):
+#    25–26. release-tag-guard-selftest + release-notes-flags-selftest → exit 0
 #
 # It NEVER mutates the tracked fixture or decks; all edits happen in the temp copy.
 set -euo pipefail
@@ -421,6 +423,19 @@ run_case "day-2 lab integration tftest deferred" pass "labs/day-2/99-lab-tftest-
 run_case "§5 prose fake module ref ignored" pass "no modules/|examples/ references in labs (all HCL is scratch/inline) — nothing to drift-check yet" m_smoke_prose_fake_module
 run_case "§5 HCL source missing module armed" fail "lab ref missing on disk: modules/does-not-exist" m_smoke_hcl_missing_source
 run_case "§5 chdir/cd/DIR missing example armed" fail "lab ref missing on disk: examples/does-not-exist" m_smoke_chdir_missing_example
+
+# --- release script self-tests (US-P-REL) --------------------------------------
+# Run against the live repo (not the temp verify.sh copy): CI verify-unit invokes
+# this script before verify.sh, so wiring here keeps release regressions red.
+printf '\n### release script self-tests (US-P-REL) ###\n'
+for rel_script in release-tag-guard-selftest.sh release-notes-flags-selftest.sh; do
+  if bash "$REPO_ROOT/scripts/$rel_script"; then
+    ok "release self-test: $rel_script"
+  else
+    bad "release self-test: $rel_script"
+    fail_n=$((fail_n + 1))
+  fi
+done
 
 printf '\n'
 if [ "$fail_n" -eq 0 ]; then

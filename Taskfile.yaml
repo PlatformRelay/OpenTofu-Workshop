@@ -314,6 +314,7 @@ tasks:
       - bash scripts/verify.sh
       # Regression guard: prove the slide↔lab drift ENFORCEMENT actually fails on
       # drift (incl. CRLF-authored). Runs in a throwaway temp copy; see the script.
+      # Also runs release script self-tests (US-P-REL) against the live repo.
       - bash scripts/verify-selftest.sh
     preconditions:
       - sh: command -v tofu
