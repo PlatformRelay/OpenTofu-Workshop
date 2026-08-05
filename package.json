@@ -33,7 +33,10 @@
     "pages:build": "bash scripts/pages-build.sh",
     "pages:preview": "pnpm dlx serve site -p 4173",
     "showcase:gif": "node scripts/make-showcase-gif.mjs",
-    "test:showcase": "node --test scripts/make-showcase-gif.test.mjs"
+    "test:showcase": "node --test scripts/make-showcase-gif.test.mjs",
+    "test:quiz": "node --test scripts/quiz/quiz.test.mjs",
+    "quiz:validate": "node scripts/quiz/validate.mjs",
+    "quiz:export": "node scripts/quiz/export.mjs --out dist-quiz"
   },
   "dependencies": {
     "@slidev/cli": "^52.16.0",
@@ -41,6 +44,7 @@
     "vue": "^3.5.33"
   },
   "devDependencies": {
+    "ajv": "8.17.1",
     "markdownlint-cli2": "^0.23.0",
     "playwright-chromium": "^1.61.1",
     "sharp": "^0.35.3"

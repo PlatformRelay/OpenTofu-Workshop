@@ -1,0 +1,51 @@
+{
+  "$schema": "./questions.schema.json",
+  "schemaVersion": 1,
+  "questions": [
+    {
+      "id": "S03-Q-SPK-01",
+      "section": "S03",
+      "prompt": "During `tofu plan`, which statement about the proposed changes is accurate?",
+      "options": [
+        { "id": "read-only", "text": "Plan is read-only: it shows what would change without applying.", "rationale": "Plan computes a diff against state and does not mutate remote infrastructure." },
+        { "id": "applies-changes", "text": "Plan applies non-destructive changes immediately.", "rationale": "Only apply (or auto-approve flows) mutate infrastructure; plan does not." },
+        { "id": "locks-state", "text": "Plan permanently locks state until apply completes.", "rationale": "State locking behaviour depends on backend configuration; plan itself is not a permanent lock." }
+      ],
+      "answer": "read-only",
+      "explanation": "OpenTofu plan compares desired configuration to state and produces a change set; apply executes it.",
+      "difficulty": "introductory",
+      "learningObjective": "Distinguish plan from apply in the core workflow.",
+      "references": ["https://opentofu.org/docs/cli/commands/plan/"]
+    },
+    {
+      "id": "S04-Q-SPK-01",
+      "section": "S04",
+      "prompt": "Why does OpenTofu store state separately from the configuration files?",
+      "options": [
+        { "id": "bind-real-world", "text": "State binds configuration to real-world resource identities and attributes.", "rationale": "Without state, OpenTofu cannot reliably map HCL to existing infrastructure." },
+        { "id": "replace-hcl", "text": "State replaces HCL as the source of truth for desired configuration.", "rationale": "Configuration files express intent; state records what exists." },
+        { "id": "encrypt-secrets", "text": "State exists primarily to encrypt provider credentials.", "rationale": "Credentials belong in environment or secret stores; state tracks resource metadata." }
+      ],
+      "answer": "bind-real-world",
+      "explanation": "State maps resource addresses to provider-specific IDs so subsequent plans can diff accurately.",
+      "difficulty": "introductory",
+      "learningObjective": "Explain why state is required beyond configuration alone.",
+      "references": ["https://opentofu.org/docs/language/state/"]
+    },
+    {
+      "id": "S07-Q-SPK-01",
+      "section": "S07",
+      "prompt": "When should you extract repeated infrastructure into a module?",
+      "options": [
+        { "id": "reuse-pattern", "text": "When the same composable pattern appears in multiple root modules.", "rationale": "Modules encapsulate reusable building blocks with a stable interface." },
+        { "id": "single-resource", "text": "For every individual resource to keep root modules minimal.", "rationale": "Over-modularising single resources adds indirection without reuse benefit." },
+        { "id": "hide-state", "text": "To prevent state from recording child module resources.", "rationale": "Child module resources still appear in state under the module address prefix." }
+      ],
+      "answer": "reuse-pattern",
+      "explanation": "Modules reduce duplication and encode conventions; they do not bypass state tracking.",
+      "difficulty": "intermediate",
+      "learningObjective": "Recognise when module extraction improves maintainability.",
+      "references": ["https://opentofu.org/docs/language/modules/"]
+    }
+  ]
+}
