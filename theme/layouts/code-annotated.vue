@@ -56,6 +56,11 @@ const props = defineProps<{
   align-items: center;
 }
 
+.kw-ca-code {
+  min-width: 0;
+  overflow: auto;
+}
+
 .kw-ca-code :deep(pre.slidev-code) {
   font-size: 0.88em;
   line-height: 1.5;
@@ -67,6 +72,7 @@ const props = defineProps<{
   justify-content: center;
   gap: 0.65rem;
   min-height: 0;
+  min-width: 0;
 }
 
 .kw-ca-lab {

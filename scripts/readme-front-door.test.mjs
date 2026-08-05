@@ -1,0 +1,67 @@
+#!/usr/bin/env node
+// Front-door honesty: live deck discovery on README + docs landing.
+import { readFileSync } from 'node:fs'
+import { resolve, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import assert from 'node:assert/strict'
+import test from 'node:test'
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const PAGES = 'https://platformrelay.github.io/OpenTofu-Workshop'
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+test('README links live superset, 3-day, and template decks on Pages', () => {
+  const readme = readFileSync(resolve(ROOT, 'README.md'), 'utf8')
+  for (const rel of ['deck/', 'deck/3day/', 'deck/templates/']) {
+    assert.match(
+      readme,
+      new RegExp(`${escapeRegExp(PAGES)}/${escapeRegExp(rel)}`),
+      `README must link the live ${rel} deck`,
+    )
+  }
+})
+
+test('docs landing links live decks on Pages', () => {
+  const index = readFileSync(resolve(ROOT, 'docs/index.md'), 'utf8')
+  for (const rel of ['deck/', 'deck/3day/', 'deck/templates/']) {
+    assert.match(
+      index,
+      new RegExp(`${escapeRegExp(PAGES)}/${escapeRegExp(rel)}`),
+      `docs/index.md must link the live ${rel} deck`,
+    )
+  }
+})
+
+test('README has no controlled-beta warning', () => {
+  const readme = readFileSync(resolve(ROOT, 'README.md'), 'utf8')
+  assert.doesNotMatch(
+    readme,
+    /Controlled beta/i,
+    'README must not ship a controlled-beta warning after stable release',
+  )
+})
+
+test('docs landing has no controlled-beta admonition', () => {
+  const index = readFileSync(resolve(ROOT, 'docs/index.md'), 'utf8')
+  assert.doesNotMatch(index, /Controlled beta/i)
+  assert.doesNotMatch(index, /!!!\s*warning\s*"Controlled beta"/)
+})
+
+test('LICENSE is 0BSD (no attribution required)', () => {
+  const license = readFileSync(resolve(ROOT, 'LICENSE'), 'utf8')
+  assert.match(license, /BSD Zero Clause License|0BSD/i)
+  assert.doesNotMatch(
+    license,
+    /The above copyright notice and this permission notice shall be included/,
+  )
+})
+
+test('README describes 0BSD without MIT attribution requirement', () => {
+  const readme = readFileSync(resolve(ROOT, 'README.md'), 'utf8')
+  assert.match(readme, /0BSD/)
+  assert.doesNotMatch(readme, /Keep the copyright notice with substantial copies/)
+  assert.doesNotMatch(readme, /\[MIT License\]|\*\*\[MIT\]|License: MIT/)
+})
