@@ -82,6 +82,12 @@ jobs:
             --output "opentofu-workshop-full-${GITHUB_REF_NAME}"
           pnpm exec slidev export slides-3day.md \
             --output "opentofu-workshop-3day-${GITHUB_REF_NAME}"
+          pnpm exec slidev export slides-day-1.md \
+            --output "opentofu-workshop-day-1-${GITHUB_REF_NAME}"
+          pnpm exec slidev export slides-day-2.md \
+            --output "opentofu-workshop-day-2-${GITHUB_REF_NAME}"
+          pnpm exec slidev export slides-day-3.md \
+            --output "opentofu-workshop-day-3-${GITHUB_REF_NAME}"
 
       - name: Build static HTML decks and bundle them
         # Relative base ("./") makes every asset path relative, so the decks
@@ -95,6 +101,12 @@ jobs:
             --base ./ --out site
           pnpm exec slidev build slides-3day.md \
             --base ./ --out site/3day
+          pnpm exec slidev build slides-day-1.md \
+            --base ./ --out site/day-1
+          pnpm exec slidev build slides-day-2.md \
+            --base ./ --out site/day-2
+          pnpm exec slidev build slides-day-3.md \
+            --base ./ --out site/day-3
           pnpm exec slidev build slides-templates.md \
             --base ./ --out site/templates
           ( cd site && zip -qr "../opentofu-workshop-site-${GITHUB_REF_NAME}.zip" . )
@@ -113,6 +125,9 @@ jobs:
           path: |
             opentofu-workshop-full-*.pdf
             opentofu-workshop-3day-*.pdf
+            opentofu-workshop-day-1-*.pdf
+            opentofu-workshop-day-2-*.pdf
+            opentofu-workshop-day-3-*.pdf
             opentofu-workshop-site-*.zip
             docs/beta-limitations.md
           if-no-files-found: error
@@ -150,6 +165,9 @@ jobs:
           files: |
             opentofu-workshop-full-*.pdf
             opentofu-workshop-3day-*.pdf
+            opentofu-workshop-day-1-*.pdf
+            opentofu-workshop-day-2-*.pdf
+            opentofu-workshop-day-3-*.pdf
             opentofu-workshop-site-*.zip
           fail_on_unmatched_files: true
           generate_release_notes: true

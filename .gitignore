@@ -20,6 +20,7 @@ stuff
 .envrc
 
 # Slidev / Vite
+.tmp-pages-nav/
 .vite-inspect/
 .remote-assets/
 components.d.ts

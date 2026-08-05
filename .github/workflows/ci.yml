@@ -116,7 +116,12 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Install Chromium system dependencies
+        # pages-nav Playwright regression (hash+base slide navigation) needs
+        # the same OS libs as slidev export / showcase-gif.
+        run: pnpm exec playwright install-deps chromium
       - run: pnpm run test:deck
+      - run: node --test scripts/pages-nav.test.mjs
       - run: pnpm run decks:check
       - name: Build superset, day decks, 3-day cut, and templates gallery
         run: |

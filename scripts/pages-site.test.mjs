@@ -18,6 +18,9 @@ test('pages.yml builds Slidev with hash router under /deck/', () => {
 test('pages-build.sh mirrors hash + deck layout', () => {
   const sh = readFileSync(resolve(ROOT, 'scripts/pages-build.sh'), 'utf8')
   assert.match(sh, /--router-mode hash/)
+  assert.match(sh, /deck\/day-1/)
+  assert.match(sh, /deck\/day-2/)
+  assert.match(sh, /deck\/day-3/)
   assert.match(sh, /deck\/3day/)
   assert.match(sh, /deck\/templates/)
   assert.match(sh, /mkdocs build/)

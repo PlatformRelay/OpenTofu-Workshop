@@ -32,6 +32,9 @@ build_deck() {
 
 build_deck slides.md "deck"
 build_deck slides-3day.md "deck/3day"
+build_deck slides-day-1.md "deck/day-1"
+build_deck slides-day-2.md "deck/day-2"
+build_deck slides-day-3.md "deck/day-3"
 build_deck slides-templates.md "deck/templates"
 
 # Legacy path redirects (pre-MkDocs Slidev roots).

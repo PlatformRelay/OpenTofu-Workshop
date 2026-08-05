@@ -28,7 +28,7 @@
     "test:link-check": "node --test scripts/link-check.test.mjs",
     "test:deck": "node --test scripts/deck.test.mjs scripts/slide-overflow.test.mjs",
     "test:provenance": "node --test scripts/workshop-provenance.test.mjs",
-    "test:pages": "node --test scripts/pages-site.test.mjs scripts/readme-front-door.test.mjs",
+    "test:pages": "node --test scripts/pages-site.test.mjs scripts/pages-nav.test.mjs scripts/readme-front-door.test.mjs",
     "pages:build": "bash scripts/pages-build.sh",
     "pages:preview": "pnpm dlx serve site -p 4173",
     "showcase:gif": "node scripts/make-showcase-gif.mjs",
