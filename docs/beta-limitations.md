@@ -16,6 +16,11 @@ sections you keep.
   every host combination. Budget a dry-run of the add-ons *your* cut needs.
 - **LocalStack paths** vary by lab; emulator health and install order can drift
   on a fresh machine — see [LocalStack troubleshooting](https://platformrelay.github.io/OpenTofu-Workshop/setup/localstack/).
+- **Validation & rehearsal** — per-lab environment/tool claims and honest
+  validation states live in [`docs/validation-matrix.md`](./validation-matrix.md)
+  (machine view: `infra/lab-inventory.json`). No lab is marked fully rehearsed
+  (`localstack-smoke`) yet; use [`docs/rehearsal-checklist.md`](./rehearsal-checklist.md)
+  and [`docs/timing-results-template.md`](./timing-results-template.md) before claiming timings.
 
 > **Source of truth.** This file is the single tracked copy of the known-limitations
 > statement. Pre-release tags (semver with a `-`, e.g. `v0.5.0-beta.1`) still prepend

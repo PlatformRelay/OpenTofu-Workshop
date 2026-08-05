@@ -1,0 +1,166 @@
+name: Beta feedback
+description: Report feedback on a workshop section or lab from a beta run or rehearsal.
+title: "[beta] <section/lab>: <one-line summary>"
+labels:
+  - beta-feedback
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping us harden the workshop. Please file **one issue per
+        section/lab** so feedback stays actionable. If your feedback is
+        cross-cutting (spans several sections), say so in the summary and pick
+        the closest section below.
+
+        The six feedback dimensions below map to how we judge a lab: was it
+        **clear**, were the **commands correct**, did the **time** match, did
+        **prerequisites** hold, was the **learning difficulty** right, and was
+        the **visual quality** (slides/diagrams) good.
+  - type: dropdown
+    id: section
+    attributes:
+      label: Section / lab
+      description: Which section or lab is this feedback about? IDs match the syllabus (S00–S26).
+      options:
+        - "S00 — Welcome & setup (labs/day-1/00-setup.md)"
+        - "S01 — Infrastructure as Code (labs/day-1/01-iac-fork.md)"
+        - "S02 — HCL & building blocks (labs/day-1/02-hcl-blocks.md)"
+        - "S03 — The core workflow (labs/day-1/03-core-workflow.md)"
+        - "S04 — State (labs/day-1/04-state.md)"
+        - "S05 — State encryption (labs/day-1/05-state-encryption.md)"
+        - "S06 — Variables, validation & types (labs/day-1/06-variables.md)"
+        - "S15 — Validation, preconditions & checks (labs/day-1/15-conditions-checks.md)"
+        - "S07 — Modules (labs/day-1/07-modules.md)"
+        - "S08 — Naming & labelling module (labs/day-1/08-naming-labels.md)"
+        - "S09 — Best practices (labs/day-1/09-best-practices.md)"
+        - "S10 — OpenTofu differentiators (labs/day-1/10-differentiators.md)"
+        - "S11 — The TACO landscape (labs/day-1/11-taco-landscape.md)"
+        - "S12 — Why test IaC + testing pyramid (labs/day-2/12-testing-pyramid.md)"
+        - "S13 — Static analysis & formatting (labs/day-2/13-static-analysis.md)"
+        - "S14 — Security & policy scanners (labs/day-2/14-security-scanners.md)"
+        - "S16 — Native testing — tofu test (labs/day-2/16-tofu-test.md)"
+        - "S17 — Mocking providers (labs/day-2/17-mocking.md)"
+        - "S18 — Integration, e2e & cost (labs/day-2/18-terratest-cost.md)"
+        - "S19 — Testing in CI/CD (labs/day-2/19-testing-cicd.md)"
+        - "S20 — Why Terramate (labs/day-3/20-why-terramate.md)"
+        - "S21 — Stacks (labs/day-3/21-stacks.md)"
+        - "S22 — Code generation (labs/day-3/22-codegen.md)"
+        - "S23 — Orchestration & ordering (labs/day-3/23-orchestration.md)"
+        - "S24 — Change detection & filtering (labs/day-3/24-change-detection.md)"
+        - "S25 — Terramate in CI + Cloud (labs/day-3/25-terramate-ci-cloud.md)"
+        - "S26 — Capstone & wrap-up (labs/day-3/26-capstone.md)"
+        - "Cross-cutting / not tied to one section"
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      description: Which lab environment did you run this in?
+      options:
+        - "Mock-only (no Docker)"
+        - "LocalStack (Docker)"
+        - "LocalStack (k8s route)"
+        - "Paper / slides only (no lab run)"
+        - "Not applicable"
+    validations:
+      required: true
+  - type: dropdown
+    id: clarity
+    attributes:
+      label: Clarity
+      description: Were the instructions and explanations clear and unambiguous?
+      options:
+        - "Clear — no confusion"
+        - "Mostly clear — minor wording issues"
+        - "Confusing in places (explain below)"
+        - "Unclear — I got stuck (explain below)"
+    validations:
+      required: true
+  - type: dropdown
+    id: command-correctness
+    attributes:
+      label: Command correctness
+      description: Did the commands, HCL, and expected output work as written?
+      options:
+        - "Everything worked as written"
+        - "Worked, but expected output differed (note below)"
+        - "A command or config failed (details below)"
+        - "Did not run the commands"
+    validations:
+      required: true
+  - type: input
+    id: time-required
+    attributes:
+      label: Time required (minutes)
+      description: >-
+        How long did this section actually take (slides + lab)? A rough measured
+        number is fine. If you tracked slides and lab separately, note both.
+      placeholder: "e.g. slides 28, lab 34 (measured)"
+    validations:
+      required: false
+  - type: dropdown
+    id: prerequisites
+    attributes:
+      label: Prerequisite problems
+      description: Did the stated prerequisites (tools, LocalStack, environment) hold?
+      options:
+        - "No problems — prerequisites held"
+        - "A prerequisite was missing or wrong (details below)"
+        - "LocalStack or a tool install failed or was slow (details below)"
+        - "Not applicable"
+    validations:
+      required: true
+  - type: dropdown
+    id: learning-difficulty
+    attributes:
+      label: Learning difficulty
+      description: Was the difficulty pitched right for a practitioner learner?
+      options:
+        - "Well pitched"
+        - "Too easy / under-explained"
+        - "Too hard / needs more scaffolding"
+        - "Uneven (explain below)"
+    validations:
+      required: true
+  - type: dropdown
+    id: visual-quality
+    attributes:
+      label: Visual quality
+      description: Were the slides and diagrams readable and correct?
+      options:
+        - "Good — clear and legible"
+        - "Minor issues (typos, small overflow)"
+        - "A slide/diagram was broken or unreadable (details below)"
+        - "Did not view the slides"
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: >-
+        Describe the issue. For a failed command, paste what you ran and the
+        actual output. Note the step number where relevant.
+      placeholder: |
+        Step 3 — `tofu plan` failed with provider error.
+        Ran: tofu plan
+        Got: <paste output>
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested fix (optional)
+      description: If you have a concrete suggestion, put it here.
+    validations:
+      required: false
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Before you file
+      options:
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
+        - label: This is about a single section/lab (or I flagged it as cross-cutting above).
+          required: true

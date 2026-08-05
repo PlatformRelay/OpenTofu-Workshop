@@ -55,6 +55,8 @@
 #    24. missing examples/… via -chdir=/cd/DIR= → exit !=0 AND path named (ARMED)
 #   release script self-tests (US-P-REL):
 #    25–26. release-tag-guard-selftest + release-notes-flags-selftest → exit 0
+#   lab inventory (US-P-VALDOCS):
+#    27–28. lab-inventory.test.mjs + lab-inventory.mjs --check → exit 0
 #
 # It NEVER mutates the tracked fixture or decks; all edits happen in the temp copy.
 set -euo pipefail
@@ -438,6 +440,20 @@ for rel_script in release-tag-guard-selftest.sh release-notes-flags-selftest.sh;
     fail_n=$((fail_n + 1))
   fi
 done
+
+printf '\n### lab inventory (US-P-VALDOCS) ###\n'
+if node --test "$REPO_ROOT/scripts/lab-inventory.test.mjs"; then
+  ok "lab-inventory unit tests"
+else
+  bad "lab-inventory unit tests"
+  fail_n=$((fail_n + 1))
+fi
+if node "$REPO_ROOT/scripts/lab-inventory.mjs" --check; then
+  ok "lab-inventory --check (matrix ↔ JSON)"
+else
+  bad "lab-inventory --check (matrix ↔ JSON)"
+  fail_n=$((fail_n + 1))
+fi
 
 printf '\n'
 if [ "$fail_n" -eq 0 ]; then

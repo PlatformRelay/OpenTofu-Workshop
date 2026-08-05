@@ -36,7 +36,9 @@
     "test:showcase": "node --test scripts/make-showcase-gif.test.mjs",
     "test:quiz": "node --test scripts/quiz/quiz.test.mjs",
     "quiz:validate": "node scripts/quiz/validate.mjs",
-    "quiz:export": "node scripts/quiz/export.mjs --out dist-quiz"
+    "quiz:export": "node scripts/quiz/export.mjs --out dist-quiz",
+    "test:inventory": "node --test scripts/lab-inventory.test.mjs && node scripts/lab-inventory.mjs --check",
+    "inventory:write": "node scripts/lab-inventory.mjs --write"
   },
   "dependencies": {
     "@slidev/cli": "^52.16.0",
