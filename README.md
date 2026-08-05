@@ -22,6 +22,11 @@ Roughly **50% is hands-on**.
 
 Legacy `/3day/` and `/templates/` URLs redirect into `/deck/…`.
 
+![Animated tour of the workshop deck — real slides stepping through their click animations](docs/images/deck-showcase.gif)
+
+<sub>Real deck, no hand-taken screenshots: CI re-renders this tour from the slide sources
+(`pnpm showcase:gif`).</sub>
+
 > [!IMPORTANT]
 > Labs use `mock_provider` or [LocalStack](https://localstack.cloud), an AWS
 > emulator running on your machine. You need **no cloud account and incur no

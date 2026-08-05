@@ -186,3 +186,33 @@ jobs:
             echo "::endgroup::"
             [ "$ok" -eq 1 ] || exit 1
           done
+
+  showcase-gif:
+    # US-P-GIF: the README's animated deck tour must be reproducible from a
+    # clean checkout with zero manual steps. This regenerates it end-to-end
+    # (slidev export → per-click PNG frames → sharp GIF assembly) and uploads
+    # the result, so a drifted showcase page range or a broken pipeline fails
+    # the PR instead of rotting silently. The committed GIF is refreshed by
+    # running `pnpm showcase:gif` locally and committing the result.
+    name: Render README showcase GIF
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Chromium system dependencies
+        # The browser binary itself is fetched by playwright-chromium's
+        # postinstall; this adds the OS libraries slidev export needs headless.
+        run: pnpm exec playwright install-deps chromium
+      - name: Render the showcase GIF from the deck sources
+        run: pnpm showcase:gif
+      - name: Upload the rendered GIF
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: deck-showcase-gif
+          path: docs/images/deck-showcase.gif
+          if-no-files-found: error

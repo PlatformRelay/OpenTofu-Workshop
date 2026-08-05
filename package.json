@@ -19,7 +19,9 @@
     "test:provenance": "node --test scripts/workshop-provenance.test.mjs",
     "test:pages": "node --test scripts/pages-site.test.mjs",
     "pages:build": "bash scripts/pages-build.sh",
-    "pages:preview": "pnpm dlx serve site -p 4173"
+    "pages:preview": "pnpm dlx serve site -p 4173",
+    "showcase:gif": "node scripts/make-showcase-gif.mjs",
+    "test:showcase": "node --test scripts/make-showcase-gif.test.mjs"
   },
   "dependencies": {
     "@slidev/cli": "^52.16.0",
@@ -28,6 +30,7 @@
   },
   "devDependencies": {
     "markdownlint-cli2": "^0.23.0",
-    "playwright-chromium": "^1.61.1"
+    "playwright-chromium": "^1.61.1",
+    "sharp": "^0.35.3"
   }
 }
