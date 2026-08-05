@@ -30,6 +30,8 @@ components.d.ts
 .slides-export/
 slidev-export/
 slides-*-export/
+slides-selection-export/
+dist-selection/
 .deck-selection.md
 
 # OS & editors

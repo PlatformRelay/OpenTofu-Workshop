@@ -17,6 +17,13 @@ through **S26** are shipped; optional sections stay skippable via cut-order /
 | 2 scanners | TFLint, Trivy, Checkov, Conftest on `PATH` | `task setup` optional Day-2 tools |
 | 3 Terramate | Terramate on `PATH` (spoilers pinned ~0.17.x) | No Docker required for S20–S25 path |
 
+**Custom cut:** for a single section or contiguous range instead of a full day deck,
+use `pnpm deck -- --list`, then `pnpm deck -- --section S05` or
+`pnpm deck -- --range S05-S09` (`task deck -- …`). `--dry-run` resolves IDs and
+writes gitignored `.deck-selection.md` without starting Slidev. Without a TTY and
+`gum`, pass an explicit selector — the launcher never falls back to the superset.
+See [AGENT.md](../AGENT.md) · facilitator launcher.
+
 ---
 
 ## Live cut-order

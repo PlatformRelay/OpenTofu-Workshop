@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
+import { existsSync, readFileSync, rmSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, it } from 'node:test'
 
 import { parseSelection, resolveSelection, selectSections } from './deck-selector.mjs'
@@ -50,6 +53,38 @@ describe('deck selection', () => {
     }
   })
 
+  it('selects canonical sections for a day', () => {
+    const selection = parseSelection(['--day', '1'])
+    assert.deepEqual(
+      selectSections(sections, selection).map((item) => item.id),
+      ['S00'],
+    )
+  })
+
+  it('selects optional appendix sections', () => {
+    const selection = parseSelection(['--day', 'optional'])
+    assert.deepEqual(
+      selectSections(sections, selection).map((item) => item.id),
+      ['S01'],
+    )
+  })
+
+  it('selects a single section by id', () => {
+    const selection = parseSelection(['--section', 's02'])
+    assert.deepEqual(
+      selectSections(sections, selection).map((item) => item.id),
+      ['S02'],
+    )
+  })
+
+  it('selects a contiguous manifest-order range', () => {
+    const selection = parseSelection(['--range', 'S00-S02'])
+    assert.deepEqual(
+      selectSections(sections, selection).map((item) => item.id),
+      ['S00', 'S01', 'S02'],
+    )
+  })
+
   it('never chooses the superset for a noninteractive invocation', () => {
     assert.throws(
       () => resolveSelection([], { isTTY: false, hasGum: false }),
@@ -62,5 +97,22 @@ describe('deck selection', () => {
       () => resolveSelection([], { isTTY: true, hasGum: false }),
       /choose.*--day.*--section.*--range/i,
     )
+  })
+})
+
+describe('deck launcher', () => {
+  const repoRoot = resolve(import.meta.dirname, '..')
+  const selectionPath = resolve(repoRoot, '.deck-selection.md')
+
+  it('writes .deck-selection.md on --dry-run without launching Slidev', () => {
+    rmSync(selectionPath, { force: true })
+    const result = spawnSync(process.execPath, ['scripts/deck.mjs', '--section', 'S05', '--dry-run'], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+    })
+    assert.equal(result.status, 0, result.stderr)
+    assert.ok(existsSync(selectionPath))
+    assert.match(readFileSync(selectionPath, 'utf8'), /S05 · State encryption/)
+    rmSync(selectionPath, { force: true })
   })
 })
