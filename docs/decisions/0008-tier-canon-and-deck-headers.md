@@ -39,10 +39,14 @@ the 3-day hide-list).
 - **Deck heading comment** — in `slides.md` (and `slides-3day.md`) each `src:` import is preceded
   by `# SNN · Title · tier · Day` (e.g. `# S04 · State · core · Day 1`).
 
-**3. The convention is enforced, not documented-and-hoped.** `scripts/verify.sh` (US-F-TIERS)
-fails the build when: (a) a section's tier differs between `slides.md` and `slides-3day.md`, or
-(b) the hide-invariant is violated (`hide:true ⟺ optional`). The `verify-selftest.sh` fail-path
-cases cover both (cross-deck tier mismatch on S05; hide-invariant violation on S18).
+**3. The convention is enforced, not documented-and-hoped.** Tier **meanings** and
+the hide invariant above are unchanged. Since [0014](./0014-deck-manifest-ssot.md),
+tier tokens in generated deck import blocks come from `scripts/deck-manifest.mjs`;
+`pnpm decks:check` and `scripts/verify.sh` §7 (`--check-tiers`) fail when:
+(a) a section's tier differs between `slides.md` and `slides-3day.md`, or
+(b) the hide-invariant is violated (`hide:true ⟺ optional`). The
+`verify-selftest.sh` fail-path cases cover both (cross-deck tier mismatch on S05;
+hide-invariant violation on S18).
 
 ## Consequences
 
@@ -52,5 +56,6 @@ cases cover both (cross-deck tier mismatch on S05; hide-invariant violation on S
 - A new section MUST set `tier`/`day`/`section` frontmatter **and** the `# SNN · … · tier · Day`
   heading comment, or the tier gate fails. (The convention lives in `AGENT.md` under
   "Section headers & tiers".)
-- Re-tiering a section (e.g. the S15 re-sequence, [0012](./0012-s15-into-day-1.md)) is a one-line
-  change in each deck heading + frontmatter, guarded by the gate — no hand-audit of the hide-list.
+- Re-tiering a section (e.g. the S15 re-sequence, [0012](./0012-s15-into-day-1.md)) is a
+  change in `scripts/deck-manifest.mjs` + section frontmatter, then
+  `pnpm decks:generate` — no hand-audit of the hide-list.

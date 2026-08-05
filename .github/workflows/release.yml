@@ -57,9 +57,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Validate decks before export
-        # TODO(US-P-MANIFEST): add `pnpm decks:check` once the manifest lane lands.
-        # Tag push does not run ci.yml — refuse drift with the contracts we have today.
+        # Tag push does not run ci.yml — refuse manifest drift and doc drift
+        # before PDF/HTML export (US-P-MANIFEST + US-P-REL build-then-publish).
         run: |
+          pnpm run decks:check
           pnpm test:provenance
           pnpm test:pages
           pnpm lab:contract

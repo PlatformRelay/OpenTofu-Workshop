@@ -92,6 +92,22 @@ tasks:
       - sh: command -v pnpm
         msg: "pnpm is required (run 'task setup')."
 
+  decks:generate:
+    desc: "Deck: regenerate slides*.md root decks from scripts/deck-manifest.mjs"
+    cmds:
+      - pnpm run decks:generate
+    preconditions:
+      - sh: command -v pnpm
+        msg: "pnpm is required (run 'task setup')."
+
+  decks:check:
+    desc: "Deck: fail if generated root decks drift from the manifest (CI gate)"
+    cmds:
+      - pnpm run decks:check
+    preconditions:
+      - sh: command -v pnpm
+        msg: "pnpm is required (run 'task setup')."
+
   export:
     desc: "Deck: export the superset deck to PDF (needs playwright browser)"
     cmds:
