@@ -10,6 +10,7 @@
 #   5. slide ↔ lab drift smoke check (source=/chdir=/cd/DIR= → modules|examples exist)
 #   6. slide ↔ lab/pages drift ENFORCEMENT (annotated ```hcl blocks diffed vs source;
 #      pages/** fences may carry magic-move metadata like ```hcl {none|…})
+#   10. toolchain pin drift (versions.env consumers — US-P-PINS)
 #
 # Everything degrades to "nothing to check yet → pass" while the content dirs
 # are empty, so this is safe to wire into CI from day one.
@@ -428,6 +429,65 @@ for spec in "${DAY_TOOL_CHECKS[@]}"; do
     warn "$tool unavailable — skipping tool-dependent checks for $labs"
   fi
 done
+
+# ---------------------------------------------------------------------------
+# 10. Toolchain pin drift (US-P-PINS)
+#    versions.env is canonical; listed consumers must mirror it exactly.
+# ---------------------------------------------------------------------------
+heading "Toolchain pin drift (versions.env)"
+PIN_FILE="$REPO_ROOT/versions.env"
+if [ ! -f "$PIN_FILE" ]; then
+  fail "versions.env is missing — create the canonical pin file at repo root"
+else
+  # shellcheck source=versions.env disable=SC1091
+  . "$PIN_FILE"
+  PIN_FAILURES=0
+  pin_fail() {
+    fail "$1"
+    PIN_FAILURES=$((PIN_FAILURES + 1))
+  }
+  pin_expect() {
+    local file="$1" needle="$2" label="$3"
+    if [ ! -f "$file" ]; then
+      pin_fail "pin drift: missing consumer file for $label: $file"
+    elif ! grep -qF -- "$needle" "$file"; then
+      pin_fail "pin drift: $label in ${file#"$REPO_ROOT"/} does not match versions.env (expected fragment: $needle)"
+    fi
+  }
+
+  pin_expect "$REPO_ROOT/docker-compose.yml" \
+    'localstack/localstack:${LOCALSTACK_VERSION}' "LOCALSTACK_VERSION (compose image)"
+  pin_expect "$REPO_ROOT/docker-compose.yml" \
+    'golang:${GO_VERSION}-bookworm' "GO_VERSION (compose build arg)"
+  pin_expect "$REPO_ROOT/docker-compose.yml" \
+    'TOFU_VERSION: ${TOFU_VERSION}' "TOFU_VERSION (compose build arg)"
+  pin_expect "$REPO_ROOT/docker-compose.yml" \
+    'go${GO_VERSION}-tofu${TOFU_VERSION}' "terratest image tag"
+  pin_expect "$REPO_ROOT/setup/terratest/Dockerfile" \
+    "ARG GO_IMAGE=golang:${GO_VERSION}-bookworm" "GO_IMAGE (Dockerfile default)"
+  pin_expect "$REPO_ROOT/setup/terratest/Dockerfile" \
+    "ARG TOFU_VERSION=${TOFU_VERSION}" "TOFU_VERSION (Dockerfile default)"
+  pin_expect "$REPO_ROOT/setup/terratest/Dockerfile" \
+    "tofu_\${TOFU_VERSION}_SHA256SUMS" "OpenTofu SHA256SUMS verification (SEC-4)"
+  pin_expect "$REPO_ROOT/Taskfile.yaml" \
+    'dotenv: ["versions.env"]' "Taskfile dotenv"
+  pin_expect "$REPO_ROOT/Taskfile.yaml" \
+    'COMPOSE_ENV_FILE: versions.env' "Taskfile COMPOSE_ENV_FILE"
+  pin_expect "$REPO_ROOT/Taskfile.yaml" \
+    '--env-file {{.COMPOSE_ENV_FILE}}' "Taskfile compose --env-file"
+  pin_expect "$REPO_ROOT/scripts/lab-terratest.sh" \
+    'COMPOSE_ENV_FILE="${COMPOSE_ENV_FILE:-$ROOT/versions.env}"' "lab-terratest versions.env default"
+  pin_expect "$REPO_ROOT/scripts/lab-terratest.sh" \
+    '--env-file "$COMPOSE_ENV_FILE"' "lab-terratest compose --env-file"
+  pin_expect "$REPO_ROOT/setup/bootstrap.sh" \
+    'VERSIONS_ENV="$SCRIPT_DIR/../versions.env"' "bootstrap versions.env path"
+  pin_expect "$REPO_ROOT/setup/bootstrap.sh" \
+    '. "$VERSIONS_ENV"' "bootstrap sources versions.env (TERRAMATE_VERSION et al.)"
+
+  if [ "$PIN_FAILURES" -eq 0 ]; then
+    pass "toolchain pins: all listed consumers match versions.env"
+  fi
+fi
 
 # ---------------------------------------------------------------------------
 # Summary

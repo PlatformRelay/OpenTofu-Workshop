@@ -57,6 +57,12 @@
 #    25–26. release-tag-guard-selftest + release-notes-flags-selftest → exit 0
 #   lab inventory (US-P-VALDOCS):
 #    27–28. lab-inventory.test.mjs + lab-inventory.mjs --check → exit 0
+#   toolchain pin drift (US-P-PINS / section 10):
+#    29. clean pins → exit 0 AND "toolchain pins: all listed consumers match versions.env"
+#    30. skewed Dockerfile TOFU default → exit !=0 AND pin drift named
+#    31. skewed compose LocalStack image ref → exit !=0 AND pin drift named
+#   SEC-4 dry validation (live repo):
+#    32. OpenTofu release SHA256SUMS resolves for pinned TOFU_VERSION
 #
 # It NEVER mutates the tracked fixture or decks; all edits happen in the temp copy.
 set -euo pipefail
@@ -134,6 +140,7 @@ build_root() {
   cp "$REPO_ROOT/scripts/deck-manifest.mjs" "$root/scripts/deck-manifest.mjs"
   cp "$REPO_ROOT/scripts/generate-decks.mjs" "$root/scripts/generate-decks.mjs"
   cp "$REPO_ROOT/setup/lib.sh"      "$root/setup/lib.sh"
+  cp "$REPO_ROOT/setup/bootstrap.sh" "$root/setup/bootstrap.sh"
   cp "$REPO_ROOT/$FIXTURE_MD"       "$root/$FIXTURE_MD"
   cp "$REPO_ROOT/$FIXTURE_TF"       "$root/$FIXTURE_TF"
   # Product templates-demo fixtures (TEST-A4 annotations in slides-templates.md).
@@ -147,6 +154,11 @@ build_root() {
   cp "$REPO_ROOT/README.md"         "$root/README.md"
   cp "$REPO_ROOT/AGENT.md"          "$root/AGENT.md"
   cp "$REPO_ROOT/Taskfile.yaml"     "$root/Taskfile.yaml"
+  cp "$REPO_ROOT/versions.env"      "$root/versions.env"
+  cp "$REPO_ROOT/docker-compose.yml" "$root/docker-compose.yml"
+  mkdir -p "$root/setup/terratest"
+  cp "$REPO_ROOT/setup/terratest/Dockerfile" "$root/setup/terratest/Dockerfile"
+  cp "$REPO_ROOT/scripts/lab-terratest.sh" "$root/scripts/lab-terratest.sh"
   cp "$REPO_ROOT/labs/day-1/00-setup.md" "$root/labs/day-1/00-setup.md"
   cp "$REPO_ROOT/labs/day-1/00-setup/hello.tf" "$root/labs/day-1/00-setup/hello.tf"
   cp "$REPO_ROOT/labs/day-1/00-setup/bucket.tf" "$root/labs/day-1/00-setup/bucket.tf"
@@ -181,20 +193,37 @@ run_case() {
       ok "$label — exit 0 and enforcement armed ('$needle')"
     else
       bad "$label — expected exit 0 + '$needle'; got exit $rc"
-      printf '%s\n' "$out" | grep -E 'drift|annotated' | sed 's/^/        /' || true
+      printf '%s' "$out" | grep -E 'drift|annotated|pin drift' | sed 's/^/        /' || true
     fi
   else
     if [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qF "$needle"; then
       ok "$label — exit $rc (non-zero) and drift named ('$needle')"
     else
       bad "$label — expected non-zero + '$needle'; got exit $rc"
-      printf '%s\n' "$out" | grep -E 'drift|annotated' | sed 's/^/        /' || true
+      printf '%s' "$out" | grep -E 'drift|annotated|pin drift' | sed 's/^/        /' || true
     fi
   fi
+  trap - RETURN
 }
 
 # --- mutators (operate on the temp copy only) --------------------------------
 m_clean() { :; }   # leave the copy pristine → block matches source
+
+m_pin_clean() { :; }
+
+m_pin_drift() {
+  local root="$1" current
+  current="$(grep -E '^ARG TOFU_VERSION=' "$root/setup/terratest/Dockerfile" | head -1 | sed 's/^ARG TOFU_VERSION=//')"
+  [ -n "$current" ] || { echo "selftest: missing ARG TOFU_VERSION in Dockerfile" >&2; return 1; }
+  perl -pi -e "s/^ARG TOFU_VERSION=\Q${current}\E/ARG TOFU_VERSION=9.9.9/" \
+    "$root/setup/terratest/Dockerfile"
+}
+
+m_pin_compose_drift() {
+  local root="$1"
+  perl -pi -e 's/localstack\/localstack:\$\{LOCALSTACK_VERSION\}/localstack\/localstack:9.9.9/' \
+    "$root/docker-compose.yml"
+}
 
 m_drift_lf() {     # change the source only → block no longer matches
   local root="$1"
@@ -427,6 +456,9 @@ run_case "day-2 lab integration tftest deferred" pass "labs/day-2/99-lab-tftest-
 run_case "§5 prose fake module ref ignored" pass "no modules/|examples/ references in labs (all HCL is scratch/inline) — nothing to drift-check yet" m_smoke_prose_fake_module
 run_case "§5 HCL source missing module armed" fail "lab ref missing on disk: modules/does-not-exist" m_smoke_hcl_missing_source
 run_case "§5 chdir/cd/DIR missing example armed" fail "lab ref missing on disk: examples/does-not-exist" m_smoke_chdir_missing_example
+run_case "toolchain pin drift clean" pass "toolchain pins: all listed consumers match versions.env" m_pin_clean
+run_case "toolchain pin drift Dockerfile armed" fail "pin drift: TOFU_VERSION (Dockerfile default) in setup/terratest/Dockerfile does not match versions.env" m_pin_drift
+run_case "toolchain pin drift compose LocalStack armed" fail "pin drift: LOCALSTACK_VERSION (compose image) in docker-compose.yml does not match versions.env" m_pin_compose_drift
 
 # --- release script self-tests (US-P-REL) --------------------------------------
 # Run against the live repo (not the temp verify.sh copy): CI verify-unit invokes
@@ -452,6 +484,18 @@ if node "$REPO_ROOT/scripts/lab-inventory.mjs" --check; then
   ok "lab-inventory --check (matrix ↔ JSON)"
 else
   bad "lab-inventory --check (matrix ↔ JSON)"
+  fail_n=$((fail_n + 1))
+fi
+
+# --- OpenTofu SHA256SUMS dry validation (SEC-4 / US-P-PINS) --------------------
+printf '\n### OpenTofu SHA256SUMS dry validation (SEC-4) ###\n'
+# shellcheck source=versions.env disable=SC1091
+. "$REPO_ROOT/versions.env"
+sums_url="https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/tofu_${TOFU_VERSION}_SHA256SUMS"
+if curl -fsSL "$sums_url" | grep -qF "tofu_${TOFU_VERSION}_linux_amd64.tar.gz"; then
+  ok "OpenTofu release SHA256SUMS resolves for TOFU_VERSION=${TOFU_VERSION}"
+else
+  bad "OpenTofu release SHA256SUMS missing linux_amd64 entry for TOFU_VERSION=${TOFU_VERSION}"
   fail_n=$((fail_n + 1))
 fi
 

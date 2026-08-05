@@ -4,12 +4,14 @@
 # nothing. Start it with `task lab:up` (waits for healthy); stop with
 # `task lab:down`. The endpoint is http://localhost:4566 for every service.
 #
-# The optional `terratest` service (US-0-GOTT) is a pinned Go+OpenTofu runner
-# on the same compose network. Prefer `task lab:terratest DIR=…` — do not add
-# it to `lab:up` (learners without Go labs should not pull the image).
+# Toolchain pins live in versions.env — pass `--env-file versions.env` (Taskfile
+# does this automatically). The optional `terratest` service (US-0-GOTT) is a
+# pinned Go+OpenTofu runner on the same compose network. Prefer
+# `task lab:terratest DIR=…` — do not add it to `lab:up` (learners without Go
+# labs should not pull the image).
 services:
   localstack:
-    image: localstack/localstack:4.9.2
+    image: localstack/localstack:${LOCALSTACK_VERSION}
     container_name: opentofu-workshop-localstack
     ports:
       - "4566:4566" # unified edge port for all AWS service APIs
@@ -32,7 +34,7 @@ services:
       retries: 20
       start_period: 10s
 
-  # Pinned Terratest runner (Go 1.23.6 + OpenTofu 1.10.3). Profile keeps
+  # Pinned Terratest runner (Go + OpenTofu from versions.env). Profile keeps
   # `docker compose up` / `task lab:up` from building it accidentally.
   terratest:
     profiles: ["terratest"]
@@ -40,9 +42,9 @@ services:
       context: setup/terratest
       dockerfile: Dockerfile
       args:
-        GO_IMAGE: golang:1.23.6-bookworm
-        TOFU_VERSION: "1.10.3"
-    image: opentofu-workshop-terratest:go1.23.6-tofu1.10.3
+        GO_IMAGE: golang:${GO_VERSION}-bookworm
+        TOFU_VERSION: ${TOFU_VERSION}
+    image: opentofu-workshop-terratest:go${GO_VERSION}-tofu${TOFU_VERSION}
     working_dir: /workspace
     volumes:
       - .:/workspace

@@ -12,6 +12,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=setup/lib.sh
 . "$SCRIPT_DIR/lib.sh"
 
+# Toolchain pins — canonical file at repo root (US-P-PINS).
+VERSIONS_ENV="$SCRIPT_DIR/../versions.env"
+if [ -f "$VERSIONS_ENV" ]; then
+  # shellcheck source=../versions.env disable=SC1091
+  . "$VERSIONS_ENV"
+fi
+
 # ---------------------------------------------------------------------------
 # Minimum versions
 # ---------------------------------------------------------------------------

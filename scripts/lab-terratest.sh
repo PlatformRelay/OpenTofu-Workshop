@@ -12,6 +12,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIR="${1:-labs/fixtures/terratest-smoke}"
 MODE="${MODE:-container}"
+COMPOSE_ENV_FILE="${COMPOSE_ENV_FILE:-$ROOT/versions.env}"
+COMPOSE=(docker compose -f "$ROOT/docker-compose.yml" --env-file "$COMPOSE_ENV_FILE")
 
 # Resolve DIR relative to repo root when not absolute.
 case "$DIR" in
@@ -67,7 +69,7 @@ run_container() {
   # brings LocalStack up when needed. -T keeps non-interactive shells happy.
   # Preflight: Docker Desktop on macOS often cannot bind-mount /tmp (or other
   # non-shared paths); an empty mount looks like a missing go.mod.
-  if ! docker compose -f "$ROOT/docker-compose.yml" --profile terratest \
+  if ! "${COMPOSE[@]}" --profile terratest \
     run --rm -T --no-deps \
     terratest \
     test -f "/workspace/$rel_dir/go.mod"; then
@@ -79,7 +81,7 @@ run_container() {
     echo "  then: task lab:up && task lab:terratest:host DIR=$rel_dir" >&2
     exit 1
   fi
-  docker compose -f "$ROOT/docker-compose.yml" --profile terratest \
+  "${COMPOSE[@]}" --profile terratest \
     run --rm -T \
     terratest \
     go test -C "/workspace/$rel_dir" -v -count=1 ./...

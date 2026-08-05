@@ -14,9 +14,13 @@ version: "3"
 
 silent: true
 
+# Toolchain pins — single source of truth (US-P-PINS).
+dotenv: ["versions.env"]
+
 vars:
   LOCALSTACK_URL: http://localhost:4566
   LOCALSTACK_HEALTH: http://localhost:4566/_localstack/health
+  COMPOSE_ENV_FILE: versions.env
 
 tasks:
   # -------------------------------------------------------------------------
@@ -196,7 +200,7 @@ tasks:
   lab:up:
     desc: "Lab env: start LocalStack and wait until it is healthy on :4566"
     cmds:
-      - docker compose up -d localstack
+      - docker compose --env-file {{.COMPOSE_ENV_FILE}} up -d localstack
       - |
         echo "Waiting for LocalStack to become healthy at {{.LOCALSTACK_HEALTH}} ..."
         for i in $(seq 1 60); do
@@ -215,7 +219,7 @@ tasks:
   lab:down:
     desc: "Lab env: stop LocalStack and remove its volumes"
     cmds:
-      - docker compose down -v
+      - docker compose --env-file {{.COMPOSE_ENV_FILE}} down -v
     preconditions:
       - sh: command -v docker
         msg: "docker is required for LocalStack."
