@@ -62,8 +62,8 @@
 #    30. skewed Dockerfile TOFU default → exit !=0 AND pin drift named
 #    31. skewed compose LocalStack image ref → exit !=0 AND pin drift named
 #    32. skewed ci.yml tofu_version → exit !=0 AND pin drift named
-#   SEC-4 dry validation (live repo, via *.test.mjs — not curl in this file):
-#    33. OpenTofu release SHA256SUMS resolves for pinned TOFU_VERSION
+#   SEC-4 offline pin (no network; live verify stays in terratest Dockerfile):
+#    33. versions.env TOFU_VERSION matches committed artifact/SUMS fixture
 #
 # It NEVER mutates the tracked fixture or decks; all edits happen in the temp copy.
 set -euo pipefail
@@ -500,14 +500,15 @@ else
   fail_n=$((fail_n + 1))
 fi
 
-# --- OpenTofu SHA256SUMS dry validation (SEC-4 / US-P-PINS) --------------------
-# Network fetch lives in opentofu-sums-dry.test.mjs (excluded from supply-chain
-# remote-input scanning). Do NOT curl from this .sh — dynamic URL vars fail policy.
-printf '\n### OpenTofu SHA256SUMS dry validation (SEC-4) ###\n'
-if node --test "$REPO_ROOT/scripts/opentofu-sums-dry.test.mjs"; then
-  ok "OpenTofu release SHA256SUMS resolves for pinned TOFU_VERSION"
+# --- OpenTofu SEC-4 offline pin (US-P-PINS) ------------------------------------
+# Offline name lock only — no curl/fetch. Live SHA256SUMS verify remains in
+# setup/terratest/Dockerfile (scanned separately; Dockerfile not a shell remote
+# surface). Do not reintroduce a live fetch here or in *.test.mjs quarantine.
+printf '\n### OpenTofu SEC-4 offline pin ###\n'
+if node --test "$REPO_ROOT/scripts/opentofu-sec4-pin.test.mjs"; then
+  ok "OpenTofu SEC-4 offline pin matches versions.env + Dockerfile verify path"
 else
-  bad "OpenTofu release SHA256SUMS dry validation failed"
+  bad "OpenTofu SEC-4 offline pin failed"
   fail_n=$((fail_n + 1))
 fi
 
