@@ -34,6 +34,7 @@
     "pages:preview": "pnpm dlx serve site -p 4173",
     "showcase:gif": "node scripts/make-showcase-gif.mjs",
     "test:showcase": "node --test scripts/make-showcase-gif.test.mjs",
+    "test:supply-chain": "node --test scripts/supply-chain-policy.test.mjs",
     "test:quiz": "node --test scripts/quiz/quiz.test.mjs",
     "quiz:validate": "node scripts/quiz/validate.mjs",
     "quiz:export": "node scripts/quiz/export.mjs --out dist-quiz",
@@ -49,6 +50,7 @@
     "ajv": "8.17.1",
     "markdownlint-cli2": "^0.23.0",
     "playwright-chromium": "^1.61.1",
-    "sharp": "^0.35.3"
+    "sharp": "^0.35.3",
+    "yaml": "^2.9.0"
   }
 }

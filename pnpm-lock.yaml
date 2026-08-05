@@ -30,6 +30,9 @@ importers:
       sharp:
         specifier: ^0.35.3
         version: 0.35.3(@types/node@22.20.1)
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
 
 packages:
 
@@ -5035,9 +5038,9 @@ snapshots:
 
   '@antfu/utils@9.3.0': {}
 
-  '@apideck/better-ajv-errors@0.3.7(ajv@8.20.0)':
+  '@apideck/better-ajv-errors@0.3.7(ajv@8.17.1)':
     dependencies:
-      ajv: 8.20.0
+      ajv: 8.17.1
       jsonpointer: 5.0.1
       leven: 3.1.0
 
@@ -10801,7 +10804,7 @@ snapshots:
 
   workbox-build@7.4.1:
     dependencies:
-      '@apideck/better-ajv-errors': 0.3.7(ajv@8.20.0)
+      '@apideck/better-ajv-errors': 0.3.7(ajv@8.17.1)
       '@babel/core': 7.29.7
       '@babel/preset-env': 7.29.7(@babel/core@7.29.7)
       '@babel/runtime': 7.29.7
@@ -10810,7 +10813,7 @@ snapshots:
       '@rollup/plugin-replace': 6.0.3(rollup@4.62.2)
       '@rollup/plugin-terser': 1.0.0(rollup@4.62.2)
       '@trickfilm400/rollup-plugin-off-main-thread': 3.0.0-pre1
-      ajv: 8.20.0
+      ajv: 8.17.1
       common-tags: 1.8.2
       eta: 4.6.0
       fast-json-stable-stringify: 2.1.0
