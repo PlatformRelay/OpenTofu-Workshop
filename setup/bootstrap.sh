@@ -221,6 +221,9 @@ for t in $DAY_TOOLS; do
     v="$(tool_version "$t")" || probe_status=$?
     if [ "$probe_status" -eq 0 ] && [ -n "$v" ]; then
       ok "$(printf '%-10s %s' "$t" "$v")"
+      if [ "$t" = terramate ] && [ -n "${TERRAMATE_VERSION:-}" ]; then
+        note "Terramate workshop pin (versions.env): ${TERRAMATE_VERSION}"
+      fi
     else
       bad "$(printf '%-10s unusable' "$t")  (version probe failed)"
       DAY_MISSING="$DAY_MISSING $t"

@@ -483,6 +483,13 @@ else
     'VERSIONS_ENV="$SCRIPT_DIR/../versions.env"' "bootstrap versions.env path"
   pin_expect "$REPO_ROOT/setup/bootstrap.sh" \
     '. "$VERSIONS_ENV"' "bootstrap sources versions.env (TERRAMATE_VERSION et al.)"
+  pin_expect "$REPO_ROOT/setup/bootstrap.sh" \
+    'TERRAMATE_VERSION' "bootstrap TERRAMATE_VERSION workshop pin"
+  CI_YML="$REPO_ROOT/.github/workflows/ci.yml"
+  pin_expect "$CI_YML" \
+    "tofu_version: \"${TOFU_VERSION}\"" "TOFU_VERSION (ci.yml setup-opentofu)"
+  pin_expect "$CI_YML" \
+    "localstack/localstack:${LOCALSTACK_VERSION}" "LOCALSTACK_VERSION (ci.yml service)"
 
   if [ "$PIN_FAILURES" -eq 0 ]; then
     pass "toolchain pins: all listed consumers match versions.env"

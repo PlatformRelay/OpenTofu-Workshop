@@ -27,6 +27,9 @@ with `task pages:build` / `task pages:preview` (needs
 
 ## Repository map
 
+- `versions.env` — **toolchain pin SSoT** (OpenTofu, Go, LocalStack, Terramate). Bump
+  versions here; `scripts/verify.sh` section 10 catches consumer skew (Taskfile,
+  docker-compose, Terratest Dockerfile, CI workflow literals, bootstrap).
 - `scripts/deck-manifest.mjs` — **section metadata SSoT** (id, slug, title, tier,
   day, canonical cut, status, timings, Day-1 fit-plan markers). Syllabus and
   runbook tables are validated against it in CI.

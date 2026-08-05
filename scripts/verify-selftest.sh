@@ -61,8 +61,9 @@
 #    29. clean pins → exit 0 AND "toolchain pins: all listed consumers match versions.env"
 #    30. skewed Dockerfile TOFU default → exit !=0 AND pin drift named
 #    31. skewed compose LocalStack image ref → exit !=0 AND pin drift named
+#    32. skewed ci.yml tofu_version → exit !=0 AND pin drift named
 #   SEC-4 dry validation (live repo):
-#    32. OpenTofu release SHA256SUMS resolves for pinned TOFU_VERSION
+#    33. OpenTofu release SHA256SUMS resolves for pinned TOFU_VERSION
 #
 # It NEVER mutates the tracked fixture or decks; all edits happen in the temp copy.
 set -euo pipefail
@@ -156,6 +157,8 @@ build_root() {
   cp "$REPO_ROOT/Taskfile.yaml"     "$root/Taskfile.yaml"
   cp "$REPO_ROOT/versions.env"      "$root/versions.env"
   cp "$REPO_ROOT/docker-compose.yml" "$root/docker-compose.yml"
+  mkdir -p "$root/.github/workflows"
+  cp "$REPO_ROOT/.github/workflows/ci.yml" "$root/.github/workflows/ci.yml"
   mkdir -p "$root/setup/terratest"
   cp "$REPO_ROOT/setup/terratest/Dockerfile" "$root/setup/terratest/Dockerfile"
   cp "$REPO_ROOT/scripts/lab-terratest.sh" "$root/scripts/lab-terratest.sh"
@@ -223,6 +226,15 @@ m_pin_compose_drift() {
   local root="$1"
   perl -pi -e 's/localstack\/localstack:\$\{LOCALSTACK_VERSION\}/localstack\/localstack:9.9.9/' \
     "$root/docker-compose.yml"
+}
+
+m_pin_ci_drift() {
+  local root="$1" tofu_pin
+  # shellcheck source=versions.env disable=SC1091
+  . "$root/versions.env"
+  tofu_pin="$TOFU_VERSION"
+  perl -pi -e "s/tofu_version: \"\Q${tofu_pin}\E\"/tofu_version: \"9.9.9\"/" \
+    "$root/.github/workflows/ci.yml"
 }
 
 m_drift_lf() {     # change the source only → block no longer matches
@@ -459,6 +471,7 @@ run_case "§5 chdir/cd/DIR missing example armed" fail "lab ref missing on disk:
 run_case "toolchain pin drift clean" pass "toolchain pins: all listed consumers match versions.env" m_pin_clean
 run_case "toolchain pin drift Dockerfile armed" fail "pin drift: TOFU_VERSION (Dockerfile default) in setup/terratest/Dockerfile does not match versions.env" m_pin_drift
 run_case "toolchain pin drift compose LocalStack armed" fail "pin drift: LOCALSTACK_VERSION (compose image) in docker-compose.yml does not match versions.env" m_pin_compose_drift
+run_case "toolchain pin drift ci.yml armed" fail "pin drift: TOFU_VERSION (ci.yml setup-opentofu) in .github/workflows/ci.yml does not match versions.env" m_pin_ci_drift
 
 # --- release script self-tests (US-P-REL) --------------------------------------
 # Run against the live repo (not the temp verify.sh copy): CI verify-unit invokes

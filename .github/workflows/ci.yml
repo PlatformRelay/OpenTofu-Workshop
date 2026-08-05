@@ -167,6 +167,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      # PINNED (US-P-PINS): tofu_version must match versions.env — verify.sh §10 drift-checks.
       - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1
         with:
           tofu_version: "1.10.3"
@@ -187,10 +188,11 @@ jobs:
     runs-on: ubuntu-latest
     services:
       localstack:
-        # PINNED (US-F-CI, scope A): 4.9.2 is the last LocalStack community
-        # release that boots without a license. The 2026 CalVer images
-        # (:latest since ~2026-07) exit code 55 demanding LOCALSTACK_AUTH_TOKEN,
-        # which is what broke this job on every push. Bump deliberately.
+        # PINNED (US-P-PINS / US-F-CI): image tag must match versions.env LOCALSTACK_VERSION.
+        # GHA service containers cannot source versions.env — verify.sh §10 drift-checks the literal.
+        # 4.9.2 is the last LocalStack community release that boots without a license. The 2026 CalVer
+        # images (:latest since ~2026-07) exit code 55 demanding LOCALSTACK_AUTH_TOKEN,
+        # which is what broke this job on every push. Bump deliberately in versions.env.
         image: localstack/localstack:4.9.2
         ports: ["4566:4566"]
         env:
@@ -206,6 +208,7 @@ jobs:
           --health-start-period 30s
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      # PINNED (US-P-PINS): tofu_version must match versions.env — verify.sh §10 drift-checks.
       - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1
         with:
           tofu_version: "1.10.3"
