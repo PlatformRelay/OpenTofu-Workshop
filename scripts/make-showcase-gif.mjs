@@ -26,6 +26,24 @@ export function countExpectedSlides(markdown) {
   return (markdown.match(/^src: /gm) ?? []).length;
 }
 
+/** First numeric group in a slidev export frame name is the slide index. */
+export function slideOfFrameName(name) {
+  return (name.match(/\d+/g) ?? []).map(Number)[0];
+}
+
+export function countRenderedSlides(frameNames) {
+  return new Set(frameNames.map(slideOfFrameName)).size;
+}
+
+export function validateRenderedSlideCount(renderedSlides, expectedSlides) {
+  if (renderedSlides !== expectedSlides) {
+    throw new Error(
+      `Rendered ${renderedSlides} slide(s) but slides-showcase.md declares ${expectedSlides} imports — ` +
+        "a showcase page range no longer resolves (section restructured?). Update slides-showcase.md.",
+    );
+  }
+}
+
 export function validateFrameCount(frameCount) {
   if (frameCount < MIN_FRAMES || frameCount > MAX_FRAMES) {
     throw new Error(
@@ -98,7 +116,7 @@ execFileSync(
 // so `10` never sorts before `2`.
 const numericParts = (name) => (name.match(/\d+/g) ?? []).map(Number);
 // Slide number = first numeric group in the filename.
-const slideOf = (name) => numericParts(name)[0];
+const slideOf = slideOfFrameName;
 const frames = readdirSync(framesDir)
   .filter((f) => f.endsWith(".png"))
   .sort((a, b) => {
@@ -118,12 +136,11 @@ const frames = readdirSync(framesDir)
 const expectedSlides = countExpectedSlides(
   readFileSync(join(repoRoot, "slides-showcase.md"), "utf8"),
 );
-const renderedSlides = new Set(frames.map(slideOf)).size;
-if (renderedSlides !== expectedSlides) {
-  console.error(
-    `Rendered ${renderedSlides} slide(s) but slides-showcase.md declares ${expectedSlides} imports — ` +
-      "a showcase page range no longer resolves (section restructured?). Update slides-showcase.md.",
-  );
+const renderedSlides = countRenderedSlides(frames);
+try {
+  validateRenderedSlideCount(renderedSlides, expectedSlides);
+} catch (err) {
+  console.error(err.message);
   process.exit(1);
 }
 

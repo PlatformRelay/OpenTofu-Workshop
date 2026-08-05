@@ -40,6 +40,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
+      - run: pnpm test:showcase
 
   lab-contract:
     name: Lab sibling-solution contract
@@ -193,7 +194,9 @@ jobs:
     # (slidev export → per-click PNG frames → sharp GIF assembly) and uploads
     # the result, so a drifted showcase page range or a broken pipeline fails
     # the PR instead of rotting silently. The committed GIF is refreshed by
-    # running `pnpm showcase:gif` locally and committing the result.
+    # running `pnpm showcase:gif` locally and committing the result. The
+    # uploaded artifact is informational only — byte-for-byte parity with the
+    # committed file is not enforced yet (soft drift accepted for now).
     name: Render README showcase GIF
     runs-on: ubuntu-latest
     steps:
