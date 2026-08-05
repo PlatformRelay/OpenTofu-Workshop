@@ -12,6 +12,8 @@ const DOWNLOAD_COMMAND = /\b(?:curl|wget)\b/
 const DYNAMIC_NETWORK_CALL = /\b(?:fetch|urlopen|urlretrieve)\s*\(|\brequests\.(?:request|get|post|put|patch|delete)\s*\(/
 const URL_PATTERN = /https?:\/\/[^\s'"|)]+/g
 const SHELL_PIPE = /\|\s*(?:ba)?sh\b/
+const PROCESS_SUBSTITUTION_DOWNLOAD = /<\([^)]*\b(?:curl|wget)\b/
+const SHELL_EXECUTION_WRAPPER = /^(?:eval|source|\.\s+)/
 const EXCEPTION_MARKER = /supply-chain-exception:\s*([a-z0-9][a-z0-9-]*)/i
 const ALLOWED_JOB_WRITES = new Map([
   ['pages.yml:deploy', new Set(['pages', 'id-token'])],
@@ -434,6 +436,19 @@ function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
+function containsRemoteDownloadClient(text) {
+  if (shellCommandNames(text).some((command) => DOWNLOAD_COMMAND.test(command))) return true
+  if (SHELL_EXECUTION_WRAPPER.test(text.trim()) && DOWNLOAD_COMMAND.test(text)) return true
+  if (PROCESS_SUBSTITUTION_DOWNLOAD.test(text)) return true
+  if (/\$\([^)]*\b(?:curl|wget)\b/.test(text)) {
+    const withoutQuotedStrings = text.replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g, '')
+    if (/\$\([^)]*\b(?:curl|wget)\b/.test(withoutQuotedStrings)) return true
+    if (/^\s*(?:[^)]*\)\s*)?(?:echo|printf)\b/.test(text.trim())) return false
+    return true
+  }
+  return false
+}
+
 async function checkRemoteInputs(root, exceptionById, errors) {
   const candidates = [
     ...(await filesUnder(path.join(root, 'setup'))),
@@ -503,17 +518,17 @@ async function checkRemoteInputs(root, exceptionById, errors) {
     lines.forEach((entry, index) => {
       const trimmed = entry.text.trim()
       if (entry.isComment || /^(?:say|warn|err|ok)\s/.test(trimmed)) return
+      const expanded = expandVariables(trimmed)
       const assignment = trimmed.match(/^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.+)$/)
       if (assignment && !/[;&|]/.test(assignment[2])) {
         variables.set(assignment[1], expandVariables(assignment[2]).replace(/^['"]|['"]$/g, ''))
-        return
+        if (!containsRemoteDownloadClient(trimmed) && !containsRemoteDownloadClient(expanded)) return
       }
-      const expanded = expandVariables(trimmed)
       const urls = [...expanded.matchAll(URL_PATTERN)].map((match) => match[0]).filter((url) => !isLoopback(url))
-      const hasShellClient = shellCommandNames(expanded).some((command) => DOWNLOAD_COMMAND.test(command))
+      const hasShellClient = containsRemoteDownloadClient(expanded)
       const hasDynamicClient = DYNAMIC_NETWORK_CALL.test(expanded)
       if (urls.length === 0 && [...expanded.matchAll(URL_PATTERN)].some((match) => isLoopback(match[0]))) return
-      const hasDirectShellClient = shellCommandNames(trimmed).some((command) => DOWNLOAD_COMMAND.test(command))
+      const hasDirectShellClient = containsRemoteDownloadClient(trimmed)
       const directShellCommand = trimmed.slice(Math.max(0, trimmed.search(DOWNLOAD_COMMAND)))
       if (hasDirectShellClient && /\$(?:\{|[A-Za-z_])/.test(directShellCommand)) {
         errors.push(`${relative(root, file)}:${entry.startLine}: dynamic curl/wget source: dynamic source cannot match an exception`)

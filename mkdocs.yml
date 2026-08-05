@@ -84,3 +84,4 @@ nav:
   - Project:
       - Associate alignment: associate-alignment.md
       - Release process: release.md
+      - Supply-chain policy: security/supply-chain.md

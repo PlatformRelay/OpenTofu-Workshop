@@ -39,7 +39,9 @@ permissions they need:
 
 Maintained shell, Python, and Node setup/automation under `setup/`, `scripts/`,
 and `.github/` may not download a remote input—or pipe one into a shell—without a
-named, documented, unexpired entry in `supply-chain/exceptions.json`.
+named, documented, unexpired entry in `supply-chain/exceptions.json`. The shell
+scanner treats direct `curl`/`wget`, command substitution (`x=$(curl …)`),
+`eval "$(curl …)"`, and `source <(curl …)` as remote-input callsites.
 
 Each exception binds an exact HTTPS `source` to one of two auditable kinds:
 
