@@ -35,6 +35,14 @@ tasks:
   # -------------------------------------------------------------------------
   # Deck (Slidev) — delegate to the pnpm scripts already in package.json
   # -------------------------------------------------------------------------
+  deck:
+    desc: "Deck: interactive facilitator launcher (--day/--section/--range; needs TTY+gum or explicit selector)"
+    cmds:
+      - pnpm deck {{.CLI_ARGS}}
+    preconditions:
+      - sh: command -v pnpm
+        msg: "pnpm is required (run 'task setup')."
+
   setup:
     desc: "Deck: install toolchain & deps (setup/bootstrap.sh + pnpm install)"
     cmds:

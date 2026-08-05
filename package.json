@@ -4,6 +4,7 @@
   "private": true,
   "packageManager": "pnpm@11.9.0",
   "scripts": {
+    "deck": "node scripts/deck.mjs",
     "decks:generate": "node scripts/generate-decks.mjs",
     "decks:check": "node scripts/generate-decks.mjs --check",
     "dev": "slidev slides.md --open",
@@ -26,7 +27,7 @@
     "lab:contract": "node scripts/lab-contract.mjs",
     "link-check": "node scripts/link-check.mjs",
     "test:link-check": "node --test scripts/link-check.test.mjs",
-    "test:deck": "node --test scripts/deck.test.mjs scripts/slide-overflow.test.mjs",
+    "test:deck": "node --test scripts/deck.test.mjs scripts/deck-selector.test.mjs scripts/slide-overflow.test.mjs",
     "test:provenance": "node --test scripts/workshop-provenance.test.mjs",
     "test:pages": "node --test scripts/pages-site.test.mjs scripts/pages-nav.test.mjs scripts/readme-front-door.test.mjs",
     "pages:build": "bash scripts/pages-build.sh",
