@@ -129,6 +129,8 @@ build_root() {
     "$root/labs/day-1/00-setup" "$root/labs/day-2/13-static-analysis/messy" \
     "$root/docs/decisions" "$root/pages/S99-drift-selftest"
   cp "$REPO_ROOT/scripts/verify.sh" "$root/scripts/verify.sh"
+  cp "$REPO_ROOT/scripts/deck-manifest.mjs" "$root/scripts/deck-manifest.mjs"
+  cp "$REPO_ROOT/scripts/generate-decks.mjs" "$root/scripts/generate-decks.mjs"
   cp "$REPO_ROOT/setup/lib.sh"      "$root/setup/lib.sh"
   cp "$REPO_ROOT/$FIXTURE_MD"       "$root/$FIXTURE_MD"
   cp "$REPO_ROOT/$FIXTURE_TF"       "$root/$FIXTURE_TF"

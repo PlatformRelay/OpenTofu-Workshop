@@ -29,35 +29,71 @@ in the [README](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/REA
 
 ## Section map (S00–S26)
 
-| ID | Section | Tier | Day | 3-day cut |
-| --- | --- | ---: | --- | --- |
-| S00 | Welcome & setup | core | 1 | Compress (fit plan) |
-| S01 | Infrastructure as Code | core | 1 | Compress |
-| S02 | HCL & building blocks | core | 1 | Compress |
-| S03 | The core workflow | core | 1 | Compress |
-| S04 | State | core | 1 | Compress |
-| S05 | State encryption | core | 1 | Compress |
-| S06 | Variables, validation & types | core | 1 | Compress |
-| S15 | Validation, preconditions & checks | core | 1 | Compress (keep blocking + `check`) |
-| S07 | Modules | core | 1 | Compress |
-| S08 | Naming & labelling module | core | 1 | Keep |
-| S09 | Best practices | recommended | 1 | Skip (fit plan) |
-| S10 | OpenTofu differentiators | recommended | 1 | Skip (fit plan) |
-| S11 | The TACO landscape | optional | 1 | Skip (`hide`) |
-| S12 | Why test IaC + testing pyramid | core | 2 | Keep |
-| S13 | Static analysis & formatting | core | 2 | Keep |
-| S14 | Security & policy scanners | core | 2 | Keep |
-| S16 | Native testing — `tofu test` | core | 2 | Keep |
-| S17 | Mocking providers | core | 2 | Keep |
-| S18 | Integration, e2e & cost | optional | 2 | Skip (`hide`) |
-| S19 | Testing in CI/CD | recommended | 2 | Keep |
-| S20 | Why Terramate | core | 3 | Keep |
-| S21 | Stacks | core | 3 | Keep |
-| S22 | Code generation | core | 3 | Keep |
-| S23 | Orchestration & ordering | core | 3 | Keep |
-| S24 | Change detection & filtering | recommended | 3 | Keep / skip if short |
-| S25 | Terramate in CI + Cloud | optional | 3 | Skip (`hide`) unless time |
-| S26 | Capstone & wrap-up | core | 3 | Keep |
+| ID | Section | Tier | Day | Status | 3-day cut |
+| --- | --- | ---: | --- | --- | --- |
+| S00 | Welcome & setup | core | 1 | authored | Compress (fit plan) |
+| S01 | Infrastructure as Code | core | 1 | authored | Compress |
+| S02 | HCL & building blocks | core | 1 | authored | Compress |
+| S03 | The core workflow | core | 1 | authored | Compress |
+| S04 | State | core | 1 | authored | Compress |
+| S05 | State encryption | core | 1 | authored | Compress |
+| S06 | Variables, validation & types | core | 1 | authored | Compress |
+| S15 | Validation, preconditions & checks | core | 1 | authored | Compress (keep blocking + `check`) |
+| S07 | Modules | core | 1 | authored | Compress |
+| S08 | Naming & labelling module | core | 1 | authored | Keep |
+| S09 | Best practices | recommended | 1 | authored | Skip (fit plan) |
+| S10 | OpenTofu differentiators | recommended | 1 | authored | Skip (fit plan) |
+| S11 | The TACO landscape | optional | 1 | authored | Skip (`hide`) |
+| S12 | Why test IaC + testing pyramid | core | 2 | authored | Keep |
+| S13 | Static analysis & formatting | core | 2 | authored | Keep |
+| S14 | Security & policy scanners | core | 2 | authored | Keep |
+| S16 | Native testing — `tofu test` | core | 2 | authored | Keep |
+| S17 | Mocking providers | core | 2 | authored | Keep |
+| S18 | Integration, e2e & cost | optional | 2 | authored | Skip (`hide`) |
+| S19 | Testing in CI/CD | recommended | 2 | authored | Keep |
+| S20 | Why Terramate | core | 3 | authored | Keep |
+| S21 | Stacks | core | 3 | authored | Keep |
+| S22 | Code generation | core | 3 | authored | Keep |
+| S23 | Orchestration & ordering | core | 3 | authored | Keep |
+| S24 | Change detection & filtering | recommended | 3 | authored | Keep / skip if short |
+| S25 | Terramate in CI + Cloud | optional | 3 | authored | Skip (`hide`) unless time |
+| S26 | Capstone & wrap-up | core | 3 | authored | Keep |
+
+## Section timings (planning estimates)
+
+Slides and lab minutes are **unrehearsed planning estimates** from
+`scripts/deck-manifest.mjs`. Day 1 fit-plan compression lives in the README and
+`slides-3day.md` markers — not in this table.
+
+| ID | Section | Slides | Lab |
+| --- | --- | ---: | ---: |
+| S00 | Welcome & setup | 40 | 20 |
+| S01 | Infrastructure as Code | 40 | 20 |
+| S02 | HCL & building blocks | 50 | 20 |
+| S03 | The core workflow | 60 | 20 |
+| S04 | State | 50 | 20 |
+| S05 | State encryption | 60 | 25 |
+| S06 | Variables, validation & types | 50 | 25 |
+| S15 | Validation, preconditions & checks | 50 | 30 |
+| S07 | Modules | 60 | 35 |
+| S08 | Naming & labelling module | 65 | 30 |
+| S09 | Best practices | 50 | 30 |
+| S10 | OpenTofu differentiators | 45 | 25 |
+| S11 | The TACO landscape | 35 | 20 |
+| S12 | Why test IaC + testing pyramid | 20 | 20 |
+| S13 | Static analysis & formatting | 30 | 30 |
+| S14 | Security & policy scanners | 35 | 35 |
+| S16 | Native testing — `tofu test` | 35 | 35 |
+| S17 | Mocking providers | 30 | 30 |
+| S18 | Integration, e2e & cost | 30 | 30 |
+| S19 | Testing in CI/CD | 30 | 30 |
+| S20 | Why Terramate | 25 | 25 |
+| S21 | Stacks | 30 | 30 |
+| S22 | Code generation | 30 | 30 |
+| S23 | Orchestration & ordering | 30 | 30 |
+| S24 | Change detection & filtering | 25 | 25 |
+| S25 | Terramate in CI + Cloud | 25 | 25 |
+| S26 | Capstone & wrap-up | 60 | 60 |
 
 Canonical visible Day 1 order after fit-plan skips:
 `S00 → S01 → S02 → S03 → S04 → S05 → S06 → S15 → S07 → S08`.
