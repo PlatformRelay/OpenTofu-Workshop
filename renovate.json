@@ -1,0 +1,155 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":disableDependencyDashboard",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "labels": ["dependencies"],
+  "timezone": "Europe/Berlin",
+  "schedule": ["before 6am on Monday"],
+  "automerge": false,
+  "semanticCommits": "enabled",
+  "commitMessagePrefix": ":arrow_up:",
+  "commitMessageAction": "chore(deps): update",
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "ignorePaths": [
+    ".worktrees/**",
+    "labs/**/.github/**"
+  ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on Monday"]
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "setup/terratest/Dockerfile — Go base image",
+      "managerFilePatterns": ["/^setup\\/terratest\\/Dockerfile$/"],
+      "matchStrings": [
+        "ARG GO_IMAGE=golang:(?<currentValue>\\d+\\.\\d+\\.\\d+-bookworm)"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "golang"
+    },
+    {
+      "customType": "regex",
+      "description": "setup/terratest/Dockerfile — OpenTofu release",
+      "managerFilePatterns": ["/^setup\\/terratest\\/Dockerfile$/"],
+      "matchStrings": [
+        "ARG TOFU_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "opentofu/opentofu"
+    },
+    {
+      "customType": "regex",
+      "description": "docker-compose.yml — Go build arg and derived image tag prefix",
+      "managerFilePatterns": ["/^docker-compose\\.yml$/"],
+      "matchStrings": [
+        "GO_IMAGE: golang:(?<currentValue>\\d+\\.\\d+\\.\\d+-bookworm)",
+        "image: opentofu-workshop-terratest:go(?<currentValue>\\d+\\.\\d+\\.\\d+)-tofu\\d+\\.\\d+\\.\\d+"
+      ],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "golang",
+      "matchStringsStrategy": "any"
+    },
+    {
+      "customType": "regex",
+      "description": "docker-compose.yml — OpenTofu release (build arg + image tag suffix)",
+      "managerFilePatterns": ["/^docker-compose\\.yml$/"],
+      "matchStrings": [
+        "TOFU_VERSION: \"(?<currentValue>\\d+\\.\\d+\\.\\d+)\"",
+        "image: opentofu-workshop-terratest:go\\d+\\.\\d+\\.\\d+-tofu(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "opentofu/opentofu",
+      "matchStringsStrategy": "any"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Weekly batch of Terratest runner pins (Dockerfile + compose)",
+      "matchManagers": ["custom.regex"],
+      "matchFileNames": [
+        "setup/terratest/Dockerfile",
+        "docker-compose.yml"
+      ],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "terratest runner pins"
+    },
+    {
+      "description": "Terratest runner major bumps stay separate for review",
+      "matchManagers": ["custom.regex"],
+      "matchFileNames": [
+        "setup/terratest/Dockerfile",
+        "docker-compose.yml"
+      ],
+      "matchUpdateTypes": ["major"],
+      "groupName": null,
+      "automerge": false
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "groupName": "github actions",
+      "pinDigests": true
+    },
+    {
+      "description": "GitHub Actions major bumps stay separate; never automerge",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["major"],
+      "groupName": null,
+      "automerge": false
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "npm dependencies"
+    },
+    {
+      "description": "npm majors stay separate; never automerge",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["major"],
+      "groupName": null,
+      "automerge": false
+    },
+    {
+      "matchManagers": ["pip_requirements"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "python docs dependencies"
+    },
+    {
+      "description": "Python docs majors stay separate; never automerge",
+      "matchManagers": ["pip_requirements"],
+      "matchUpdateTypes": ["major"],
+      "groupName": null,
+      "automerge": false
+    },
+    {
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "go dependencies"
+    },
+    {
+      "description": "Go majors stay separate; never automerge",
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["major"],
+      "groupName": null,
+      "automerge": false
+    },
+    {
+      "matchManagers": ["docker-compose"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "docker compose images"
+    },
+    {
+      "description": "Docker Compose major image bumps stay separate",
+      "matchManagers": ["docker-compose"],
+      "matchUpdateTypes": ["major"],
+      "groupName": null,
+      "automerge": false
+    }
+  ]
+}
