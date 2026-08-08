@@ -61,7 +61,8 @@ rightBadge: generate before commit
 - **Unit** = a directory with `terragrunt.hcl`.
 - **DRY** via `remote_state` / `generate` blocks — backend and provider files
   are written into the unit **at run time**.
-- **Order** via `dependency` blocks; `run-all` walks the tree, wiring
+- **Order** via `dependency` blocks; `run --all` (formerly `run-all`)
+  walks the tree, wiring
   `inputs` from other units' outputs.
 - You type `terragrunt`; it **wraps** every `tofu` invocation.
 
@@ -80,7 +81,7 @@ a stack with a stack.tm.hcl. Both kill the DRY tax by generating backend and
 provider boilerplate — the difference is WHEN: Terragrunt writes those files at
 run time as it wraps the CLI, Terramate generates them before commit so they are
 reviewed in the PR like any other file. Both order the fleet — Terragrunt with
-dependency blocks and run-all, Terramate with after/before edges plus Git-based
+dependency blocks and run dash dash all, Terramate with after/before edges plus Git-based
 change detection. And the last pair is the philosophy in one line: with
 Terragrunt you type terragrunt and it wraps every tofu call; with Terramate you
 still type plain tofu behind terramate run. Both leave plan, apply, and state to
@@ -119,7 +120,7 @@ Then: "Turn that into a decision table."
     </tr>
     <tr v-click>
       <td><strong>Selection model</strong></td>
-      <td><code>run-all</code> on a subtree; output-wiring between units via
+      <td><code>run --all</code> on a subtree; output-wiring between units via
         <code>dependency</code>.</td>
       <td>Git-based <code>--changed</code> + <code>--tags</code> filters —
         CI plans only what moved (S24/S25).</td>
@@ -169,7 +170,7 @@ throwing that away has a cost; a plain-tofu monorepo like ours has nothing to
 migrate. Axis two, generated files: Terragrunt generates at run time so
 boilerplate never lands in the repo; Terramate generates before commit so the
 boilerplate is reviewed and drift-checked in CI — that is the philosophy split
-that decides most adoptions. Axis three, selection: run-all on a subtree versus
+that decides most adoptions. Axis three, selection: run dash dash all on a subtree versus
 Git-based changed-plus-tags filters. Axis four, the CLI surface your team types
 every day: a wrapper, or plain tofu behind terramate run. (~4 min)
 Then: "One confusion to kill before the lab."
@@ -217,7 +218,7 @@ No Terragrunt install, no Docker, no `tofu apply` — `cat` and `grep` only.
 Say: Set up the lab. There is nothing to install and nothing to apply — the
 fixture Terragrunt tree is read-only, and the Terramate side is the S21 to S23
 workdirs they already used. Task one: map unit to stack, remote_state and
-generate to generate_hcl, dependency and run-all to after edges and changed
+generate to generate_hcl, dependency and run dash dash all to after edges and changed
 filters — with grep evidence for every mapping. Task two is the break→fix: the
 fixture plants the claim that Terragrunt stores your state; learners disprove it
 from the config itself and correct it. Twenty minutes, spoilers throughout.
