@@ -3,7 +3,7 @@ theme: ./theme
 title: OpenTofu Practitioner Workshop
 info: |
   Open source, vendor-neutral OpenTofu workshop.
-  Superset root deck: imports every section S00–S26. Toggle any section
+  Superset root deck: imports every section S00–S27. Toggle any section
   with `hide: true` on its import block below.
 favicon: '/branding/favicon-32.png'
 seoMeta:
@@ -24,7 +24,7 @@ logo: /branding/logo-512.png
 # OpenTofu Practitioner Workshop
 
 Infrastructure as Code done right — write it, test it, scale it.
-The full content superset: sections S00–S26, each individually toggleable.
+The full content superset: sections S00–S27, each individually toggleable.
 
 ---
 # S00 · Welcome & setup · core · Day 1
@@ -185,5 +185,11 @@ hide: false
 ---
 # S26 · Capstone & wrap-up · core · Day 3
 src: ./pages/S26-capstone/index.md
+hide: false
+---
+
+---
+# S27 · Terragrunt vs Terramate · optional · Day 3
+src: ./pages/S27-terragrunt-comparison/index.md
 hide: false
 ---
