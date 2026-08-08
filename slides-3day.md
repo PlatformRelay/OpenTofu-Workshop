@@ -198,3 +198,9 @@ hide: true
 src: ./pages/S26-capstone/index.md
 hide: false
 ---
+
+---
+# S27 · Terragrunt vs Terramate · optional · Day 3
+src: ./pages/S27-terragrunt-comparison/index.md
+hide: true
+---
