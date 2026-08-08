@@ -8,7 +8,7 @@ export const sectionTimings = {
   S12: [20, 20], S13: [30, 30], S14: [35, 35], S16: [35, 35], S17: [30, 30],
   S18: [30, 30], S19: [30, 30],
   S20: [25, 25], S21: [30, 30], S22: [30, 30], S23: [30, 30], S24: [25, 25],
-  S25: [25, 25], S26: [60, 60], S27: [20, 20],
+  S25: [25, 25], S26: [60, 60], S27: [20, 20], S28: [20, 20],
 }
 
 const sectionDefinitions = [
@@ -134,6 +134,10 @@ const sectionDefinitions = [
     id: 'S27', slug: 'terragrunt-comparison', title: 'Terragrunt vs Terramate', tier: 'optional', day: 3, canonical: false,
     status: 'authored',
   },
+  {
+    id: 'S28', slug: 'ecosystem-tooling', title: 'Ecosystem tooling', tier: 'optional', day: 3, canonical: false,
+    status: 'authored',
+  },
 ]
 
 export const sections = sectionDefinitions.map((section) => {
@@ -146,7 +150,7 @@ theme: ./theme
 title: OpenTofu Practitioner Workshop
 info: |
   Open source, vendor-neutral OpenTofu workshop.
-  Superset root deck: imports every section S00–S27. Toggle any section
+  Superset root deck: imports every section S00–S28. Toggle any section
   with \`hide: true\` on its import block below.
 favicon: '/branding/favicon-32.png'
 seoMeta:
@@ -216,7 +220,7 @@ export const generatedDecks = [
   {
     file: 'slides.md',
     title: 'Content superset',
-    description: 'Every section S00–S27, each individually toggleable',
+    description: 'Every section S00–S28, each individually toggleable',
     deck: 'superset',
     select: () => true,
   },
@@ -533,7 +537,7 @@ meta: ${title} · OpenTofu-first · LocalStack labs
 logo: /branding/logo-512.png
 ---`
   const coverTitle = deck === 'superset'
-    ? 'Infrastructure as Code done right — write it, test it, scale it.\nThe full content superset: sections S00–S27, each individually toggleable.'
+    ? 'Infrastructure as Code done right — write it, test it, scale it.\nThe full content superset: sections S00–S28, each individually toggleable.'
     : deck === 'cut'
       ? 'The canonical 3-day cut — core and recommended sections, boiled down from the superset.'
       : `${title} — ${description}.`
