@@ -423,6 +423,21 @@
       "estimatedDurationMin": 20,
       "automationTier": "mock-only",
       "cleanupCommand": "git restore -- labs/day-3/27-terragrunt-comparison/"
+    },
+    {
+      "id": "day-3/28-ecosystem-tooling",
+      "labPath": "labs/day-3/28-ecosystem-tooling.md",
+      "solutionPath": "labs/day-3/28-ecosystem-tooling.solution.md",
+      "section": "S28",
+      "sectionTitle": "S28 Ecosystem tooling",
+      "day": 3,
+      "environment": "`mock ✓ (no docker)`",
+      "tools": "pre-commit (one-time network hook fetch; tenv/terraform-docs optional)",
+      "pinned": "hook repos pinned in .pre-commit-config.yaml",
+      "validationState": "unrun",
+      "estimatedDurationMin": 20,
+      "automationTier": "mock-only",
+      "cleanupCommand": "git restore -- labs/day-3/28-ecosystem-tooling/"
     }
   ]
 }
