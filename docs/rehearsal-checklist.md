@@ -88,6 +88,7 @@ Two more things to keep straight before you start:
 | [ ] | S24 | recommended | [24-change-detection](../labs/day-3/24-change-detection.md) | **Terramate** | filter misses change | [ ] |
 | [ ] | S25 | optional | [25-terramate-ci-cloud](../labs/day-3/25-terramate-ci-cloud.md) | none (fixture) | cloud/CI wiring gap | [ ] |
 | [ ] | S26 | core | [26-capstone](../labs/day-3/26-capstone.md) | LocalStack for AWS steps | capstone audit finding | [ ] |
+| [ ] | S27 | optional | [27-terragrunt-comparison](../labs/day-3/27-terragrunt-comparison.md) | none (read-only fixture) | TACO/state-host claim | [ ] |
 
 ## Post-rehearsal wrap-up
 

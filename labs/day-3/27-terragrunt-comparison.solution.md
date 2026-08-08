@@ -58,7 +58,7 @@ grep -n "after" labs/day-3/23-orchestration/stacks/app/stack.tm.hcl
 | --- | --- |
 | Unit — directory with `terragrunt.hcl` | **Stack** — directory with `stack.tm.hcl` (`labs/day-3/21-stacks/stacks/network/stack.tm.hcl`, the `stack {}` block). No block → the directory silently vanishes from `terramate list` (the S21 break). |
 | `remote_state` / `generate` — boilerplate written **at run time** | **`generate_hcl`** + `globals` — `labs/day-3/22-codegen/backend.tm.hcl` emits `_backend.tf` **before commit**; `terramate generate` output is reviewed in the PR and drift-checked (S22's detailed exit code `2`). |
-| `dependency` + `run-all` — ordering across units | **`after` / `before`** edges — `labs/day-3/23-orchestration/stacks/app/stack.tm.hcl` (`after = ["tag:networking"]`) orders `terramate run`; Git-based `--changed` (S24) narrows the set. |
+| `dependency` + `run --all` — ordering across units | **`after` / `before`** edges — `labs/day-3/23-orchestration/stacks/app/stack.tm.hcl` (`after = ["tag:networking"]`) orders `terramate run`; Git-based `--changed` (S24) narrows the set. |
 
 One mapping is **deliberately imperfect**: Terragrunt's `dependency` block also
 **wires outputs into inputs** (`dependency.network.outputs.network_name`).
@@ -122,7 +122,7 @@ A corrected comment reads:
 - The completed mapping table names a Terramate file for each of the three
   Terragrunt concepts: `stack.tm.hcl` (unit ↔ stack), `backend.tm.hcl`
   (`generate_hcl` ↔ `remote_state`/`generate`), and the `after` edge in
-  `stacks/app/stack.tm.hcl` (`dependency`/`run-all` ↔ ordering).
+  `stacks/app/stack.tm.hcl` (`dependency`/`run --all` ↔ ordering).
 - `grep -n "backend"` on `root.hcl` prints the three lines above — a `local`
   backend and a generated `backend.tf` path, and **no** hosted-state endpoint.
 - After cleanup, `git status --short -- labs/day-3/27-terragrunt-comparison/`
@@ -141,7 +141,7 @@ the marker silently drops out of discovery in both worlds. The generation pair
 differs in *when*, not *whether*: Terragrunt writes backend/provider files at
 run time as it wraps each invocation, while Terramate generates them before
 commit, so the emitted boilerplate is reviewable and drift-checkable in CI.
-Ordering maps `dependency`/`run-all` onto `after`/`before` edges because both
+Ordering maps `dependency`/`run --all` onto `after`/`before` edges because both
 must serialize roots the engine treats as independent.
 
 The break→fix holds because `remote_state` *configures* a backend rather than

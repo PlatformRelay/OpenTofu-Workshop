@@ -152,7 +152,7 @@ grep -n "after" labs/day-3/23-orchestration/stacks/app/stack.tm.hcl
 | --- | --- |
 | Unit — directory with `terragrunt.hcl` | ? |
 | `remote_state` / `generate` — run-time boilerplate | ? |
-| `dependency` + `run-all` — ordering across units | ? |
+| `dependency` + `run --all` — ordering across units | ? |
 
 <details><summary>Solution / the completed mapping</summary>
 
@@ -160,7 +160,7 @@ grep -n "after" labs/day-3/23-orchestration/stacks/app/stack.tm.hcl
 | --- | --- |
 | Unit — directory with `terragrunt.hcl` | **Stack** — directory with `stack.tm.hcl` (`labs/day-3/21-stacks/stacks/network/stack.tm.hcl`, the `stack {}` block). No block → the directory silently vanishes from `terramate list` (the S21 break). |
 | `remote_state` / `generate` — boilerplate written **at run time** | **`generate_hcl`** + `globals` — `labs/day-3/22-codegen/backend.tm.hcl` emits `_backend.tf` **before commit**; `terramate generate` output is reviewed in the PR and drift-checked (S22's detailed exit code `2`). |
-| `dependency` + `run-all` — ordering across units | **`after` / `before`** edges — `labs/day-3/23-orchestration/stacks/app/stack.tm.hcl` (`after = ["tag:networking"]`) orders `terramate run`; Git-based `--changed` (S24) narrows the set. |
+| `dependency` + `run --all` — ordering across units | **`after` / `before`** edges — `labs/day-3/23-orchestration/stacks/app/stack.tm.hcl` (`after = ["tag:networking"]`) orders `terramate run`; Git-based `--changed` (S24) narrows the set. |
 
 One mapping is **deliberately imperfect**: Terragrunt's `dependency` block also
 **wires outputs into inputs** (`dependency.network.outputs.network_name`).
@@ -237,7 +237,7 @@ A corrected comment reads:
   unit ↔ `stack.tm.hcl` stack) — around unchanged `tofu` roots.
 - Boilerplate generation differs in **when**, not whether: Terragrunt writes
   at run time; Terramate generates before commit for PR review + drift check.
-- Ordering differs in **selection**: `dependency`/`run-all` subtree walks vs
+- Ordering differs in **selection**: `dependency`/`run --all` subtree walks vs
   `after` edges + Git `--changed`.
 - `remote_state` **configures** a backend; it does not host one. Neither tool
   manages state; neither is a TACO.
@@ -273,8 +273,9 @@ The `PLANTED CLAIM` comment is back in `terragrunt-style/root.hcl`.
   cd ../../..
   ```
 
-  Terragrunt's equivalent (`terragrunt run-all plan`) rewrites the command
-  surface itself — the wrapper-vs-runner split from the decision table.
+  Terragrunt's equivalent (`terragrunt run --all plan`, formerly spelled
+  `terragrunt run-all plan`) rewrites the command surface itself — the
+  wrapper-vs-runner split from the decision table.
 - **Write the one-paragraph decision record** for *your* real estate: which
   axis from the S27 decision table dominates (existing estate, reviewed
   codegen, selection model, CLI surface), which tool wins, and the trade-off
