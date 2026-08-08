@@ -408,6 +408,21 @@
       "estimatedDurationMin": 60,
       "automationTier": "mixed",
       "cleanupCommand": null
+    },
+    {
+      "id": "day-3/27-terragrunt-comparison",
+      "labPath": "labs/day-3/27-terragrunt-comparison.md",
+      "solutionPath": "labs/day-3/27-terragrunt-comparison.solution.md",
+      "section": "S27",
+      "sectionTitle": "S27 Terragrunt vs Terramate",
+      "day": 3,
+      "environment": "`mock ✓ (paper + fixture · no docker)`",
+      "tools": "None (Terramate only for optional stretch)",
+      "pinned": "read-only fixture HCL only",
+      "validationState": "unrun",
+      "estimatedDurationMin": 20,
+      "automationTier": "mock-only",
+      "cleanupCommand": "git restore -- labs/day-3/27-terragrunt-comparison/"
     }
   ]
 }

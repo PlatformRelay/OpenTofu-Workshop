@@ -91,6 +91,7 @@ Host support is a separate claim from lab validation.
 | [`day-3/24-change-detection.md`](../labs/day-3/24-change-detection.md) | S24 Change detection & filtering | `mock ✓ (no docker)` | **Terramate** CLI | Terramate ~0.17.x | `unrun` |
 | [`day-3/25-terramate-ci-cloud.md`](../labs/day-3/25-terramate-ci-cloud.md) | S25 Terramate in CI + Cloud | `mock ✓ (paper + fixture · no docker)` | None | fixture YAML only | `unrun` |
 | [`day-3/26-capstone.md`](../labs/day-3/26-capstone.md) | S26 Capstone & wrap-up | `localstack ✓` · `mock ✓` | Docker for Steps 5–6 | capstone module + LocalStack | `unrun` |
+| [`day-3/27-terragrunt-comparison.md`](../labs/day-3/27-terragrunt-comparison.md) | S27 Terragrunt vs Terramate | `mock ✓ (paper + fixture · no docker)` | None (Terramate only for optional stretch) | read-only fixture HCL only | `unrun` |
 
 ## Tool-heavy labs: canonical install + expected diagnostic beat
 
