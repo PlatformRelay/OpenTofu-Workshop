@@ -40,6 +40,7 @@ export const DAY_3_LABS = [
   'labs/day-3/24-change-detection.md',
   'labs/day-3/25-terramate-ci-cloud.md',
   'labs/day-3/26-capstone.md',
+  'labs/day-3/27-terragrunt-comparison.md',
 ];
 
 export const CONTRACTED_LABS = [...DAY_1_LABS, ...DAY_2_LABS, ...DAY_3_LABS];
