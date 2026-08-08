@@ -1,5 +1,11 @@
 # OpenTofu Practitioner Workshop
 
+[![CI](https://github.com/PlatformRelay/OpenTofu-Workshop/actions/workflows/ci.yml/badge.svg)](https://github.com/PlatformRelay/OpenTofu-Workshop/actions/workflows/ci.yml)
+[![Pages](https://github.com/PlatformRelay/OpenTofu-Workshop/actions/workflows/pages.yml/badge.svg)](https://github.com/PlatformRelay/OpenTofu-Workshop/actions/workflows/pages.yml)
+[![Documentation](https://img.shields.io/badge/documentation-GitHub%20Pages-2ea44f?logo=readthedocs&logoColor=white)](https://platformrelay.github.io/OpenTofu-Workshop/)
+[![Release](https://img.shields.io/github/v/release/PlatformRelay/OpenTofu-Workshop)](https://github.com/PlatformRelay/OpenTofu-Workshop/releases)
+[![License: 0BSD](https://img.shields.io/github/license/PlatformRelay/OpenTofu-Workshop)](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/LICENSE)
+
 An open-source, vendor-neutral, hands-on workshop for **Infrastructure as Code
 with [OpenTofu](https://opentofu.org)**. The learning journey follows the way
 infrastructure grows in practice:
@@ -78,6 +84,7 @@ task lab:up && task lab:terratest:host DIR=labs/fixtures/terratest-smoke
 
 No Docker? The container lane fails fast and points at the host-Go commands
 above.
+
 ## Choose your route
 
 | I am a… | Start with | Then use |

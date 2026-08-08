@@ -17,6 +17,7 @@ it under the [0BSD License](https://github.com/PlatformRelay/OpenTofu-Workshop/b
 
 [![CI](https://github.com/PlatformRelay/OpenTofu-Workshop/actions/workflows/ci.yml/badge.svg)](https://github.com/PlatformRelay/OpenTofu-Workshop/actions/workflows/ci.yml)
 [![Pages](https://github.com/PlatformRelay/OpenTofu-Workshop/actions/workflows/pages.yml/badge.svg)](https://github.com/PlatformRelay/OpenTofu-Workshop/actions/workflows/pages.yml)
+[![Documentation](https://img.shields.io/badge/documentation-GitHub%20Pages-2ea44f?logo=readthedocs&logoColor=white)](https://platformrelay.github.io/OpenTofu-Workshop/)
 [![Release](https://img.shields.io/github/v/release/PlatformRelay/OpenTofu-Workshop)](https://github.com/PlatformRelay/OpenTofu-Workshop/releases)
 [![License: 0BSD](https://img.shields.io/github/license/PlatformRelay/OpenTofu-Workshop)](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/LICENSE)
 
