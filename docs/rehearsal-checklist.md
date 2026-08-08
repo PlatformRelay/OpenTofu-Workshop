@@ -11,7 +11,7 @@ or Terramate ordering. Rehearsing the fullest path covers everything; a mock-onl
 is then a subset. See the [facilitator runbook](./facilitator-runbook.md) for preflight
 and the [validation matrix](./validation-matrix.md) for per-lab environment/tool claims.
 
-> **Scope.** This checklist covers **every contracted participant lab (S00–S27)**, not just
+> **Scope.** This checklist covers **every contracted participant lab (S00–S28)**, not just
 > the 3-day cut, because a rehearsal should exercise the whole authored superset. The
 > **Tier** column marks what is `core` / `recommended` / `optional` so you can skip
 > cut-first sections when rehearsing a specific delivery.
@@ -89,6 +89,7 @@ Two more things to keep straight before you start:
 | [ ] | S25 | optional | [25-terramate-ci-cloud](../labs/day-3/25-terramate-ci-cloud.md) | none (fixture) | cloud/CI wiring gap | [ ] |
 | [ ] | S26 | core | [26-capstone](../labs/day-3/26-capstone.md) | LocalStack for AWS steps | capstone audit finding | [ ] |
 | [ ] | S27 | optional | [27-terragrunt-comparison](../labs/day-3/27-terragrunt-comparison.md) | none (read-only fixture) | TACO/state-host claim | [ ] |
+| [ ] | S28 | optional | [28-ecosystem-tooling](../labs/day-3/28-ecosystem-tooling.md) | **pre-commit** (+ one-time hook fetch) | dirty fixture vs fixing hooks | [ ] |
 
 ## Post-rehearsal wrap-up
 
