@@ -11,7 +11,7 @@ or Terramate ordering. Rehearsing the fullest path covers everything; a mock-onl
 is then a subset. See the [facilitator runbook](./facilitator-runbook.md) for preflight
 and the [validation matrix](./validation-matrix.md) for per-lab environment/tool claims.
 
-> **Scope.** This checklist covers **every contracted participant lab (S00–S26)**, not just
+> **Scope.** This checklist covers **every contracted participant lab (S00–S27)**, not just
 > the 3-day cut, because a rehearsal should exercise the whole authored superset. The
 > **Tier** column marks what is `core` / `recommended` / `optional` so you can skip
 > cut-first sections when rehearsing a specific delivery.

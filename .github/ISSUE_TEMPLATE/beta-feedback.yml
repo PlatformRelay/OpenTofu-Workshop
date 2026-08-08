@@ -20,7 +20,7 @@ body:
     id: section
     attributes:
       label: Section / lab
-      description: Which section or lab is this feedback about? IDs match the syllabus (S00–S26).
+      description: Which section or lab is this feedback about? IDs match the syllabus (S00–S27).
       options:
         - "S00 — Welcome & setup (labs/day-1/00-setup.md)"
         - "S01 — Infrastructure as Code (labs/day-1/01-iac-fork.md)"
@@ -49,6 +49,7 @@ body:
         - "S24 — Change detection & filtering (labs/day-3/24-change-detection.md)"
         - "S25 — Terramate in CI + Cloud (labs/day-3/25-terramate-ci-cloud.md)"
         - "S26 — Capstone & wrap-up (labs/day-3/26-capstone.md)"
+        - "S27 — Terragrunt vs Terramate (labs/day-3/27-terragrunt-comparison.md)"
         - "Cross-cutting / not tied to one section"
     validations:
       required: true

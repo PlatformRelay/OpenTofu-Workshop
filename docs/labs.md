@@ -54,6 +54,7 @@ Source of truth on GitHub:
 | [24-change-detection](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-3/24-change-detection.md) | Change detection |
 | [25-terramate-ci-cloud](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-3/25-terramate-ci-cloud.md) | Terramate CI + Cloud *(optional)* |
 | [26-capstone](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-3/26-capstone.md) | Capstone & wrap-up |
+| [27-terragrunt-comparison](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-3/27-terragrunt-comparison.md) | Terragrunt vs Terramate *(optional appendix)* |
 
 Workdirs for runnable OpenTofu (init/plan/apply) often sit beside the lab
 Markdown as `labs/day-N/NN-topic/` directories — follow each lab’s paths.
