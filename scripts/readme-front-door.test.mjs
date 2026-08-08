@@ -65,3 +65,73 @@ test('README describes 0BSD without MIT attribution requirement', () => {
   assert.doesNotMatch(readme, /Keep the copyright notice with substantial copies/)
   assert.doesNotMatch(readme, /\[MIT License\]|\*\*\[MIT\]|License: MIT/)
 })
+
+// US-P-BADGE — kubernetes-workshop-style status badge row for workflows that
+// actually exist: CI, Pages, Documentation, Release, License (0BSD) — in that
+// order, identical on README and the docs landing. No CodeQL badge until
+// US-P-CODEQL ships a codeql.yml (a 404 badge is a defect).
+const REPO = 'https://github.com/PlatformRelay/OpenTofu-Workshop'
+const BADGES = [
+  {
+    alt: 'CI',
+    image: `${REPO}/actions/workflows/ci.yml/badge.svg`,
+    link: `${REPO}/actions/workflows/ci.yml`,
+  },
+  {
+    alt: 'Pages',
+    image: `${REPO}/actions/workflows/pages.yml/badge.svg`,
+    link: `${REPO}/actions/workflows/pages.yml`,
+  },
+  {
+    alt: 'Documentation',
+    image:
+      'https://img.shields.io/badge/documentation-GitHub%20Pages-2ea44f?logo=readthedocs&logoColor=white',
+    link: `${PAGES}/`,
+  },
+  {
+    alt: 'Release',
+    image: 'https://img.shields.io/github/v/release/PlatformRelay/OpenTofu-Workshop',
+    link: `${REPO}/releases`,
+  },
+  {
+    alt: 'License: 0BSD',
+    image: 'https://img.shields.io/github/license/PlatformRelay/OpenTofu-Workshop',
+    link: `${REPO}/blob/main/LICENSE`,
+  },
+]
+
+function badgeMarkdown({ alt, image, link }) {
+  return `[![${alt}](${image})](${link})`
+}
+
+for (const [label, file] of [
+  ['README', 'README.md'],
+  ['docs landing', 'docs/index.md'],
+]) {
+  test(`${label} shows CI/Pages/Documentation/Release/License badges in order`, () => {
+    const content = readFileSync(resolve(ROOT, file), 'utf8')
+    let cursor = -1
+    for (const badge of BADGES) {
+      const markdown = badgeMarkdown(badge)
+      const at = content.indexOf(markdown)
+      assert.ok(at !== -1, `${file} must contain the ${badge.alt} badge: ${markdown}`)
+      assert.ok(at > cursor, `${file} badge out of order: ${badge.alt} must follow the previous badge`)
+      cursor = at
+    }
+  })
+
+  test(`${label} license badge says 0BSD, never MIT`, () => {
+    const content = readFileSync(resolve(ROOT, file), 'utf8')
+    assert.match(content, /\[!\[License: 0BSD\]/, `${file} license badge alt text must say 0BSD`)
+    assert.doesNotMatch(content, /License: MIT/, `${file} must not claim an MIT license`)
+  })
+
+  test(`${label} has no CodeQL badge (US-P-CODEQL not shipped)`, () => {
+    const content = readFileSync(resolve(ROOT, file), 'utf8')
+    assert.doesNotMatch(
+      content,
+      /codeql|CodeQL/,
+      `${file} must not show a CodeQL badge until .github/workflows/codeql.yml exists`,
+    )
+  })
+}
