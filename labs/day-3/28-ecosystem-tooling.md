@@ -35,7 +35,7 @@ into install guidance, never into a blocked Day 3.
   — the checked-in terraform-docs config (its twin lives in `modules/labels/`).
 - [`.pre-commit-config.yaml`](../../.pre-commit-config.yaml) — the repository's
   real hook wiring.
-- [`labs/day-3/28-ecosystem-tooling/main.tf`](./28-ecosystem-tooling/) — the
+- [`labs/day-3/28-ecosystem-tooling/main.tf`](./28-ecosystem-tooling/main.tf) — the
   small tracked fixture you will dirty and let the hooks repair.
 
 The fixture (tracked, canonically formatted — you break it later on purpose):
