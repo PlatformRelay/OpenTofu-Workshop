@@ -18,7 +18,7 @@ on GitHub.
 
 ## Superset vs canonical 3-day cut
 
-The section library (**S00–S26**) is a **content superset** — larger than three
+The section library (**S00–S27**) is a **content superset** — larger than three
 days on purpose. Delivery boils down via `hide:` toggles and the Day 1 fit plan
 in the [README](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/README.md#scope-and-timing-known-issue).
 
@@ -27,7 +27,7 @@ in the [README](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/REA
 - **Day 1** overflows a raw full-section budget; apply the README fit plan before facilitating.
 - **Day 2–3** full-section minute totals are not published in-repo yet — pace from lab durations and presenter notes (see the runbook). Do not invent day totals.
 
-## Section map (S00–S26)
+## Section map (S00–S27)
 
 | ID | Section | Tier | Day | Status | 3-day cut |
 | --- | --- | ---: | --- | --- | --- |
@@ -58,6 +58,7 @@ in the [README](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/REA
 | S24 | Change detection & filtering | recommended | 3 | authored | Keep / skip if short |
 | S25 | Terramate in CI + Cloud | optional | 3 | authored | Skip (`hide`) unless time |
 | S26 | Capstone & wrap-up | core | 3 | authored | Keep |
+| S27 | Terragrunt vs Terramate | optional | 3 | authored | Skip (`hide`) — appendix |
 
 ## Section timings (planning estimates)
 
@@ -94,13 +95,15 @@ Slides and lab minutes are **unrehearsed planning estimates** from
 | S24 | Change detection & filtering | 25 | 25 |
 | S25 | Terramate in CI + Cloud | 25 | 25 |
 | S26 | Capstone & wrap-up | 60 | 60 |
+| S27 | Terragrunt vs Terramate | 20 | 20 |
 
 Canonical visible Day 1 order after fit-plan skips:
 `S00 → S01 → S02 → S03 → S04 → S05 → S06 → S15 → S07 → S08`.
 
 Day 2: `S12 → S13 → S14 → S16 → S17 → S19`.
 
-Day 3: `S20 → S21 → S22 → S23 → S24 → S26` (+ optional S25).
+Day 3: `S20 → S21 → S22 → S23 → S24 → S26` (+ optional S25; S27 is a
+hidden Terragrunt-comparison appendix — superset only).
 
 ## Related
 

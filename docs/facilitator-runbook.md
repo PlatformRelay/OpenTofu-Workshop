@@ -70,6 +70,7 @@ Canonical visible order: `S20 → S21 → S22 → S23 → S24 → S26` (+ option
 | Ship | S20 → S21 → S22 (generate) → S23 (order) → S24 (`--changed` / `--tags`) → **S26** capstone |
 | If short | Skip **S24** (recommended) — deepen S23 Q&A; keep core S20–S23; **keep S26** wrap if at all possible |
 | Optional | **S25** (`hide: true` in 3-day cut) — `--changed` CI + Cloud overview; skip unless time |
+| Optional | **S27** (`hide: true` in 3-day cut) — Terragrunt vs Terramate appendix; **skip first**, run only on audience demand after S26 (never as required Day-3 time) |
 | Keep | **S26** — drives `examples/capstone/`; Associate table is a design check, not exam prep ([full appendix](associate-alignment.md)) |
 
 ---
@@ -168,6 +169,7 @@ skip from the fit plan or `hide:` in `slides-3day.md`.
 | S24 | Change detection | recommended | 25 | Keep / skip if short | Prove only the changed stack runs — what did network do? | Dirty `run --changed`; two-commit baseline; identity pin |
 | S25 | Terramate CI + Cloud | optional | 25 | **Skip** (`hide`) unless time | Does the PR gate use `--changed`? Does Cloud manage state? (**no**) | Paper fixture; `fetch-depth: 0`; **no Cloud signup**; restore planted YAML |
 | S26 | Capstone & wrap-up | core | 60 | Keep | Can the room green the unit lane and clean up with `lab:down`? Associate table = design check? | Drive `examples/capstone/` (no rewrite); short-passphrase break; panic-reset no residue; Terramate stretch optional |
+| S27 | Terragrunt vs Terramate | optional | 20 | **Skip** (`hide`) — appendix | (If run) Does `remote_state` host state? (Answer: **no** — it generates `backend.tf`.) | Read-only fixture, no Terragrunt install; ~40 min total incl. lab; restore planted claim (`git restore`) |
 
 ---
 
