@@ -204,3 +204,9 @@ hide: false
 src: ./pages/S27-terragrunt-comparison/index.md
 hide: true
 ---
+
+---
+# S28 · Ecosystem tooling · optional · Day 3
+src: ./pages/S28-ecosystem-tooling/index.md
+hide: true
+---

@@ -230,7 +230,7 @@ Then: regroup for the recap.
 layout: recap
 heading: Terragrunt vs Terramate — recap
 story: 'Two orchestrators around the same engine — this workshop teaches the Terramate path.'
-next: 'End of the superset — the Day-3 track closed with S26.'
+next: 'One appendix remains — S28 surveys the everyday ecosystem tooling belt.'
 ---
 
 - **Same problem frame:** many roots, duplicated boilerplate, ordering,
@@ -255,5 +255,5 @@ hosts state — that stays with OpenTofu, and platforms are the S11 layer. And
 say the closer explicitly: this workshop's path is Terramate — it is what
 S20 through S26 taught and what the capstone runs — while Terragrunt remains a
 defensible choice where an estate already speaks it. (~2 min)
-Then: this appendix ends the superset deck — hand back to the Day-3 wrap.
+Then: one appendix remains in the superset — S28's everyday tooling survey.
 -->
