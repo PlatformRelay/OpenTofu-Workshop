@@ -9,7 +9,7 @@ Run the same gate locally:
 
 ```sh
 pnpm install --frozen-lockfile
-node --test scripts/supply-chain-policy.test.mjs
+node --test scripts/supply-chain-policy.test.mjs scripts/pnpm-overrides.test.mjs
 node scripts/supply-chain-policy.mjs
 ```
 
@@ -63,6 +63,12 @@ repository CI.
 
 ## Residual scope
 
-`pnpm audit` runs in CI as a non-blocking job (US-F-SEC-2). Dependency
-high/critical gating and SBOM retention for release artifacts remain separate
-workstreams.
+`pnpm audit` runs in CI as a non-blocking job (US-F-SEC-2). High/critical
+findings that have a published patched release are pinned via
+`pnpm-workspace.yaml` `overrides` (bounded per major line) and checked by
+`scripts/pnpm-overrides.test.mjs`. `image-size` still has **no published
+patch** on npm (latest 2.0.2 is inside `<=2.0.2`; the advisory's `>=2.0.3`
+floor is not on the registry). It is reachable only through Slidev PPTX
+export (`pptxgenjs`) against repository-curated slide assets. A fail-closed
+dependency-audit gate with an expiring exception is a follow-up story, not
+this change. SBOM retention for release artifacts remains separate.
