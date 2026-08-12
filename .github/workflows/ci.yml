@@ -43,7 +43,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Test and enforce repository supply-chain policy
         run: |
-          node --test scripts/supply-chain-policy.test.mjs
+          node --test scripts/supply-chain-policy.test.mjs scripts/pnpm-overrides.test.mjs
           node scripts/supply-chain-policy.mjs
 
   lint:

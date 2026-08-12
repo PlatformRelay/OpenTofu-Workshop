@@ -8,3 +8,40 @@ shamefullyHoist: true
 allowBuilds:
   playwright-chromium: true
   sharp: true
+
+overrides:
+  # GHSA-r28c-9q8g-f849 is fixed in 8.5.18. Keep every transitive Vue/Vite
+  # consumer on the current patched PostCSS line until upstream ranges converge.
+  postcss: 8.5.25
+  # GHSA-pm4m-ph32-ghv5 affects only js-yaml 5.0.0 through 5.2.1. Keep the
+  # markdownlint 5.x line patched without forcing its unrelated 3.x/4.x users
+  # across a major-version boundary.
+  "js-yaml@>=5.0.0 <6.0.0": 5.2.3
+  # GHSA-5p4m-2wfm-xmqj (CVE-2026-59870) hits both the 3.x and 4.x js-yaml
+  # lines that @slidev/cli pulls in transitively. The fix was released on each
+  # line separately, so pin each range to its own first patched version rather
+  # than dragging Slidev's YAML parser across a major-version boundary.
+  "js-yaml@>=4.0.0 <5.0.0": 4.3.1
+  "js-yaml@>=3.0.0 <4.0.0": 3.15.1
+  # GHSA-2v37-7h3g-55p8 / GHSA-28wg-ghj8-5hjv: nanoid generators can loop
+  # indefinitely. Patched on 3.x at 3.3.17; postcss pulls that line transitively.
+  "nanoid@>=3.0.0 <4.0.0": 3.3.17
+  # monaco-editor / mermaid pull older DOMPurify; pin the patched line.
+  dompurify: 3.4.13
+  # Five mermaid advisories first patched in 11.16.1 (DoS / prototype pollution /
+  # sibling CSS injection). The deck only uses flowchart and stateDiagram-v2.
+  mermaid: 11.16.1
+  # GHSA-mh99-v99m-4gvg / GHSA-rgw5-rvv9-x895: unbounded expansion DoS.
+  # Lockfile currently has 2.1.2 and 5.0.7; pin each line to its patched floor.
+  "brace-expansion@>=2.0.0 <3.0.0": 2.1.4
+  "brace-expansion@>=5.0.0 <6.0.0": 5.0.9
+  # GHSA-7p8r-x3mc-p8w7 / GHSA-v2hh-gcrm-f6hx: host confusion via backslash
+  # authority. 3.1.5 is the first version that covers both.
+  "fast-uri@>=3.0.0 <4.0.0": 3.1.5
+  # GHSA-mwp4-54f8-5fhr: Address4 leading-zero octet decode mismatch.
+  ip-address: 10.3.1
+
+# pnpm 11 minimumReleaseAge gate: allow this override pin through when fresh
+# on the registry.
+minimumReleaseAgeExclude:
+  - 'nanoid@3.3.17'
