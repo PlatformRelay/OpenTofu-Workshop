@@ -117,18 +117,29 @@ S13_MESSY_FIXTURE='labs/day-2/13-static-analysis/messy/main.tf'
 # not a `git rev-parse --show-toplevel` path comparison — that returns the
 # PHYSICAL path while REPO_ROOT is logical, so on macOS (/var → /private/var)
 # it would mis-route to the fallback without anyone noticing.
+FMT_SCAN_OK=1
 if have git && [ -e "$REPO_ROOT/.git" ]; then
   heading "Formatting (tofu fmt -check; git-tracked .tf, S13 messy fixture excluded)"
   FORMAT_FILES=()
-  # Process substitution, not "$(git ls-files -z)": command substitution strips
-  # NUL bytes and would collapse the whole list into one bogus path.
-  while IFS= read -r -d '' tf_file; do
-    [ "$tf_file" = "$S13_MESSY_FIXTURE" ] && continue
-    # Tracked-but-deleted (staged rm not yet committed): skip rather than hand
-    # tofu fmt a missing path and fail with a misleading message.
-    [ -f "$tf_file" ] || continue
-    FORMAT_FILES+=("$tf_file")
-  done < <(git ls-files -z -- '*.tf')
+  # Route via a temp file rather than `< <(git ls-files …)`: process substitution
+  # discards the exit status, so a git that REFUSES (stale linked-worktree gitdir,
+  # safe.directory/dubious ownership, corrupt index) would yield an empty list and
+  # short-circuit into the green "canonically formatted" message below — a gate
+  # reporting success over a tree it never scanned. Command substitution is not an
+  # option either: "$(git ls-files -z)" strips NUL bytes and collapses the list
+  # into one bogus path.
+  GIT_TF_LIST="$(mktemp)"
+  git ls-files -z -- '*.tf' >"$GIT_TF_LIST" 2>/dev/null || FMT_SCAN_OK=0
+  if [ "$FMT_SCAN_OK" -eq 1 ]; then
+    while IFS= read -r -d '' tf_file; do
+      [ "$tf_file" = "$S13_MESSY_FIXTURE" ] && continue
+      # Tracked-but-deleted (staged rm not yet committed): skip rather than hand
+      # tofu fmt a missing path and fail with a misleading message.
+      [ -f "$tf_file" ] || continue
+      FORMAT_FILES+=("$tf_file")
+    done <"$GIT_TF_LIST"
+  fi
+  rm -f "$GIT_TF_LIST"
 else
   heading "Formatting (tofu fmt -check; no git index — filesystem walk, S13 messy fixture + agent/cache/worktree paths excluded)"
   FORMAT_FILES=()
@@ -143,7 +154,12 @@ else
     -print0)
 fi
 
-if [ "${#FORMAT_FILES[@]}" -eq 0 ] || tofu fmt -check "${FORMAT_FILES[@]}" >/dev/null 2>&1; then
+if [ "$FMT_SCAN_OK" -eq 0 ]; then
+  # Never degrade an unknown file set to a pass. The empty-list→pass below is a
+  # deliberate "nothing to check yet" degradation for the find path; here the
+  # list is empty because the scan BROKE, which is a different thing entirely.
+  fail "fmt scan: 'git ls-files' failed at a root that has a .git entry (stale worktree gitdir, safe.directory, or corrupt index) — refusing to report a green gate on an unknown file set"
+elif [ "${#FORMAT_FILES[@]}" -eq 0 ] || tofu fmt -check "${FORMAT_FILES[@]}" >/dev/null 2>&1; then
   pass "all tracked .tf files outside the S13 messy fixture are canonically formatted"
 else
   fail "unformatted files found — run 'task lab:fmt' (tofu fmt -recursive)"
