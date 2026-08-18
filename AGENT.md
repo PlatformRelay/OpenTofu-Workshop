@@ -201,6 +201,10 @@ missing). Rules:
 6. PDF/PNG export clean (magic-move + components render without overflow).
 7. `task verify` green — `tofu fmt -check`, `validate`, and `tofu test` pass
    (plan/mock lane needs no cloud; integration lane uses LocalStack).
+   The `fmt` gate scans **git-tracked** `*.tf` (minus the deliberate S13 messy
+   fixture), so it ignores sibling worktrees and caches — but equally, a new
+   `.tf` you have not `git add`ed yet is **not** checked. Stage it before
+   trusting a green gate. CI checkouts are fully tracked, so CI always sees it.
 8. **Presenter notes on every content slide** (see convention below) so anyone
    can deliver the deck, not just its author.
 9. **Facilitator runbook row** in
