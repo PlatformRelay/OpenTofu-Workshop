@@ -35,6 +35,8 @@
     "showcase:gif": "node scripts/make-showcase-gif.mjs",
     "test:showcase": "node --test scripts/make-showcase-gif.test.mjs",
     "test:supply-chain": "node --test scripts/supply-chain-policy.test.mjs scripts/pnpm-overrides.test.mjs",
+    "test:dep-audit": "node --test scripts/npm-audit-gate.test.mjs",
+    "dep-audit": "node scripts/npm-audit-gate.mjs",
     "test:quiz": "node --test scripts/quiz/quiz.test.mjs",
     "quiz:validate": "node scripts/quiz/validate.mjs",
     "quiz:export": "node scripts/quiz/export.mjs --out dist-quiz",

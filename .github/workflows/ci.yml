@@ -106,12 +106,12 @@ jobs:
           node --test scripts/pages-site.test.mjs scripts/readme-front-door.test.mjs
           node --test scripts/slide-overflow.test.mjs
 
-  # Non-blocking on purpose (US-F-SEC-2): Slidev's transitive tree currently
-  # carries a known baseline of advisories. This job surfaces NEW findings in
-  # CI logs without failing the workflow / gating merge until that baseline is
-  # cleared (do not "fix" by upgrading Slidev in this lane).
+  # Blocking (US-F-DEP-AUDIT): fails on any high/critical advisory that is not
+  # covered by an unexpired entry in supply-chain/exceptions.json, and fails
+  # closed when the audit data itself is missing, empty, or malformed.
+  # Moderate/low findings are reported but never block.
   audit:
-    name: pnpm audit (non-blocking)
+    name: Dependency audit (high/critical, fail-closed)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -121,9 +121,20 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: pnpm audit
-        continue-on-error: true
-        run: pnpm audit
+      - run: pnpm test:dep-audit
+      - name: pnpm audit (high/critical gate)
+        # `pnpm audit` exits non-zero whenever it finds ANY advisory, including
+        # the moderate/low ones we do not block on, and GitHub runs `run:` under
+        # `bash -e -o pipefail` — so piping it straight into the gate would fail
+        # the step on the audit's own exit code before the gate had a verdict.
+        # Capture first, then decide. Deliberately NOT `|| true`: a crashed or
+        # empty audit leaves an unusable file and the gate fails closed on it,
+        # which is exactly the behaviour we want.
+        run: |
+          set +e
+          pnpm audit --json > "$RUNNER_TEMP/pnpm-audit.json"
+          set -e
+          node scripts/npm-audit-gate.mjs "$RUNNER_TEMP/pnpm-audit.json"
 
   build:
     name: Build root decks
