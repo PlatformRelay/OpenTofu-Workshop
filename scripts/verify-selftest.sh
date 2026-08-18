@@ -54,6 +54,14 @@
 #    18e. .git entry present but `git ls-files` exits 128 (stale worktree gitdir,
 #         safe.directory, corrupt index) → exit !=0 AND an explicit refusal, never
 #         a green tick over an unscanned tree
+#    18f. .git entry present but `git ls-files` exits 0 with EMPTY output (deleted
+#         .git/index, fresh init, bogus GIT_INDEX_FILE) → exit !=0 AND the same
+#         refusal (review F1: the rc guard alone does not catch this)
+#    18g/18h. git-path S13 allowlist, both directions — the git scan compares
+#         ROOT-RELATIVE paths, which cases 13-18e never exercised (review F3)
+#    18i. tracked path listed by git but absent from the worktree → exit 0 AND an
+#         explicit warning, never a bare green claiming all files were checked
+#         (review F2; warn not fail, so a staged deletion is not a new false-red)
 #   day-2 lab tftest discovery (TEST-A2 / section 3–4 CODE_DIRS):
 #    19. planted labs/day-2/*/tests/*.tftest.hcl → exit 0 AND "…: tofu test (plan/mock)"
 #    20. broken lab unit assert → exit !=0 AND the lab path named (discovery ARMED)
@@ -420,6 +428,57 @@ m_git_mode_scan_broken() {
   printf 'gitdir: /nonexistent/gitdir\n' >"$root/.git"
 }
 
+# REVIEW F1: `git ls-files` can also fail SOFTLY — exit 0 with EMPTY output. The
+# rc guard does not see that, so the empty list sails into the
+# `[ ${#FORMAT_FILES[@]} -eq 0 ] ||` short-circuit and prints a green tick over a
+# tree that was never scanned. Reproduced three ways, all rc 0 and 0 bytes: a
+# deleted .git/index, a fresh init with nothing staged, and GIT_INDEX_FILE
+# pointing at a nonexistent index (hook-like environments).
+#
+# No existing case can reach this state: m_git_mode_tracked_unformatted plants
+# its file INTO the index, so the list is never empty there.
+m_git_mode_empty_index() {
+  local root="$1"
+  mkdir -p "$root/modules/unformatted-regression"
+  printf 'terraform {\n required_version = ">= 1.8"\n}\n' \
+    >"$root/modules/unformatted-regression/main.tf"
+  git_init_root "$root"
+  rm -f "$root/.git/index"
+}
+
+# REVIEW F3: every case above runs in a bare mktemp -d, so the S13 allowlist has
+# only ever been exercised on the FIND path, which compares './'-prefixed paths.
+# The git path compares ROOT-RELATIVE paths with no './' prefix — one character
+# away from a silent hole, and until now proven only by the real repo passing.
+# Pin both directions on the git path.
+m_git_mode_s13_only() {
+  local root="$1"   # build_root already ships the unformatted S13 fixture
+  git_init_root "$root"
+}
+
+m_git_mode_adjacent_s13() {
+  local root="$1"
+  printf 'terraform {\n required_version = ">= 1.8"\n}\n' \
+    >"$root/labs/day-2/13-static-analysis/messy/adjacent.tf"
+  git_init_root "$root"
+}
+
+# REVIEW F2: a tracked path absent from the worktree (sparse-checkout,
+# skip-worktree, staged mass deletion) is silently dropped by the `[ -f ]` skip.
+# If ALL of them vanish the run collapses into the same green while claiming every
+# tracked file was checked — and the F1 fix does NOT subsume it, because the raw
+# git output is non-empty here. Must WARN rather than hard-fail: hard-failing a
+# legitimately staged-deleted file would manufacture exactly the false-red this
+# lane exists to remove.
+m_git_mode_absent_tracked() {
+  local root="$1"
+  mkdir -p "$root/modules/absent-regression"
+  printf 'terraform {\n  required_version = ">= 1.8"\n}\n' \
+    >"$root/modules/absent-regression/main.tf"
+  git_init_root "$root"
+  rm -f "$root/modules/absent-regression/main.tf"
+}
+
 # Minimal provider-free day-2 lab with a plan-only unit suite — proves CODE_DIRS
 # discovery includes labs/day-2/** that ship *.tftest.hcl (TEST-A2).
 LAB_TFTTEST_DIR="labs/day-2/99-lab-tftest-selftest"
@@ -559,6 +618,10 @@ run_case "unformatted under .worktrees ignored" pass "all tracked .tf files outs
 run_case "git mode: sibling worktree ignored" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_git_mode_worktree_ignored "$GIT_SCAN_HEADING"
 run_case "git mode: tracked unformatted file still armed" fail "modules/unformatted-regression/main.tf" m_git_mode_tracked_unformatted "$GIT_SCAN_HEADING"
 run_case "git mode: broken git index does not fake a green fmt gate" fail "refusing to report a green gate" m_git_mode_scan_broken "$GIT_SCAN_HEADING"
+run_case "git mode: empty index does not fake a green fmt gate" fail "refusing to report a green gate" m_git_mode_empty_index "$GIT_SCAN_HEADING"
+run_case "git mode: exact S13 messy fixture allowlisted" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_git_mode_s13_only "$GIT_SCAN_HEADING"
+run_case "git mode: adjacent S13 file is not allowlisted" fail "labs/day-2/13-static-analysis/messy/adjacent.tf" m_git_mode_adjacent_s13 "$GIT_SCAN_HEADING"
+run_case "git mode: tracked-but-absent path is warned not silently passed" pass "absent from the worktree" m_git_mode_absent_tracked "$GIT_SCAN_HEADING"
 run_case "day-2 lab unit tftest gated" pass "labs/day-2/99-lab-tftest-selftest: tofu test (plan/mock)" m_lab_tftest_clean
 run_case "day-2 lab unit tftest failure armed" fail "labs/day-2/99-lab-tftest-selftest: tofu test" m_lab_tftest_fail
 run_case "day-2 lab integration tftest deferred" pass "labs/day-2/99-lab-tftest-selftest: only integration test(s) — deferred to task verify:integration / CI verify-integration" m_lab_integration_only
