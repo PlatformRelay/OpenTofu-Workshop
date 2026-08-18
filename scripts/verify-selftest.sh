@@ -45,6 +45,12 @@
 #    16. unformatted .tf under .claude/worktrees/ → exit 0 (ignored; no false fail)
 #    17. unformatted .tf under node_modules/ → exit 0 (ignored)
 #    18. unformatted .tf under */.terraform/ → exit 0 (ignored)
+#    18b. unformatted .tf under .worktrees/<lane>/ → exit 0 (sibling git worktree;
+#         US-F-VERIFY-WT — exercises the `find` FALLBACK path)
+#    18c. git-inited root + untracked .worktrees/<lane>/ → exit 0 (primary
+#         `git ls-files` path selected; sibling worktree structurally invisible)
+#    18d. git-inited root + TRACKED unformatted .tf → exit !=0 AND path named
+#         (proves the primary path is ARMED, not silently returning nothing)
 #   day-2 lab tftest discovery (TEST-A2 / section 3–4 CODE_DIRS):
 #    19. planted labs/day-2/*/tests/*.tftest.hcl → exit 0 AND "…: tofu test (plan/mock)"
 #    20. broken lab unit assert → exit !=0 AND the lab path named (discovery ARMED)
@@ -327,6 +333,52 @@ m_unformatted_under_dot_terraform() {
     >"$root/modules/example/.terraform/providers/cached.tf"
 }
 
+# US-F-VERIFY-WT: sibling git worktrees are commonly checked out at
+# .worktrees/<lane>/ under the repo root. Each carries its own copy of the whole
+# tree — including the deliberately-unformatted S13 fixture — so a filesystem
+# walk false-reds a clean tree with another lane's fixture. Exercises the
+# FIND fallback path (the temp root below is not a git work tree).
+m_unformatted_under_worktrees() {
+  local root="$1"
+  mkdir -p "$root/.worktrees/fake-lane/labs/day-2/13-static-analysis/messy"
+  printf 'terraform {\n required_version = ">= 1.8"\n}\n' \
+    >"$root/.worktrees/fake-lane/labs/day-2/13-static-analysis/messy/main.tf"
+}
+
+# --- git-mode coverage (US-F-VERIFY-WT) --------------------------------------
+# Every case above runs in a plain `mktemp -d`, which is NOT a git work tree, so
+# they all exercise verify.sh's `find` FALLBACK. The primary path — `git ls-files`
+# — would otherwise ship with zero coverage, and its failure mode is the nasty
+# one: an empty file list makes the gate report a green "canonically formatted"
+# while checking nothing. These two cases `git init` the temp root so the primary
+# path is selected, then prove it is BOTH worktree-safe AND still armed.
+#
+# `git ls-files` reads the index, so `git add -A` suffices — no commit, and no
+# user.name/user.email config required.
+git_init_root() {
+  local root="$1"
+  ( cd "$root" && git init -q . && git add -A ) >/dev/null 2>&1
+}
+
+# git mode: an untracked sibling worktree is structurally invisible to the scan.
+m_git_mode_worktree_ignored() {
+  local root="$1"
+  git_init_root "$root"
+  mkdir -p "$root/.worktrees/fake-lane/labs/day-2/13-static-analysis/messy"
+  printf 'terraform {\n required_version = ">= 1.8"\n}\n' \
+    >"$root/.worktrees/fake-lane/labs/day-2/13-static-analysis/messy/main.tf"
+}
+
+# git mode ARMED: a TRACKED unformatted file must still red the gate. This is the
+# case that catches a `git ls-files` that silently returns nothing.
+m_git_mode_tracked_unformatted() {
+  local root="$1"
+  mkdir -p "$root/modules/unformatted-regression"
+  printf 'terraform {\n required_version = ">= 1.8"\n}\n' \
+    >"$root/modules/unformatted-regression/main.tf"
+  git_init_root "$root"
+}
+
 # Minimal provider-free day-2 lab with a plan-only unit suite — proves CODE_DIRS
 # discovery includes labs/day-2/** that ship *.tftest.hcl (TEST-A2).
 LAB_TFTTEST_DIR="labs/day-2/99-lab-tftest-selftest"
@@ -462,6 +514,9 @@ run_case "unformatted file outside allowlist" fail "modules/unformatted-regressi
 run_case "unformatted under .claude/worktrees ignored" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_unformatted_under_claude_worktree
 run_case "unformatted under node_modules ignored" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_unformatted_under_node_modules
 run_case "unformatted under .terraform ignored" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_unformatted_under_dot_terraform
+run_case "unformatted under .worktrees ignored" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_unformatted_under_worktrees
+run_case "git mode: sibling worktree ignored" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_git_mode_worktree_ignored
+run_case "git mode: tracked unformatted file still armed" fail "modules/unformatted-regression/main.tf" m_git_mode_tracked_unformatted
 run_case "day-2 lab unit tftest gated" pass "labs/day-2/99-lab-tftest-selftest: tofu test (plan/mock)" m_lab_tftest_clean
 run_case "day-2 lab unit tftest failure armed" fail "labs/day-2/99-lab-tftest-selftest: tofu test" m_lab_tftest_fail
 run_case "day-2 lab integration tftest deferred" pass "labs/day-2/99-lab-tftest-selftest: only integration test(s) — deferred to task verify:integration / CI verify-integration" m_lab_integration_only
