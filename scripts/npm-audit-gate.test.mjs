@@ -1,13 +1,11 @@
 import assert from 'node:assert/strict'
-import { execFile } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import test from 'node:test'
-import { promisify } from 'node:util'
 
 import { evaluateAudit, loadAuditJson } from './npm-audit-gate.mjs'
 
-const run = promisify(execFile)
 const root = path.resolve(import.meta.dirname, '..')
 const gate = path.join(root, 'scripts', 'npm-audit-gate.mjs')
 const fixtures = path.join(root, 'scripts', 'fixtures', 'npm-audit')
@@ -32,13 +30,20 @@ function exception(overrides = {}) {
   }
 }
 
-async function cli(args, options = {}) {
-  try {
-    const { stdout, stderr } = await run(process.execPath, [gate, ...args], { cwd: root, ...options })
-    return { code: 0, stdout, stderr }
-  } catch (error) {
-    return { code: error.code ?? 1, stdout: error.stdout ?? '', stderr: error.stderr ?? '' }
-  }
+// Always close the child's stdin: the gate reads stdin when the source is "-",
+// so a test that never ends the stream would hang instead of failing.
+function cli(args, { input = '' } = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [gate, ...args], { cwd: root, stdio: ['pipe', 'pipe', 'pipe'] })
+    let stdout = ''
+    let stderr = ''
+    child.stdout.setEncoding('utf8').on('data', (chunk) => { stdout += chunk })
+    child.stderr.setEncoding('utf8').on('data', (chunk) => { stderr += chunk })
+    child.on('error', reject)
+    child.on('close', (code) => resolve({ code, stdout, stderr }))
+    child.stdin.on('error', () => {})
+    child.stdin.end(input)
+  })
 }
 
 // --- blocking findings -------------------------------------------------------
