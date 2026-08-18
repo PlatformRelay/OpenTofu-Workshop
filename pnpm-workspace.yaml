@@ -24,8 +24,10 @@ overrides:
   "js-yaml@>=4.0.0 <5.0.0": 4.3.1
   "js-yaml@>=3.0.0 <4.0.0": 3.15.1
   # GHSA-2v37-7h3g-55p8 / GHSA-28wg-ghj8-5hjv: nanoid generators can loop
-  # indefinitely. Patched on 3.x at 3.3.17; postcss pulls that line transitively.
-  "nanoid@>=3.0.0 <4.0.0": 3.3.17
+  # indefinitely. GHSA-2v37-7h3g-55p8 was re-scored to `<3.3.18`, so the old
+  # 3.3.17 floor was still inside the vulnerable range; 3.3.18 is the first
+  # patched 3.x release. postcss pulls that line transitively.
+  "nanoid@>=3.0.0 <4.0.0": 3.3.18
   # monaco-editor / mermaid pull older DOMPurify; pin the patched line.
   dompurify: 3.4.13
   # Five mermaid advisories first patched in 11.16.1 (DoS / prototype pollution /
@@ -44,4 +46,4 @@ overrides:
 # pnpm 11 minimumReleaseAge gate: allow this override pin through when fresh
 # on the registry.
 minimumReleaseAgeExclude:
-  - 'nanoid@3.3.17'
+  - 'nanoid@3.3.18'
