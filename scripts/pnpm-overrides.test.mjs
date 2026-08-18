@@ -29,9 +29,18 @@ test('js-yaml 3.x and 4.x overrides are bounded to their own patched floors', as
 test('nanoid override is bounded to the intended 3.x major at its patched floor', async () => {
   const workspace = await workspaceYaml()
 
-  assert.match(workspace, /"nanoid@>=3\.0\.0 <4\.0\.0": 3\.3\.17/)
+  // GHSA-2v37-7h3g-55p8 moved the 3.x floor to 3.3.18; the audit gate blocks on
+  // the high advisory, so the pin and its release-age exclusion must agree.
+  assert.match(workspace, /"nanoid@>=3\.0\.0 <4\.0\.0": 3\.3\.18/)
   assert.doesNotMatch(workspace, /"nanoid@>=3\.0\.0":/)
   assert.doesNotMatch(workspace, /(^|\s)nanoid:/m)
+})
+
+test('the minimumReleaseAge exclusion tracks the pinned nanoid version', async () => {
+  const workspace = await workspaceYaml()
+
+  assert.match(workspace, /^ {2}- 'nanoid@3\.3\.18'$/m)
+  assert.doesNotMatch(workspace, /nanoid@3\.3\.17/)
 })
 
 test('postcss, mermaid, and DOMPurify pin the patched lines', async () => {

@@ -1,0 +1,127 @@
+{
+  "advisories": {
+    "1130733": {
+      "findings": [
+        {
+          "version": "4.12.28",
+          "paths": [
+            ".>@slidev/cli>@modelcontextprotocol/node>@hono/node-server>hono"
+          ],
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        }
+      ],
+      "id": 1130733,
+      "title": "Hono: ReDoS in CORS middleware via Access-Control-Request-Headers",
+      "module_name": "hono",
+      "vulnerable_versions": "<4.12.34",
+      "patched_versions": ">=4.12.34",
+      "severity": "moderate",
+      "cwe": "CWE-1333",
+      "github_advisory_id": "GHSA-8j4g-w8fx-2239",
+      "url": "https://github.com/advisories/GHSA-8j4g-w8fx-2239"
+    },
+    "1138771": {
+      "findings": [
+        {
+          "version": "4.12.28",
+          "paths": [
+            ".>@slidev/cli>@modelcontextprotocol/node>@hono/node-server>hono"
+          ],
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        }
+      ],
+      "id": 1138771,
+      "title": "Hono: `memo()` retains SSR output across requests, leading to cross-user data disclosure",
+      "module_name": "hono",
+      "vulnerable_versions": ">=3.8.0 <4.12.34",
+      "patched_versions": ">=4.12.34",
+      "severity": "moderate",
+      "cwe": "CWE-488",
+      "github_advisory_id": "GHSA-f23p-vx2j-j53r",
+      "url": "https://github.com/advisories/GHSA-f23p-vx2j-j53r"
+    },
+    "1138772": {
+      "findings": [
+        {
+          "version": "4.12.28",
+          "paths": [
+            ".>@slidev/cli>@modelcontextprotocol/node>@hono/node-server>hono"
+          ],
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        }
+      ],
+      "id": 1138772,
+      "title": "Hono: Proxy Helper does not remove response headers listed in the `Connection` header",
+      "module_name": "hono",
+      "vulnerable_versions": ">=4.7.0 <4.12.34",
+      "patched_versions": ">=4.12.34",
+      "severity": "low",
+      "cwe": "CWE-200",
+      "github_advisory_id": "GHSA-79qm-7rj5-m7r9",
+      "url": "https://github.com/advisories/GHSA-79qm-7rj5-m7r9"
+    },
+    "1138773": {
+      "findings": [
+        {
+          "version": "4.12.28",
+          "paths": [
+            ".>@slidev/cli>@modelcontextprotocol/node>@hono/node-server>hono"
+          ],
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        }
+      ],
+      "id": 1138773,
+      "title": "Hono: Algorithmic Complexity DoS in Language Middleware",
+      "module_name": "hono",
+      "vulnerable_versions": ">=4.12.0 <4.12.34",
+      "patched_versions": ">=4.12.34",
+      "severity": "moderate",
+      "cwe": "CWE-407",
+      "github_advisory_id": "GHSA-54fx-42gc-7vw4",
+      "url": "https://github.com/advisories/GHSA-54fx-42gc-7vw4"
+    },
+    "1139322": {
+      "findings": [
+        {
+          "version": "1.19.14",
+          "paths": [
+            ".>@slidev/cli>@modelcontextprotocol/node>@hono/node-server"
+          ],
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        }
+      ],
+      "id": 1139322,
+      "title": "Node.js Adapter for Hono: Path traversal in `serve-static` on Windows via encoded backslash (`%5C`)",
+      "module_name": "@hono/node-server",
+      "vulnerable_versions": "<1.19.15",
+      "patched_versions": ">=1.19.15",
+      "severity": "moderate",
+      "cwe": "CWE-22",
+      "github_advisory_id": "GHSA-frvp-7c67-39w9",
+      "url": "https://github.com/advisories/GHSA-frvp-7c67-39w9"
+    }
+  },
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 1,
+      "moderate": 4,
+      "high": 0,
+      "critical": 0
+    },
+    "dependencies": 647,
+    "devDependencies": 54,
+    "optionalDependencies": 385,
+    "totalDependencies": 1059
+  }
+}

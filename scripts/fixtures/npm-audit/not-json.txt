@@ -1,0 +1,1 @@
+ERR_PNPM_AUDIT_FAILED  audit endpoint returned 502

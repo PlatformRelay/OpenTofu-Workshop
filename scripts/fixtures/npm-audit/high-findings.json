@@ -1,0 +1,83 @@
+{
+  "advisories": {
+    "1138808": {
+      "findings": [
+        {
+          "version": "1.2.1",
+          "paths": [
+            ".>@slidev/cli>@slidev/client>pptxgenjs>image-size"
+          ],
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        }
+      ],
+      "id": 1138808,
+      "title": "image-size: ICNS parser allows denial of service through an infinite loop",
+      "module_name": "image-size",
+      "vulnerable_versions": "<=2.0.2",
+      "patched_versions": ">=2.0.3",
+      "severity": "high",
+      "cwe": "CWE-835",
+      "github_advisory_id": "GHSA-w3rx-r6r6-pgpr",
+      "url": "https://github.com/advisories/GHSA-w3rx-r6r6-pgpr"
+    },
+    "1138809": {
+      "findings": [
+        {
+          "version": "1.2.1",
+          "paths": [
+            ".>@slidev/cli>@slidev/client>pptxgenjs>image-size"
+          ],
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        }
+      ],
+      "id": 1138809,
+      "title": "image-size: JXL and HEIF parsers allow denial of service through infinite loops",
+      "module_name": "image-size",
+      "vulnerable_versions": "<=2.0.2",
+      "patched_versions": ">=2.0.3",
+      "severity": "high",
+      "cwe": "CWE-835",
+      "github_advisory_id": "GHSA-5p2g-fcmc-qvqq",
+      "url": "https://github.com/advisories/GHSA-5p2g-fcmc-qvqq"
+    },
+    "1139427": {
+      "findings": [
+        {
+          "version": "3.3.17",
+          "paths": [
+            ".>@slidev/cli>@shikijs/magic-move>vue>@vue/compiler-sfc>postcss>nanoid"
+          ],
+          "dev": false,
+          "optional": false,
+          "bundled": false
+        }
+      ],
+      "id": 1139427,
+      "title": "nanoid: custom generators can loop indefinitely when size is zero",
+      "module_name": "nanoid",
+      "vulnerable_versions": "<3.3.18",
+      "patched_versions": ">=3.3.18",
+      "severity": "high",
+      "cwe": "CWE-835",
+      "github_advisory_id": "GHSA-2v37-7h3g-55p8",
+      "url": "https://github.com/advisories/GHSA-2v37-7h3g-55p8"
+    }
+  },
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 3,
+      "critical": 0
+    },
+    "dependencies": 647,
+    "devDependencies": 54,
+    "optionalDependencies": 385,
+    "totalDependencies": 1059
+  }
+}
