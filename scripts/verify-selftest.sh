@@ -374,7 +374,12 @@ m_unformatted_under_worktrees() {
 # user.name/user.email config required.
 git_init_root() {
   local root="$1"
-  ( cd "$root" && git init -q . && git add -A ) >/dev/null 2>&1
+  # -f is load-bearing: `git add` honours the developer's global core.excludesFile,
+  # and build_root never plants a .gitignore here. Without it, someone with e.g.
+  # `modules/` globally excluded would leave the planted file untracked, and the
+  # "tracked unformatted file still armed" case would go GREEN when it must go
+  # red — silently disarming the very case that proves git mode is armed.
+  ( cd "$root" && git init -q . && git add -A -f ) >/dev/null 2>&1
 }
 
 # git mode: an untracked sibling worktree is structurally invisible to the scan.
