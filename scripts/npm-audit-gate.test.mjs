@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
-import { readFile } from 'node:fs/promises'
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
 
-import { evaluateAudit, loadAuditJson } from './npm-audit-gate.mjs'
+import { evaluateAudit, loadAuditJson, loadExceptions } from './npm-audit-gate.mjs'
 
 const root = path.resolve(import.meta.dirname, '..')
 const gate = path.join(root, 'scripts', 'npm-audit-gate.mjs')
@@ -23,11 +24,19 @@ async function fixture(name) {
 function exception(overrides = {}) {
   return {
     id: 'GHSA-w3rx-r6r6-pgpr',
+    module: 'image-size',
     reason: 'no patched release published on the registry',
     owner: '@PlatformRelay',
-    expires: '2026-12-31',
+    expires: '2026-10-31',
     ...overrides,
   }
+}
+
+async function tempRegistry(contents) {
+  const dir = await mkdtemp(path.join(tmpdir(), 'otw-npm-audit-'))
+  const file = path.join(dir, 'exceptions.json')
+  await writeFile(file, contents)
+  return file
 }
 
 // Always close the child's stdin: the gate reads stdin when the source is "-",
@@ -103,7 +112,7 @@ test('a valid unexpired exception clears its advisory', async () => {
   const exceptions = [
     exception({ id: 'GHSA-w3rx-r6r6-pgpr' }),
     exception({ id: 'GHSA-5p2g-fcmc-qvqq' }),
-    exception({ id: 'GHSA-2v37-7h3g-55p8' }),
+    exception({ id: 'GHSA-2v37-7h3g-55p8', module: 'nanoid' }),
   ]
 
   const result = evaluateAudit({ audit, exceptions, today: TODAY })
@@ -118,7 +127,7 @@ test('an expired exception fails the gate and stops shielding its advisory', asy
   const exceptions = [
     exception({ id: 'GHSA-w3rx-r6r6-pgpr', expires: '2026-08-17' }),
     exception({ id: 'GHSA-5p2g-fcmc-qvqq' }),
-    exception({ id: 'GHSA-2v37-7h3g-55p8' }),
+    exception({ id: 'GHSA-2v37-7h3g-55p8', module: 'nanoid' }),
   ]
 
   const result = evaluateAudit({ audit, exceptions, today: TODAY })
@@ -133,7 +142,7 @@ test('an exception expiring today is still valid', async () => {
   const exceptions = [
     exception({ id: 'GHSA-w3rx-r6r6-pgpr', expires: TODAY }),
     exception({ id: 'GHSA-5p2g-fcmc-qvqq', expires: TODAY }),
-    exception({ id: 'GHSA-2v37-7h3g-55p8', expires: TODAY }),
+    exception({ id: 'GHSA-2v37-7h3g-55p8', module: 'nanoid', expires: TODAY }),
   ]
 
   const result = evaluateAudit({ audit, exceptions, today: TODAY })
@@ -142,7 +151,7 @@ test('an exception expiring today is still valid', async () => {
   assert.equal(result.ok, true)
 })
 
-for (const field of ['id', 'reason', 'owner', 'expires']) {
+for (const field of ['id', 'module', 'reason', 'owner', 'expires']) {
   test(`an exception missing "${field}" fails the gate`, async () => {
     const entry = exception()
     delete entry[field]
@@ -150,7 +159,7 @@ for (const field of ['id', 'reason', 'owner', 'expires']) {
     const result = evaluateAudit({ audit: await fixture('clean.json'), exceptions: [entry], today: TODAY })
 
     assert.equal(result.ok, false)
-    assert.ok(result.errors.some((error) => error.includes('require id, reason, owner, and expires')))
+    assert.ok(result.errors.some((error) => error.includes('require id, module, reason, owner, and expires')))
   })
 }
 
@@ -209,6 +218,63 @@ test('a non-array exception registry fails closed', async () => {
   assert.ok(result.errors.some((error) => error.includes('npmAdvisories must be an array')))
 })
 
+// --- F4: the module field is a real constraint, not decoration ---------------
+
+test('an exception whose module does not match the advisory does not shield it', async () => {
+  const audit = await fixture('high-findings.json')
+  const exceptions = [
+    // Right GHSA, wrong package: a waiver written for one dependency must not
+    // travel to an advisory that happens to share an id.
+    exception({ id: 'GHSA-w3rx-r6r6-pgpr', module: 'left-pad' }),
+    exception({ id: 'GHSA-5p2g-fcmc-qvqq' }),
+    exception({ id: 'GHSA-2v37-7h3g-55p8', module: 'nanoid' }),
+  ]
+
+  const result = evaluateAudit({ audit, exceptions, today: TODAY })
+
+  assert.equal(result.ok, false)
+  assert.ok(result.errors.some((error) => error.includes('is recorded for module')))
+  assert.ok(result.blocking.some((entry) => entry.id === 'GHSA-w3rx-r6r6-pgpr'))
+})
+
+// --- F3: expiry horizon ------------------------------------------------------
+
+test('an expiry beyond the horizon cap fails the gate', async () => {
+  const result = evaluateAudit({
+    audit: await fixture('clean.json'),
+    exceptions: [exception({ expires: '9999-12-31' })],
+    today: TODAY,
+  })
+
+  assert.equal(result.ok, false)
+  assert.ok(result.errors.some((error) => error.includes('more than 180 days')))
+})
+
+test('an expiry just inside the horizon cap is accepted', async () => {
+  const result = evaluateAudit({
+    audit: await fixture('clean.json'),
+    exceptions: [exception({ expires: '2027-02-13' })], // 179 days after TODAY
+    today: TODAY,
+  })
+
+  assert.deepEqual(result.errors, [])
+})
+
+// --- F2: stale exceptions warn, never block ----------------------------------
+
+test('an exception with no matching advisory is warned about, not failed on', async () => {
+  const result = evaluateAudit({
+    audit: await fixture('clean.json'),
+    exceptions: [exception()],
+    today: TODAY,
+  })
+
+  assert.deepEqual(result.errors, [])
+  assert.equal(result.ok, true)
+  assert.ok(result.warnings.some((warning) => warning.includes('GHSA-w3rx-r6r6-pgpr')))
+  assert.ok(result.warnings.some((warning) => warning.includes('no longer matches')))
+})
+
 // --- fail-closed on unusable audit data --------------------------------------
 
 test('a null audit payload fails closed', () => {
@@ -259,6 +325,19 @@ test('non-numeric severity counts fail closed', () => {
 
   assert.equal(result.ok, false)
   assert.ok(result.errors.some((error) => error.includes('metadata.vulnerabilities.high')))
+})
+
+test('a payload with no advisories key at all fails closed', () => {
+  // pnpm always emits `advisories`. Its absence means the payload is not a
+  // whole report, so zero counts prove nothing.
+  const result = evaluateAudit({
+    audit: { metadata: { vulnerabilities: { high: 0, critical: 0 } } },
+    exceptions: [],
+    today: TODAY,
+  })
+
+  assert.equal(result.ok, false)
+  assert.ok(result.errors.some((error) => error.includes('advisories')))
 })
 
 test('an advisories value that is not an object fails closed', () => {
@@ -362,17 +441,85 @@ test('CLI exits non-zero on empty stdin', async () => {
   assert.match(result.stderr, /produced no output/)
 })
 
+// --- F1: loadExceptions is the production path and must fail closed ----------
+
+test('loadExceptions reads the real repository registry', async () => {
+  const exceptions = await loadExceptions(path.join(root, 'supply-chain', 'exceptions.json'))
+
+  assert.ok(Array.isArray(exceptions))
+  assert.equal(exceptions.length, 2)
+  assert.deepEqual(
+    exceptions.map((entry) => entry.id).sort(),
+    ['GHSA-5p2g-fcmc-qvqq', 'GHSA-w3rx-r6r6-pgpr'],
+  )
+})
+
+test('loadExceptions fails closed on a missing registry file', async () => {
+  // The registry is tracked and also carries remoteInputs, so its absence is a
+  // moved/renamed path — an anomaly — not a valid empty registry. Returning []
+  // here would leave the gate running with zero exception governance.
+  await assert.rejects(
+    () => loadExceptions(path.join(root, 'supply-chain', 'does-not-exist.json')),
+    /could not be read/,
+  )
+})
+
+test('loadExceptions fails closed on a malformed registry', async () => {
+  const file = await tempRegistry('{ "npmAdvisories": [ ')
+
+  await assert.rejects(() => loadExceptions(file), /is not valid JSON/)
+})
+
+test('loadExceptions fails closed on a non-object registry root', async () => {
+  const file = await tempRegistry('[]')
+
+  await assert.rejects(() => loadExceptions(file), /must contain a JSON object/)
+})
+
+test('loadExceptions fails closed when the npmAdvisories key is absent', async () => {
+  const file = await tempRegistry(JSON.stringify({ remoteInputs: [] }))
+
+  await assert.rejects(() => loadExceptions(file), /has no npmAdvisories key/)
+})
+
+test('loadExceptions accepts a present-but-empty npmAdvisories list', async () => {
+  const file = await tempRegistry(JSON.stringify({ remoteInputs: [], npmAdvisories: [] }))
+
+  assert.deepEqual(await loadExceptions(file), [])
+})
+
+test('the CLI fails closed when the registry path is missing', async () => {
+  const result = await cli([fixturePath('clean.json'), '--exceptions', path.join(root, 'supply-chain', 'nope.json')])
+
+  assert.equal(result.code, 1)
+  assert.match(result.stderr, /could not be read/)
+})
+
 // --- repository state --------------------------------------------------------
 
 test('the checked-in exception registry is valid and unexpired today', async () => {
-  const registry = JSON.parse(await readFile(path.join(root, 'supply-chain', 'exceptions.json'), 'utf8'))
+  const exceptions = await loadExceptions(path.join(root, 'supply-chain', 'exceptions.json'))
   const today = new Date().toISOString().slice(0, 10)
 
   const result = evaluateAudit({
     audit: { advisories: {}, metadata: { vulnerabilities: { high: 0, critical: 0 } } },
-    exceptions: registry.npmAdvisories ?? [],
+    exceptions,
     today,
   })
 
   assert.deepEqual(result.errors, [])
+})
+
+test('the checked-in registry actually clears the live image-size advisories', async () => {
+  const exceptions = await loadExceptions(path.join(root, 'supply-chain', 'exceptions.json'))
+  const audit = await fixture('high-findings.json')
+  const today = new Date().toISOString().slice(0, 10)
+
+  const result = evaluateAudit({ audit, exceptions, today })
+
+  // nanoid is patched, not excepted, so it must still block against the
+  // pre-patch fixture — proving the registry shields only what it names.
+  assert.equal(result.ok, false)
+  assert.deepEqual(result.blocking.map((entry) => entry.id), ['GHSA-2v37-7h3g-55p8'])
+  assert.equal(result.excepted.length, 2)
 })
