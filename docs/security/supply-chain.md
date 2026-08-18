@@ -119,12 +119,29 @@ entry to `npmAdvisories` in `supply-chain/exceptions.json`:
 
 - `id` must be the **GHSA identifier**, not the numeric npm advisory id — the
   numeric ids are registry-internal and unstable;
+- `module` must name the affected package and is **checked against the
+  advisory's `module_name`**. A waiver applies to one package only; an entry
+  with the right GHSA but the wrong module shields nothing and fails the gate;
 - `reason`, `owner`, and an ISO `YYYY-MM-DD` `expires` are all required. A
   missing field, a malformed or impossible date, a non-GHSA id, a duplicate
   entry, or an `npmAdvisories` value that is not an array fails the gate;
 - an **expired** exception both fails the gate *and* stops shielding its
   advisory, so letting one lapse can never quietly widen what is allowed
-  through. Expiries are deliberately short (~90 days) to force a re-check.
+  through;
+- `expires` may not sit more than **180 days** out. An exception is a temporary
+  risk acceptance, not a permanent waiver, so a far-future date is rejected
+  rather than quietly accepted. The shipped entries use ~90 days.
+
+The registry file itself must exist and must contain an `npmAdvisories` key —
+both a missing file and a missing key fail the gate. Declare "no exceptions"
+with an explicit empty array, never by deleting the file or the key, so that a
+moved or renamed registry can never be mistaken for a governed empty one.
+
+When an exception stops matching any current advisory — the usual sign that a
+patch has landed — the gate prints a warning naming it, but does not fail.
+Blocking there would red the gate for a non-security reason (a transitive
+dependency simply disappearing); the `expires` horizon is what caps a forgotten
+waiver. Delete the entry when you see the warning.
 
 This registry shares a file with the remote-input exceptions above but not their
 schema — `npmAdvisories` and `remoteInputs` have separate validators and neither
