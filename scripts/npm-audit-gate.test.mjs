@@ -225,6 +225,31 @@ test('audit output without a metadata block fails closed', async () => {
   assert.ok(result.errors.some((error) => error.includes('metadata.vulnerabilities')))
 })
 
+test('absent high/critical severity counts fail closed', () => {
+  // The empty-counts payload is the dangerous one: it is shaped like a report
+  // but witnesses nothing, so it must not be readable as a clean audit.
+  const result = evaluateAudit({
+    audit: { advisories: {}, metadata: { vulnerabilities: {} } },
+    exceptions: [],
+    today: TODAY,
+  })
+
+  assert.equal(result.ok, false)
+  assert.ok(result.errors.some((error) => error.includes('metadata.vulnerabilities.high')))
+  assert.ok(result.errors.some((error) => error.includes('metadata.vulnerabilities.critical')))
+})
+
+test('absent info/low/moderate counts are tolerated when high and critical are present', () => {
+  const result = evaluateAudit({
+    audit: { advisories: {}, metadata: { vulnerabilities: { high: 0, critical: 0 } } },
+    exceptions: [],
+    today: TODAY,
+  })
+
+  assert.deepEqual(result.errors, [])
+  assert.equal(result.ok, true)
+})
+
 test('non-numeric severity counts fail closed', () => {
   const result = evaluateAudit({
     audit: { advisories: {}, metadata: { vulnerabilities: { high: 'none', critical: 0 } } },
@@ -308,14 +333,14 @@ test('loadAuditJson rejects a missing file', async () => {
 // --- CLI ---------------------------------------------------------------------
 
 test('CLI exits non-zero on an unexcepted high advisory read from a file', async () => {
-  const result = await cli([fixturePath('high-findings.json'), '--exceptions', 'none', '--today', TODAY])
+  const result = await cli([fixturePath('high-findings.json'), '--exceptions', 'none'])
 
   assert.equal(result.code, 1)
   assert.match(result.stderr, /GHSA-2v37-7h3g-55p8/)
 })
 
 test('CLI exits zero on a moderate/low-only audit read from stdin', async () => {
-  const result = await cli(['-', '--exceptions', 'none', '--today', TODAY], {
+  const result = await cli(['-', '--exceptions', 'none'], {
     input: await readFile(fixturePath('moderate-low-only.json'), 'utf8'),
   })
 
@@ -324,14 +349,14 @@ test('CLI exits zero on a moderate/low-only audit read from stdin', async () => 
 })
 
 test('CLI exits non-zero on a missing audit file', async () => {
-  const result = await cli([fixturePath('does-not-exist.json'), '--exceptions', 'none', '--today', TODAY])
+  const result = await cli([fixturePath('does-not-exist.json'), '--exceptions', 'none'])
 
   assert.equal(result.code, 1)
   assert.match(result.stderr, /could not be read/)
 })
 
 test('CLI exits non-zero on empty stdin', async () => {
-  const result = await cli(['-', '--exceptions', 'none', '--today', TODAY], { input: '' })
+  const result = await cli(['-', '--exceptions', 'none'], { input: '' })
 
   assert.equal(result.code, 1)
   assert.match(result.stderr, /produced no output/)

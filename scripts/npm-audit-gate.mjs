@@ -100,9 +100,14 @@ function validateAuditShape(audit, errors) {
   let counted = true
   for (const severity of KNOWN_SEVERITIES) {
     const count = vulnerabilities[severity]
-    if (count === undefined) continue
+    // The blocking severities are the schema witness and must be present: an
+    // empty `vulnerabilities` object is shaped like a report but proves
+    // nothing, and letting it through would read "we could not count the
+    // advisories" as "there are no advisories". The informational severities
+    // are not load-bearing, so a missing one is tolerated.
+    if (count === undefined && !BLOCKING_SEVERITIES.has(severity)) continue
     if (!Number.isInteger(count) || count < 0) {
-      errors.push(`audit data has a non-numeric metadata.vulnerabilities.${severity} count (${JSON.stringify(count)})`)
+      errors.push(`audit data has a missing or non-numeric metadata.vulnerabilities.${severity} count (${JSON.stringify(count)})`)
       counted = false
     }
   }
@@ -240,15 +245,19 @@ export async function loadExceptions(file) {
   return parsed.npmAdvisories ?? []
 }
 
+// Note there is deliberately no `--today` flag: a CLI switch that can make an
+// expired exception look valid would be an override in the unsafe direction on
+// a security gate. Expiry is only ever judged against the real clock here, and
+// is fully covered through `evaluateAudit()` in the tests.
 function parseArgs(argv) {
-  const options = { source: undefined, exceptions: undefined, today: undefined }
+  const options = { source: undefined, exceptions: undefined }
   const positional = []
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
-    if (arg === '--exceptions' || arg === '--today') {
+    if (arg === '--exceptions') {
       const value = argv[index + 1]
       if (value === undefined) throw new Error(`${arg} requires a value`)
-      options[arg.slice(2)] = value
+      options.exceptions = value
       index += 1
       continue
     }
@@ -267,13 +276,20 @@ async function main(argv) {
     ? []
     : await loadExceptions(options.exceptions ?? path.join(root, 'supply-chain', 'exceptions.json'))
   const audit = await loadAuditJson(options.source)
-  const today = options.today ?? new Date().toISOString().slice(0, 10)
+  const today = new Date().toISOString().slice(0, 10)
 
   const result = evaluateAudit({ audit, exceptions, today })
   if (!result.ok) {
     console.error(result.errors.join('\n'))
-    console.error(`\nDependency-audit gate FAILED: ${result.blocking.length} unexcepted high/critical advisor${result.blocking.length === 1 ? 'y' : 'ies'}.`)
-    console.error(`Patch it via an override in pnpm-workspace.yaml, or — only while no patched release exists — add an entry to ${EXCEPTIONS_FILE}.`)
+    if (result.blocking.length > 0) {
+      console.error(`\nDependency-audit gate FAILED: ${result.blocking.length} unexcepted high/critical advisor${result.blocking.length === 1 ? 'y' : 'ies'}.`)
+      console.error(`Patch it via an override in pnpm-workspace.yaml, or — only while no patched release exists — add an entry to ${EXCEPTIONS_FILE}.`)
+    } else {
+      // No blocking advisory, but something above was still wrong: unusable
+      // audit data or an invalid exception. Fail closed and say which.
+      console.error('\nDependency-audit gate FAILED: the audit data or the exception registry could not be trusted.')
+      console.error('This is a fail-closed result, not a clean audit — fix the input above and re-run.')
+    }
     process.exitCode = 1
     return
   }
