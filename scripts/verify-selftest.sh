@@ -184,10 +184,16 @@ build_root() {
   done
 }
 
-# run_case <label> <expect: pass|fail> <needle> <mutator-fn>
+# run_case <label> <expect: pass|fail> <needle> <mutator-fn> [also-needle]
+#
+# `also-needle` is an OPTIONAL second literal that must ALSO appear in the output.
+# It exists so a case can pin down WHICH code path produced the result, not just
+# the verdict: the git-mode cases below use it to assert verify.sh actually
+# selected the `git ls-files` scan. Without it, a regression that silently routed
+# git mode to the `find` fallback would leave every case green.
 run_case() {
-  local label="$1" expect="$2" needle="$3" mutate="$4"
-  local tmp out rc
+  local label="$1" expect="$2" needle="$3" mutate="$4" also="${5:-}"
+  local tmp out rc also_ok=1
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' RETURN
   build_root "$tmp"
@@ -197,23 +203,31 @@ run_case() {
   rc=$?
   set -e
 
+  if [ -n "$also" ] && ! printf '%s' "$out" | grep -qF "$also"; then
+    also_ok=0
+  fi
+
   if [ "$expect" = "pass" ]; then
-    if [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -qF "$needle"; then
+    if [ "$rc" -eq 0 ] && [ "$also_ok" -eq 1 ] && printf '%s' "$out" | grep -qF "$needle"; then
       ok "$label — exit 0 and enforcement armed ('$needle')"
     else
-      bad "$label — expected exit 0 + '$needle'; got exit $rc"
-      printf '%s' "$out" | grep -E 'drift|annotated|pin drift' | sed 's/^/        /' || true
+      bad "$label — expected exit 0 + '$needle'${also:+ + '$also'}; got exit $rc"
+      printf '%s' "$out" | grep -E 'drift|annotated|pin drift|Formatting' | sed 's/^/        /' || true
     fi
   else
-    if [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qF "$needle"; then
+    if [ "$rc" -ne 0 ] && [ "$also_ok" -eq 1 ] && printf '%s' "$out" | grep -qF "$needle"; then
       ok "$label — exit $rc (non-zero) and drift named ('$needle')"
     else
-      bad "$label — expected non-zero + '$needle'; got exit $rc"
-      printf '%s' "$out" | grep -E 'drift|annotated|pin drift' | sed 's/^/        /' || true
+      bad "$label — expected non-zero + '$needle'${also:+ + '$also'}; got exit $rc"
+      printf '%s' "$out" | grep -E 'drift|annotated|pin drift|Formatting' | sed 's/^/        /' || true
     fi
   fi
   trap - RETURN
 }
+
+# Heading literals that identify which scan path section 2 selected.
+GIT_SCAN_HEADING='git-tracked .tf, S13 messy fixture excluded'
+FIND_SCAN_HEADING='no git index — filesystem walk'
 
 # --- mutators (operate on the temp copy only) --------------------------------
 m_clean() { :; }   # leave the copy pristine → block matches source
@@ -514,9 +528,9 @@ run_case "unformatted file outside allowlist" fail "modules/unformatted-regressi
 run_case "unformatted under .claude/worktrees ignored" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_unformatted_under_claude_worktree
 run_case "unformatted under node_modules ignored" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_unformatted_under_node_modules
 run_case "unformatted under .terraform ignored" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_unformatted_under_dot_terraform
-run_case "unformatted under .worktrees ignored" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_unformatted_under_worktrees
-run_case "git mode: sibling worktree ignored" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_git_mode_worktree_ignored
-run_case "git mode: tracked unformatted file still armed" fail "modules/unformatted-regression/main.tf" m_git_mode_tracked_unformatted
+run_case "unformatted under .worktrees ignored" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_unformatted_under_worktrees "$FIND_SCAN_HEADING"
+run_case "git mode: sibling worktree ignored" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_git_mode_worktree_ignored "$GIT_SCAN_HEADING"
+run_case "git mode: tracked unformatted file still armed" fail "modules/unformatted-regression/main.tf" m_git_mode_tracked_unformatted "$GIT_SCAN_HEADING"
 run_case "day-2 lab unit tftest gated" pass "labs/day-2/99-lab-tftest-selftest: tofu test (plan/mock)" m_lab_tftest_clean
 run_case "day-2 lab unit tftest failure armed" fail "labs/day-2/99-lab-tftest-selftest: tofu test" m_lab_tftest_fail
 run_case "day-2 lab integration tftest deferred" pass "labs/day-2/99-lab-tftest-selftest: only integration test(s) — deferred to task verify:integration / CI verify-integration" m_lab_integration_only

@@ -3,7 +3,8 @@
 #
 # Unit lane (no Docker needed):
 #   1. deps preflight (tofu present, version)
-#   2. tofu fmt -check -recursive
+#   2. tofu fmt -check over git-tracked *.tf (minus the S13 messy fixture);
+#      falls back to a filesystem walk when the root is not a git work tree
 #   3. per module/example/day-2-lab that has *.tf: tofu init -backend=false + validate
 #   4. per module/example/day-2-lab that has *.tftest.hcl: tofu test (plan/mock lanes;
 #      *integration*.tftest.hcl deferred to task verify:integration / CI verify-integration)
@@ -88,18 +89,59 @@ done
 shopt -u nullglob
 
 # ---------------------------------------------------------------------------
-# 2. fmt -check (repo-wide except the intentional S13 break→fix fixture)
+# 2. fmt -check (git-tracked .tf except the intentional S13 break→fix fixture)
+#
+#    Scope is the git INDEX, not a filesystem walk (US-F-VERIFY-WT). A walk also
+#    descends into whatever else happens to sit under the repo root — most
+#    painfully sibling git worktrees at .worktrees/<lane>/, each holding its own
+#    copy of the whole tree INCLUDING the deliberately-unformatted S13 fixture.
+#    That turned a clean tree red with another lane's fixture, purely locally
+#    (CI checkouts have no siblings), which trains people to ignore the gate.
+#    Scanning the index excludes every sibling worktree, node_modules, provider
+#    cache and future untracked directory structurally — no exclusion list to
+#    keep in sync — and makes the pass message below actually true.
+#
+#    Trade-off: a brand-new .tf that has never been `git add`ed is not scanned.
+#    It is picked up the moment it is staged, and CI checkouts are fully tracked.
+#
+#    FALLBACK: scripts/verify-selftest.sh copies this script into a throwaway
+#    temp root that is NOT a git work tree, where `git ls-files` would exit 128
+#    and yield an empty list — i.e. a silently disarmed gate. When the root is
+#    not a work tree we fall back to the filesystem walk, with .worktrees/ added
+#    to the exclusions so the fallback is worktree-safe too. Both paths are
+#    covered by verify-selftest.sh.
 # ---------------------------------------------------------------------------
-heading "Formatting (tofu fmt -check; S13 messy fixture + agent/cache paths excluded)"
-FORMAT_FILES=()
-while IFS= read -r -d '' tf_file; do
-  FORMAT_FILES+=("$tf_file")
-done < <(find . -type f -name '*.tf' \
-  ! -path './labs/day-2/13-static-analysis/messy/main.tf' \
-  ! -path './.claude/*' \
-  ! -path './node_modules/*' \
-  ! -path '*/.terraform/*' \
-  -print0)
+S13_MESSY_FIXTURE='labs/day-2/13-static-analysis/messy/main.tf'
+# A .git ENTRY at the root is the discriminator: a directory in a normal clone,
+# a file in a linked worktree, absent in the self-test's temp root. Deliberately
+# not a `git rev-parse --show-toplevel` path comparison — that returns the
+# PHYSICAL path while REPO_ROOT is logical, so on macOS (/var → /private/var)
+# it would mis-route to the fallback without anyone noticing.
+if have git && [ -e "$REPO_ROOT/.git" ]; then
+  heading "Formatting (tofu fmt -check; git-tracked .tf, S13 messy fixture excluded)"
+  FORMAT_FILES=()
+  # Process substitution, not "$(git ls-files -z)": command substitution strips
+  # NUL bytes and would collapse the whole list into one bogus path.
+  while IFS= read -r -d '' tf_file; do
+    [ "$tf_file" = "$S13_MESSY_FIXTURE" ] && continue
+    # Tracked-but-deleted (staged rm not yet committed): skip rather than hand
+    # tofu fmt a missing path and fail with a misleading message.
+    [ -f "$tf_file" ] || continue
+    FORMAT_FILES+=("$tf_file")
+  done < <(git ls-files -z -- '*.tf')
+else
+  heading "Formatting (tofu fmt -check; no git index — filesystem walk, S13 messy fixture + agent/cache/worktree paths excluded)"
+  FORMAT_FILES=()
+  while IFS= read -r -d '' tf_file; do
+    FORMAT_FILES+=("$tf_file")
+  done < <(find . -type f -name '*.tf' \
+    ! -path "./$S13_MESSY_FIXTURE" \
+    ! -path './.claude/*' \
+    ! -path './.worktrees/*' \
+    ! -path './node_modules/*' \
+    ! -path '*/.terraform/*' \
+    -print0)
+fi
 
 if [ "${#FORMAT_FILES[@]}" -eq 0 ] || tofu fmt -check "${FORMAT_FILES[@]}" >/dev/null 2>&1; then
   pass "all tracked .tf files outside the S13 messy fixture are canonically formatted"
