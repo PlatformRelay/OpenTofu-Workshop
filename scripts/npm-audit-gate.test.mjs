@@ -348,7 +348,7 @@ test('an advisories value that is not an object fails closed', () => {
   })
 
   assert.equal(result.ok, false)
-  assert.ok(result.errors.some((error) => error.includes('advisories must be an object')))
+  assert.ok(result.errors.some((error) => error.includes('no advisories object')))
 })
 
 test('an advisory entry missing its GHSA id fails closed', () => {

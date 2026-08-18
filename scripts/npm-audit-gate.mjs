@@ -21,6 +21,9 @@ const BLOCKING_SEVERITIES = new Set(['high', 'critical'])
 const KNOWN_SEVERITIES = new Set(['info', 'low', 'moderate', 'high', 'critical'])
 const GHSA_ID = /^GHSA-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}$/
 const EXCEPTIONS_FILE = 'supply-chain/exceptions.json'
+// An exception is a temporary, re-examined risk acceptance. Capping how far
+// ahead `expires` may sit stops `9999-12-31` from masquerading as one.
+const MAX_EXCEPTION_DAYS = 180
 
 function isPlainObject(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -56,9 +59,10 @@ function validateExceptions(exceptions, today, errors) {
       continue
     }
     const label = isNonEmptyString(exception.id) ? exception.id : '<unnamed entry>'
-    if (!isNonEmptyString(exception.id) || !isNonEmptyString(exception.reason)
-      || !isNonEmptyString(exception.owner) || !isNonEmptyString(exception.expires)) {
-      errors.push(`${EXCEPTIONS_FILE}: npmAdvisories exceptions require id, reason, owner, and expires (${label})`)
+    if (!isNonEmptyString(exception.id) || !isNonEmptyString(exception.module)
+      || !isNonEmptyString(exception.reason) || !isNonEmptyString(exception.owner)
+      || !isNonEmptyString(exception.expires)) {
+      errors.push(`${EXCEPTIONS_FILE}: npmAdvisories exceptions require id, module, reason, owner, and expires (${label})`)
       continue
     }
     if (!GHSA_ID.test(exception.id)) {
@@ -71,6 +75,13 @@ function validateExceptions(exceptions, today, errors) {
     }
     if (exception.expires < today) {
       errors.push(`${EXCEPTIONS_FILE}: ${label} expired on ${exception.expires} — re-verify the advisory, then patch it or renew the exception`)
+      continue
+    }
+    const horizonDays = Math.round(
+      (Date.parse(`${exception.expires}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86400000,
+    )
+    if (horizonDays > MAX_EXCEPTION_DAYS) {
+      errors.push(`${EXCEPTIONS_FILE}: ${label} expires ${horizonDays} days out, more than ${MAX_EXCEPTION_DAYS} days — an exception is a temporary risk acceptance, not a permanent waiver`)
       continue
     }
     if (byId.has(exception.id)) {
@@ -112,11 +123,13 @@ function validateAuditShape(audit, errors) {
     }
   }
   if (!counted) return null
-  if (audit.advisories !== undefined && !isPlainObject(audit.advisories)) {
-    errors.push('audit data advisories must be an object keyed by advisory id')
+  // pnpm always emits `advisories`. If it is absent the payload is not a whole
+  // report, so its zero counts witness nothing.
+  if (!isPlainObject(audit.advisories)) {
+    errors.push('audit data has no advisories object keyed by advisory id — this is not a complete pnpm audit report')
     return null
   }
-  return { vulnerabilities, advisories: audit.advisories ?? {} }
+  return { vulnerabilities, advisories: audit.advisories }
 }
 
 function collectAdvisories(advisories, errors) {
@@ -158,10 +171,11 @@ function collectAdvisories(advisories, errors) {
  */
 export function evaluateAudit({ audit, exceptions = [], today = new Date().toISOString().slice(0, 10) } = {}) {
   const errors = []
+  const warnings = []
   const exceptionById = validateExceptions(exceptions, today, errors)
   const shape = validateAuditShape(audit, errors)
   if (shape === null) {
-    return { ok: false, errors, blocking: [], excepted: [] }
+    return { ok: false, errors, warnings, blocking: [], excepted: [] }
   }
 
   const advisories = collectAdvisories(shape.advisories, errors)
@@ -180,9 +194,19 @@ export function evaluateAudit({ audit, exceptions = [], today = new Date().toISO
 
   const blocking = []
   const excepted = []
+  const usedExceptions = new Set()
   for (const advisory of blockingCandidates) {
     const exception = exceptionById.get(advisory.id)
+    // A waiver names one package. Matching on the GHSA alone would let an
+    // exception written for one dependency travel to a different one.
+    if (exception && exception.module !== advisory.module) {
+      usedExceptions.add(advisory.id)
+      errors.push(`${EXCEPTIONS_FILE}: ${advisory.id} is recorded for module ${exception.module} but the advisory affects ${advisory.module} — the exception does not apply`)
+      blocking.push(advisory)
+      continue
+    }
     if (exception) {
+      usedExceptions.add(advisory.id)
       excepted.push({ ...advisory, exception })
       continue
     }
@@ -190,7 +214,16 @@ export function evaluateAudit({ audit, exceptions = [], today = new Date().toISO
     errors.push(`${advisory.severity} advisory ${advisory.id} in ${advisory.module} (${advisory.vulnerable} → ${advisory.patched || 'no published patch'}) is not covered by an unexpired exception: ${advisory.url}`)
   }
 
-  return { ok: errors.length === 0, errors, blocking, excepted }
+  // A stale exception is reported but never blocks. Erroring would red the gate
+  // for a non-security reason — a transitive dependency merely disappearing —
+  // and stale-exception detection is outside this gate's remit. The `expires`
+  // horizon already caps how long a forgotten waiver can linger.
+  for (const id of exceptionById.keys()) {
+    if (usedExceptions.has(id)) continue
+    warnings.push(`${EXCEPTIONS_FILE}: ${id} no longer matches any high/critical advisory — delete it if the finding is patched or gone`)
+  }
+
+  return { ok: errors.length === 0, errors, warnings, blocking, excepted }
 }
 
 async function readStdin() {
@@ -225,12 +258,20 @@ export async function loadAuditJson(source) {
   }
 }
 
+/**
+ * Load the exception registry, failing closed on every unusable variant.
+ *
+ * A missing file is an error, not an empty registry. The file is tracked and
+ * also carries `remoteInputs`, so its absence means a moved or renamed path —
+ * and once every advisory is patched and `npmAdvisories` is legitimately empty,
+ * returning [] here would leave the gate running green with no exception
+ * governance at all. "Present but empty" is the valid empty case.
+ */
 export async function loadExceptions(file) {
   let raw
   try {
     raw = await readFile(file, 'utf8')
   } catch (error) {
-    if (error.code === 'ENOENT') return []
     throw new Error(`${EXCEPTIONS_FILE} could not be read: ${error.message}`)
   }
   let parsed
@@ -242,7 +283,10 @@ export async function loadExceptions(file) {
   if (!isPlainObject(parsed)) {
     throw new Error(`${EXCEPTIONS_FILE} must contain a JSON object`)
   }
-  return parsed.npmAdvisories ?? []
+  if (parsed.npmAdvisories === undefined) {
+    throw new Error(`${EXCEPTIONS_FILE} has no npmAdvisories key — use an empty array to declare no exceptions`)
+  }
+  return parsed.npmAdvisories
 }
 
 // Note there is deliberately no `--today` flag: a CLI switch that can make an
@@ -281,6 +325,9 @@ async function main(argv) {
   const result = evaluateAudit({ audit, exceptions, today })
   if (!result.ok) {
     console.error(result.errors.join('\n'))
+    for (const warning of result.warnings) {
+      console.error(`warning: ${warning}`)
+    }
     if (result.blocking.length > 0) {
       console.error(`\nDependency-audit gate FAILED: ${result.blocking.length} unexcepted high/critical advisor${result.blocking.length === 1 ? 'y' : 'ies'}.`)
       console.error(`Patch it via an override in pnpm-workspace.yaml, or — only while no patched release exists — add an entry to ${EXCEPTIONS_FILE}.`)
@@ -292,6 +339,9 @@ async function main(argv) {
     }
     process.exitCode = 1
     return
+  }
+  for (const warning of result.warnings) {
+    console.warn(`warning: ${warning}`)
   }
   for (const advisory of result.excepted) {
     console.log(`excepted: ${advisory.id} (${advisory.module}) until ${advisory.exception.expires} — ${advisory.exception.reason} [owner ${advisory.exception.owner}]`)
