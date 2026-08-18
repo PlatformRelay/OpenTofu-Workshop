@@ -1,3 +1,19 @@
 {
-  "remoteInputs": []
+  "remoteInputs": [],
+  "npmAdvisories": [
+    {
+      "id": "GHSA-w3rx-r6r6-pgpr",
+      "module": "image-size",
+      "reason": "No patched image-size release exists: the advisory's >=2.0.3 floor is not published (registry latest is 2.0.2, and the resolved 1.2.1 is the last 1.x). pptxgenjs 4.0.1 still requires image-size ^1.2.1, so no override can reach a fixed version without breaking its major range. Reachable only via @slidev/cli > pptxgenjs, which is exercised solely by `slidev export --format pptx` — a code path no script, Taskfile target, or workflow in this repository invokes — and then only against repository-curated slide assets, not attacker-supplied images. Remove this entry the moment a patched image-size publishes.",
+      "owner": "@PlatformRelay",
+      "expires": "2026-11-16"
+    },
+    {
+      "id": "GHSA-5p2g-fcmc-qvqq",
+      "module": "image-size",
+      "reason": "Same unpatched dependency and same unreached code path as GHSA-w3rx-r6r6-pgpr: the JXL/HEIF parser loops are only reachable through `slidev export --format pptx`, which this repository never runs. No published image-size release fixes it. Remove this entry the moment a patched image-size publishes.",
+      "owner": "@PlatformRelay",
+      "expires": "2026-11-16"
+    }
+  ]
 }
