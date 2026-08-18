@@ -51,6 +51,9 @@
 #         `git ls-files` path selected; sibling worktree structurally invisible)
 #    18d. git-inited root + TRACKED unformatted .tf → exit !=0 AND path named
 #         (proves the primary path is ARMED, not silently returning nothing)
+#    18e. .git entry present but `git ls-files` exits 128 (stale worktree gitdir,
+#         safe.directory, corrupt index) → exit !=0 AND an explicit refusal, never
+#         a green tick over an unscanned tree
 #   day-2 lab tftest discovery (TEST-A2 / section 3–4 CODE_DIRS):
 #    19. planted labs/day-2/*/tests/*.tftest.hcl → exit 0 AND "…: tofu test (plan/mock)"
 #    20. broken lab unit assert → exit !=0 AND the lab path named (discovery ARMED)
@@ -393,6 +396,25 @@ m_git_mode_tracked_unformatted() {
   git_init_root "$root"
 }
 
+# git mode selected but git REFUSES: a .git entry exists, so the git branch is
+# taken, yet `git ls-files` exits 128. Reachable in the wild via a stale linked
+# worktree whose gitdir was pruned, safe.directory/dubious-ownership (containers,
+# volume-mounted checkouts), or a corrupt index.
+#
+# The danger is specific to the git path and strictly worse than the false-RED
+# this story removes: process substitution swallows the exit status, so an empty
+# file list would sail into the `[ ${#FORMAT_FILES[@]} -eq 0 ] || …` short-circuit
+# and print a green "canonically formatted" over an unchecked tree. `find` can
+# never fail this way. Plant an unformatted file too, so a green here is provably
+# wrong rather than vacuously true.
+m_git_mode_scan_broken() {
+  local root="$1"
+  mkdir -p "$root/modules/unformatted-regression"
+  printf 'terraform {\n required_version = ">= 1.8"\n}\n' \
+    >"$root/modules/unformatted-regression/main.tf"
+  printf 'gitdir: /nonexistent/gitdir\n' >"$root/.git"
+}
+
 # Minimal provider-free day-2 lab with a plan-only unit suite — proves CODE_DIRS
 # discovery includes labs/day-2/** that ship *.tftest.hcl (TEST-A2).
 LAB_TFTTEST_DIR="labs/day-2/99-lab-tftest-selftest"
@@ -531,6 +553,7 @@ run_case "unformatted under .terraform ignored" pass "all tracked .tf files outs
 run_case "unformatted under .worktrees ignored" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_unformatted_under_worktrees "$FIND_SCAN_HEADING"
 run_case "git mode: sibling worktree ignored" pass "all tracked .tf files outside the S13 messy fixture are canonically formatted" m_git_mode_worktree_ignored "$GIT_SCAN_HEADING"
 run_case "git mode: tracked unformatted file still armed" fail "modules/unformatted-regression/main.tf" m_git_mode_tracked_unformatted "$GIT_SCAN_HEADING"
+run_case "git mode: broken git index does not fake a green fmt gate" fail "refusing to report a green gate" m_git_mode_scan_broken "$GIT_SCAN_HEADING"
 run_case "day-2 lab unit tftest gated" pass "labs/day-2/99-lab-tftest-selftest: tofu test (plan/mock)" m_lab_tftest_clean
 run_case "day-2 lab unit tftest failure armed" fail "labs/day-2/99-lab-tftest-selftest: tofu test" m_lab_tftest_fail
 run_case "day-2 lab integration tftest deferred" pass "labs/day-2/99-lab-tftest-selftest: only integration test(s) — deferred to task verify:integration / CI verify-integration" m_lab_integration_only
