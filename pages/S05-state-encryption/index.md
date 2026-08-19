@@ -286,7 +286,7 @@ Then: regroup for the recap.
 layout: recap
 heading: State encryption — recap
 story: 'State is a plaintext secret store — until you make it ciphertext.'
-next: 'Next: Variables, validation & types'
+next: 'Next: Modules — reuse, inputs & outputs'
 ---
 
 - State **and** plan files hold resolved secrets in plaintext by default.
@@ -303,6 +303,6 @@ client-side with no Terraform equivalent; PBKDF2 for labs, KMS/OpenBao for prod;
 fallback migrates and rotates; enforced = true bans plaintext. Call forward: the
 flagship naming/labelling demo in S08 ships with encryption already on, so this
 isn't a one-off — it's the baseline. (~2 min)
-Then: transition into Variables, validation & types.
+Then: transition into S07 — Modules.
 -->
 

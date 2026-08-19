@@ -211,7 +211,7 @@ outputs."
   <KwCard heading="sensitive = true" kind="variable" variant="danger">
     <strong>Masked, not encrypted.</strong> A sensitive variable or output prints
     as <code>&lt;sensitive&gt;</code> in plan, apply, and <code>tofu output</code>.
-    It still lands in <strong>state</strong> — that's S05's job.
+    It still lands in <strong>state</strong> — S05 closes that gap later today.
   </KwCard>
   <KwCard heading="output {}" kind="output" variant="ok">
     <strong>Your config's return values.</strong> Export a computed result;
@@ -223,8 +223,8 @@ outputs."
 <div v-click class="mt-6 kw-muted text-sm">
 
 `sensitive` stops shoulder-surfing and log leaks — it is **not** encryption. The
-value is still plaintext in state, which is exactly why the previous section
-encrypts state.
+value is still plaintext in state, which is exactly why **S05 — state
+encryption** exists two sections from here. *Forward reference; not taught yet.*
 
 </div>
 
@@ -233,7 +233,8 @@ Say: Two constructs for secrets and results. sensitive = true masks a value as
 angle-bracket-sensitive everywhere it would print — plan, apply, tofu output — so
 it doesn't leak into a shared terminal or CI log. Say the important caveat out
 loud: masking is not encryption; the value is still plaintext in state, which is
-exactly the problem the previous section's state encryption solves. Outputs are
+exactly the problem S05 — state encryption — solves two sections from here. Flag
+it as a forward reference so nobody thinks they missed it. Outputs are
 your config's return values — export a computed result for a parent module or the
 CLI, and unmask a sensitive one deliberately with tofu output -raw. (~3 min)
 Then: "One point of pride for OpenTofu before we send you to the lab."
@@ -314,7 +315,7 @@ next: 'Next: Validation, pre/postconditions & check blocks'
   `*.auto.tfvars` < `-var`.
 - `validation` blocks fail fast; **cross-variable** conditions (OpenTofu 1.9) reason
   across the config.
-- `sensitive` masks output — it is **not** encryption (that's S05's state story).
+- `sensitive` masks output — it is **not** encryption (S05 tells that state story later).
 
 <!--
 Say: Pull the threads together. Variables are typed inputs, outputs are exported

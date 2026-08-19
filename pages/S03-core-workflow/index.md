@@ -264,7 +264,8 @@ Plan is the diff OpenTofu computes from config versus state. Apply executes that
 diff and converges reality. State is what apply records — and that last stage is the
 one to stress: state is the memory that lets the NEXT plan be a diff against reality
 instead of a from-scratch create. No state, no idempotency, no drift detection.
-That's the thread into the whole next section. (~2 min)
+That's the thread S04 picks up later today, once the config is parameterised
+and guarded. (~2 min)
 Then: "State also encodes order — through the dependency graph."
 -->
 
@@ -368,7 +369,7 @@ Then: regroup for the recap.
 layout: recap
 heading: The core workflow — recap
 story: 'init, plan, apply, destroy — and the plan is a diff the dependency graph orders for you.'
-next: 'Next: State'
+next: 'Next: Variables, validation & types'
 ---
 
 - **Four commands:** `init` (providers + the committed `.terraform.lock.hcl`),
@@ -380,7 +381,7 @@ next: 'Next: State'
 - **Idempotency:** a second `apply` with no change is a **no-op** — the outcome
   depends on desired state, not run count.
 - `apply` records the result in **state** — the memory the next plan diffs
-  against. That's exactly where S04 goes next.
+  against — a thread S04 picks up once the config is parameterised and guarded.
 
 <!--
 Say: Pull the threads together. Four commands: init installs providers and writes
@@ -391,5 +392,5 @@ first. The dependency graph, built from references and not file order, sets crea
 order and reverses it for destroy, and a cycle fails with Error: Cycle. Idempotency
 means a no-op second apply. And apply records everything in state — the memory the
 next plan diffs against. (~2 min)
-Then: transition into S04 — State.
+Then: transition into S06 — Variables, validation & types.
 -->

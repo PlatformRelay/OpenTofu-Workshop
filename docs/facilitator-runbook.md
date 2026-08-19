@@ -36,14 +36,14 @@ shorthand for the same thing. The [syllabus](syllabus.md) holds the **canonical*
 stage map and the full rationale — this table is a delivery-side copy; edit the
 syllabus first.
 
-Stage numbers below are the **target** teaching sequence. Section IDs never
-change, and the live delivery order is still the cut-order below — the two
-converge when the Day-1 resequencing lands.
+Stage numbers below are the teaching sequence, and since the Day-1 resequencing
+landed (US-C-RESEQ) they **match delivery order**: Day 1 runs
+S00 → S01 → S02 → S03 → S06 → S15 → S04 → S05 → S07 → S08. Section IDs never
+change, so the IDs are not consecutive — read the stage column, not the number.
 
-**Until then, stage adjacency is not delivery adjacency.** Today's order runs
-S03 → S04 → S05 → S06 → S15, so a room reaching S04 (stage 6) has **not** yet
-seen stages 4–5 (variables, guards). Read *what the learner is carrying in* off
-the cut-order below, and use this table for the target arc only.
+**Stage adjacency is now delivery adjacency.** A room reaching S04 (stage 6) has
+already seen stages 4–5 (variables, guards). The cut-order below is the same
+sequence with the fit-plan skips applied.
 
 **Where each concept is introduced:** `resource` → stage 0 · `variable` →
 stage 2 (block taxonomy; first appears as a feature switch at stage 0b; typed,
@@ -118,13 +118,13 @@ do not invent totals.
 
 **Standard delivery order** (core path after fit-plan skips):
 
-`S00 → S01 → S02 → S03 → S04 → S05 → S06 → S15 → S07 → S08`
+`S00 → S01 → S02 → S03 → S06 → S15 → S04 → S05 → S07 → S08`
 
 | Priority | Action | Source |
 | --- | --- | --- |
 | 1 | Skip **S11** (optional; already `hide: true`) | README fit plan row 1 (−35) |
 | 2 | Skip **S10**, then **S09** at their `DAY1-FIT` markers | README rows 2–3 (−45, −50) |
-| 3 | Compress S00–S07 / S15 at markers until ≤390 min | README rows 4–12 |
+| 3 | Compress S00–S03, S06, S15, S04, S05, S07 at markers until ≤390 min | README rows 4–12 |
 | Keep | **S08** at 65 min — flagship synthesis | `slides-3day.md` marker |
 
 Cut optional → recommended → compress core. Never drop S08 or S15's blocking
@@ -217,10 +217,10 @@ skip from the fit plan or `hide:` in `slides-3day.md`.
 | S01 | Infrastructure as Code | core | 40 → **20** | 20 | Compress | Declarative vs imperative — what does the plan give you that a script doesn’t? | Fork timeline is pre-reading when compressed |
 | S02 | HCL & building blocks | core | 50 → **35** | 20 | Compress | Name the six block types; which one alone mutates the world? | Reference wiring; `.tofu` vs `.tf` aside |
 | S03 | Core workflow | core | 60 → **45** | 20 | Compress | Read a plan line: `+` / `~` / `-` and “known after apply”? | One lifecycle run when compressed |
-| S04 | State | core | 50 → **35** | 20 | Compress | Why is `terraform.tfstate` a secret store even when the CLI redacts? | Backend migration is follow-up when compressed |
-| S05 | State encryption | core | 60 → **45** | 25 | Compress | Prove ciphertext on disk; what does `enforced = true` change? | PBKDF2 lab key handling; fallback migrate |
 | S06 | Variables & types | core | 50 → **35** | 25 | Compress | Break a validation on purpose — which phase fails? | Precedence variants follow-up when compressed |
 | S15 | Preconditions & checks | core | 50 → **35** | 30 | Compress | Which guards fail at plan vs apply? What is `check` for? | Keep one blocking condition + `check` |
+| S04 | State | core | 50 → **35** | 20 | Compress | Why is `terraform.tfstate` a secret store even when the CLI redacts? | Backend migration is follow-up when compressed |
+| S05 | State encryption | core | 60 → **45** | 25 | Compress | Prove ciphertext on disk; what does `enforced = true` change? | PBKDF2 lab key handling; fallback migrate |
 | S07 | Modules | core | 60 → **50** | 35 | Compress | What is the module contract (inputs/outputs)? Demo registry/OCI only | No registry network on runnable path |
 | S08 | Naming & labelling | core | **65** | 30 | Keep | Mock plan green, then LocalStack apply — validation enforces convention? | Step 4 needs LocalStack; panic-reset safe |
 | S09 | Best practices | recommended | 50 | 30 | **Skip** | (If run) `count` vs `for_each` — which rebuilds on middle removal? | Only if time returns |

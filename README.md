@@ -138,10 +138,10 @@ The arithmetic is explicit: **655 → 620 → 575 → 525**, then
 | 5 | Compress S01 from 40→20 at its marker | −20 | 490 | Make the detailed fork timeline pre-reading; retain why IaC and governance |
 | 6 | Compress S02 from 50→35 at its marker | −15 | 475 | Demo fewer block variants; retain syntax, references, and the break→fix |
 | 7 | Compress S03 from 60→45 at its marker | −15 | 460 | Use one lifecycle run; retain plan reading and destroy |
-| 8 | Compress S04 from 50→35 at its marker | −15 | 445 | Demonstrate state inspection live; assign backend migration as follow-up |
-| 9 | Compress S05 from 60→45 at its marker | −15 | 430 | Demonstrate encryption; assign key rotation as follow-up |
-| 10 | Compress S06 from 50→35 at its marker | −15 | 415 | Teach typed objects and validation; assign precedence variants as follow-up |
-| 11 | Compress S15 from 50→35 at its marker | −15 | 400 | Teach one blocking condition plus `check`; assign the full assertion matrix |
+| 8 | Compress S06 from 50→35 at its marker | −15 | 445 | Teach typed objects and validation; assign precedence variants as follow-up |
+| 9 | Compress S15 from 50→35 at its marker | −15 | 430 | Teach one blocking condition plus `check`; assign the full assertion matrix |
+| 10 | Compress S04 from 50→35 at its marker | −15 | 415 | Demonstrate state inspection live; assign backend migration as follow-up |
+| 11 | Compress S05 from 60→45 at its marker | −15 | 400 | Demonstrate encryption; assign key rotation as follow-up |
 | 12 | Compress S07 from 60→50 at its marker | −10 | **390** | Keep local module composition; demo registry/OCI lookup instead of running it |
 
 `hide: true` remains reserved for optional sections, so S09/S10 and every core

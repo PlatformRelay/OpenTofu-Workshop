@@ -33,16 +33,6 @@ const sectionDefinitions = [
     fitPlan: 'COMPRESS S03 60→45 (-15); one lifecycle run, retain plan reading + destroy.',
   },
   {
-    id: 'S04', slug: 'state', title: 'State', tier: 'core', day: 1, canonical: true,
-    status: 'authored', fitAction: 'compress', compressedSlides: 35,
-    fitPlan: 'COMPRESS S04 50→35 (-15); demo inspection, assign backend migration follow-up.',
-  },
-  {
-    id: 'S05', slug: 'state-encryption', title: 'State encryption', tier: 'core', day: 1, canonical: true,
-    status: 'authored', fitAction: 'compress', compressedSlides: 45,
-    fitPlan: 'COMPRESS S05 60→45 (-15); demo encryption, assign key rotation follow-up.',
-  },
-  {
     id: 'S06', slug: 'variables', title: 'Variables, validation & types', tier: 'core', day: 1, canonical: true,
     status: 'authored', fitAction: 'compress', compressedSlides: 35,
     fitPlan: 'COMPRESS S06 50→35 (-15); retain typed objects + validation, assign precedence.',
@@ -51,6 +41,16 @@ const sectionDefinitions = [
     id: 'S15', slug: 'validation-checks', title: 'Validation, preconditions & checks', tier: 'core', day: 1, canonical: true,
     status: 'authored', fitAction: 'compress', compressedSlides: 35,
     fitPlan: 'COMPRESS S15 50→35 (-15); retain blocking condition + check, assign matrix.',
+  },
+  {
+    id: 'S04', slug: 'state', title: 'State', tier: 'core', day: 1, canonical: true,
+    status: 'authored', fitAction: 'compress', compressedSlides: 35,
+    fitPlan: 'COMPRESS S04 50→35 (-15); demo inspection, assign backend migration follow-up.',
+  },
+  {
+    id: 'S05', slug: 'state-encryption', title: 'State encryption', tier: 'core', day: 1, canonical: true,
+    status: 'authored', fitAction: 'compress', compressedSlides: 45,
+    fitPlan: 'COMPRESS S05 60→45 (-15); demo encryption, assign key rotation follow-up.',
   },
   {
     id: 'S07', slug: 'modules', title: 'Modules', tier: 'core', day: 1, canonical: true,

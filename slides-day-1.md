@@ -36,16 +36,6 @@ src: ./pages/S03-core-workflow/index.md
 ---
 
 ---
-# S04 · State · core · Day 1
-src: ./pages/S04-state/index.md
----
-
----
-# S05 · State encryption · core · Day 1
-src: ./pages/S05-state-encryption/index.md
----
-
----
 # S06 · Variables, validation & types · core · Day 1
 src: ./pages/S06-variables/index.md
 ---
@@ -53,6 +43,16 @@ src: ./pages/S06-variables/index.md
 ---
 # S15 · Validation, preconditions & checks · core · Day 1
 src: ./pages/S15-validation-checks/index.md
+---
+
+---
+# S04 · State · core · Day 1
+src: ./pages/S04-state/index.md
+---
+
+---
+# S05 · State encryption · core · Day 1
+src: ./pages/S05-state-encryption/index.md
 ---
 
 ---

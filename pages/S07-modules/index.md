@@ -14,9 +14,10 @@ sources, version constraints, the OpenTofu registry, and OCI mirroring.
 
 <!--
 Say: Frame the section as the packaging step of the Day-1 red line — you authored
-HCL (S02–S03), gave it a typed interface (S06), and guarded it (S15); now you make
-it reusable. A module is just a directory of HCL with an input and output
-contract, and the payoff is instantiating one definition many times. This section
+HCL (S02–S03), gave it a typed interface (S06), guarded it (S15), then read and
+encrypted its state (S04–S05); now you make it reusable. A module is just a
+directory of HCL with an input and output contract, and the payoff is
+instantiating one definition many times. This section
 covers the four things you need to use modules well: composition, where a module
 comes from (its source), how you pin its version, and OpenTofu's own registry and
 mirroring story for regulated and air-gapped orgs. (~1 min)

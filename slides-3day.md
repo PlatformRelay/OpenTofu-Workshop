@@ -53,20 +53,6 @@ hide: false
 ---
 
 ---
-# DAY1-FIT: COMPRESS S04 50→35 (-15); demo inspection, assign backend migration follow-up.
-# S04 · State · core · Day 1
-src: ./pages/S04-state/index.md
-hide: false
----
-
----
-# DAY1-FIT: COMPRESS S05 60→45 (-15); demo encryption, assign key rotation follow-up.
-# S05 · State encryption · core · Day 1
-src: ./pages/S05-state-encryption/index.md
-hide: false
----
-
----
 # DAY1-FIT: COMPRESS S06 50→35 (-15); retain typed objects + validation, assign precedence.
 # S06 · Variables, validation & types · core · Day 1
 src: ./pages/S06-variables/index.md
@@ -77,6 +63,20 @@ hide: false
 # DAY1-FIT: COMPRESS S15 50→35 (-15); retain blocking condition + check, assign matrix.
 # S15 · Validation, preconditions & checks · core · Day 1
 src: ./pages/S15-validation-checks/index.md
+hide: false
+---
+
+---
+# DAY1-FIT: COMPRESS S04 50→35 (-15); demo inspection, assign backend migration follow-up.
+# S04 · State · core · Day 1
+src: ./pages/S04-state/index.md
+hide: false
+---
+
+---
+# DAY1-FIT: COMPRESS S05 60→45 (-15); demo encryption, assign key rotation follow-up.
+# S05 · State encryption · core · Day 1
+src: ./pages/S05-state-encryption/index.md
 hide: false
 ---
 

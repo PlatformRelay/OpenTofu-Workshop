@@ -21,10 +21,10 @@ Source of truth on GitHub:
 | [01-iac-fork](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-1/01-iac-fork.md) | Infrastructure as Code |
 | [02-hcl-blocks](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-1/02-hcl-blocks.md) | HCL building blocks |
 | [03-core-workflow](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-1/03-core-workflow.md) | Plan / apply / destroy |
-| [04-state](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-1/04-state.md) | State |
-| [05-state-encryption](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-1/05-state-encryption.md) | State encryption |
 | [06-variables](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-1/06-variables.md) | Variables & types |
 | [15-conditions-checks](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-1/15-conditions-checks.md) | Preconditions & checks |
+| [04-state](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-1/04-state.md) | State |
+| [05-state-encryption](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-1/05-state-encryption.md) | State encryption |
 | [07-modules](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-1/07-modules.md) | Modules |
 | [08-naming-labels](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-1/08-naming-labels.md) | Naming & labelling |
 | [09-best-practices](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-1/09-best-practices.md) | Best practices *(recommended)* |

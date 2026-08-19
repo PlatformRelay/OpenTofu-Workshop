@@ -51,18 +51,6 @@ hide: false
 ---
 
 ---
-# S04 · State · core · Day 1
-src: ./pages/S04-state/index.md
-hide: false
----
-
----
-# S05 · State encryption · core · Day 1
-src: ./pages/S05-state-encryption/index.md
-hide: false
----
-
----
 # S06 · Variables, validation & types · core · Day 1
 src: ./pages/S06-variables/index.md
 hide: false
@@ -71,6 +59,18 @@ hide: false
 ---
 # S15 · Validation, preconditions & checks · core · Day 1
 src: ./pages/S15-validation-checks/index.md
+hide: false
+---
+
+---
+# S04 · State · core · Day 1
+src: ./pages/S04-state/index.md
+hide: false
+---
+
+---
+# S05 · State encryption · core · Day 1
+src: ./pages/S05-state-encryption/index.md
 hide: false
 ---
 

@@ -296,7 +296,7 @@ Then: regroup for the recap.
 layout: recap
 heading: Validation, pre/postconditions & checks — recap
 story: 'Native assertions guard inputs, results, and exports — each at the right phase.'
-next: 'Next: Modules — reuse, inputs & outputs'
+next: 'Next: State'
 ---
 
 - Four native guards: `validation` (variable), `precondition` (inputs),
@@ -319,7 +319,8 @@ self-dot-something, fails at apply. Checks are non-blocking — they warn at bot
 phases and never stop the run, ideal for soft signals and health probes.
 Version floors: pre/post from 1.2, checks from 1.5. And the reading skill: every
 diagnostic is severity, site, condition, values, message — read it top to bottom.
-Call forward: next we package this into reusable modules with their own inputs and
-outputs. (~2 min)
-Then: transition into Modules — reuse, inputs & outputs.
+Call forward: guards reason about values, and the record of what was actually
+built lives in state — which is where we go next, before packaging any of this
+into modules. (~2 min)
+Then: transition into S04 — State.
 -->

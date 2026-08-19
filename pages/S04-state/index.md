@@ -13,9 +13,10 @@ to the real world. It's what makes a plan a *diff*. It's also a plaintext
 database of everything you deployed, secrets included.
 
 <!--
-Say: Frame S04. Last section ended on the word "state" — apply records its result
-there, and that memory is what lets the next plan be a diff instead of a fresh
-create. This section answers three questions: what state actually is, why it's
+Say: Frame S04. The config is now parameterised (S06) and guarded (S15), and S03
+already left the word "state" hanging — apply records its result there, and that
+memory is what lets the next plan be a diff instead of a fresh create. Now we open
+the file. This section answers three questions: what state actually is, why it's
 load-bearing (locking, backends), and why it's dangerous — it stores resolved
 secrets in plaintext. That last point is the hook straight into S05, state
 encryption. This is the Terraform-Associate state / backends / state-security

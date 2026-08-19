@@ -34,10 +34,10 @@ propagate.
 
 ### Stage map
 
-Stage numbers are the **target** teaching sequence. Section IDs never change —
-nothing is renumbered. The live delivery order is the one published under
-[Section timings](#section-timings-planning-estimates); it converges on the
-stage order when the Day-1 resequencing lands.
+Stage numbers are the teaching sequence. Section IDs never change — nothing is
+renumbered, so the Day-1 IDs are deliberately out of numeric order. Since the
+Day-1 resequencing landed (US-C-RESEQ) the live delivery order **is** the stage
+order: `S00 → S01 → S02 → S03 → S06 → S15 → S04 → S05 → S07 → S08`.
 
 **Where each concept is introduced:** `resource` → stage 0 · `variable` →
 stage 2 (block taxonomy; first appears as a feature switch at stage 0b; typed,
@@ -184,10 +184,10 @@ in the [README](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/REA
 | S01 | Infrastructure as Code | core | 1 | authored | Compress |
 | S02 | HCL & building blocks | core | 1 | authored | Compress |
 | S03 | The core workflow | core | 1 | authored | Compress |
-| S04 | State | core | 1 | authored | Compress |
-| S05 | State encryption | core | 1 | authored | Compress |
 | S06 | Variables, validation & types | core | 1 | authored | Compress |
 | S15 | Validation, preconditions & checks | core | 1 | authored | Compress (keep blocking + `check`) |
+| S04 | State | core | 1 | authored | Compress |
+| S05 | State encryption | core | 1 | authored | Compress |
 | S07 | Modules | core | 1 | authored | Compress |
 | S08 | Naming & labelling module | core | 1 | authored | Keep |
 | S09 | Best practices | recommended | 1 | authored | Skip (fit plan) |
@@ -222,10 +222,10 @@ Slides and lab minutes are **unrehearsed planning estimates** from
 | S01 | Infrastructure as Code | 40 | 20 |
 | S02 | HCL & building blocks | 50 | 20 |
 | S03 | The core workflow | 60 | 20 |
-| S04 | State | 50 | 20 |
-| S05 | State encryption | 60 | 25 |
 | S06 | Variables, validation & types | 50 | 25 |
 | S15 | Validation, preconditions & checks | 50 | 30 |
+| S04 | State | 50 | 20 |
+| S05 | State encryption | 60 | 25 |
 | S07 | Modules | 60 | 35 |
 | S08 | Naming & labelling module | 65 | 30 |
 | S09 | Best practices | 50 | 30 |
@@ -249,7 +249,29 @@ Slides and lab minutes are **unrehearsed planning estimates** from
 | S28 | Ecosystem tooling | 20 | 20 |
 
 Canonical visible Day 1 order after fit-plan skips:
-`S00 → S01 → S02 → S03 → S04 → S05 → S06 → S15 → S07 → S08`.
+`S00 → S01 → S02 → S03 → S06 → S15 → S04 → S05 → S07 → S08`.
+
+**Section covers vs delivery position.** Cover art is referenced by section ID in
+each `pages/SNN-*/index.md` frontmatter, so every cover still resolves — but the
+file names carry a narrative arc that was numbered against the *old* Day-1
+order, and after US-C-RESEQ the names no longer read in sequence. The art is
+deliberately **not** renamed or recreated; use this mapping instead.
+
+| Delivery position | Section | Cover file | Narrative name |
+| ---: | --- | --- | --- |
+| 1 | S00 | `public/covers/section-00-arrival.png` | Arrival |
+| 2 | S01 | `public/covers/section-01-the-two-blueprints.png` | The two blueprints |
+| 3 | S02 | `public/covers/section-02-the-first-prefabs.png` | The first prefabs |
+| 4 | S03 | `public/covers/section-03-plan-then-raise.png` | Plan then raise |
+| 5 | S06 | `public/covers/section-06-calibrating-the-instruments.png` | Calibrating the instruments |
+| 6 | S15 | `public/covers/section-15-the-checkpoint-gates.png` | The checkpoint gates |
+| 7 | S04 | `public/covers/section-04-the-great-survey-map.png` | The great survey map |
+| 8 | S05 | `public/covers/section-05-sealing-the-ledger.png` | Sealing the ledger |
+| 9 | S07 | `public/covers/section-07-the-parts-depot.png` | The parts depot |
+| 10 | S08 | `public/covers/section-08-tagging-the-works.png` | Tagging the works |
+| — (skipped) | S09 | `public/covers/section-09-the-tidy-worksite.png` | The tidy worksite |
+| — (skipped) | S10 | `public/covers/section-10-the-advanced-rig.png` | The advanced rig |
+| — (skipped) | S11 | `public/covers/section-11-the-contractors-fair.png` | The contractors' fair |
 
 Day 2: `S12 → S13 → S14 → S16 → S17 → S19`.
 
