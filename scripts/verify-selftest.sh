@@ -81,6 +81,16 @@
 #    32. skewed ci.yml tofu_version → exit !=0 AND pin drift named
 #   SEC-4 offline pin (no network; live verify stays in terratest Dockerfile):
 #    33. versions.env TOFU_VERSION matches committed artifact/SUMS fixture
+#   preflight robustness (verify.sh section 1):
+#    34. a FAILING `tofu version` probe → exit !=0 AND the failure NAMED AND the
+#        run reaching its summary (never the 4-line silent death that cost a revert)
+#   this script's OWN diagnostics — gate code needs a gate too:
+#    35. dump_case_output on empty input → 0 lines AND "(no output at all"
+#    36. dump_case_output on short input → verbatim, closing marker present
+#    37. flood payload still exceeds the 64 KiB pipe capacity (else 39 is disarmed)
+#    38. dump_case_output on a flood → head AND elision marker AND tail AND
+#        closing marker, exit 0 (pins the `sed -n` that replaced a fatal `head`)
+#    39. run_case WIRING: a failing case emits the dump, not a filtered grep
 #
 # It NEVER mutates the tracked fixture or decks; all edits happen in the temp copy.
 set -euo pipefail
@@ -323,7 +333,23 @@ check_dump() {
 
 check_dump "empty output" "" '(no output at all' '(0 line(s))'
 check_dump "short output" "$(printf 'alpha\nbeta\ngamma')" '| gamma' '(3 line(s))'
-check_dump "flood: >${DUMP_MAX_LINES} lines and >64 KiB" "$(dump_big_payload)" 'line(s) elided' "$((DUMP_MAX_LINES + 100)) x"
+# R3: the payload's BYTE size is a load-bearing half of this pin and nothing
+# enforced it. dump_big_payload scales with DUMP_MAX_LINES only, so shrinking the
+# constants drops it under the pipe capacity — at which point the broken `head`
+# form PASSES while the label still advertises ">64 KiB". A regression pin that
+# can silently disarm while still claiming to be armed is worse than no pin.
+DUMP_FLOOD_PAYLOAD="$(dump_big_payload)"
+if [ "${#DUMP_FLOOD_PAYLOAD}" -gt 65536 ]; then
+  ok "dump self-check: flood payload still exceeds the 64 KiB pipe capacity (${#DUMP_FLOOD_PAYLOAD} bytes)"
+else
+  bad "dump self-check: flood payload is ${#DUMP_FLOOD_PAYLOAD} bytes — below the 64 KiB pipe capacity, so the SIGPIPE regression pin is DISARMED"
+fi
+# R2: '| 1 x' is the FIRST payload line and can only come from the head half —
+# the tail starts at line 221, and no other line contains "| 1 x" ("| 100 x"
+# breaks the match at the character after the 1). Without it the check asserted
+# only the elision marker and tail content, so deleting the head emission
+# outright left it green: "delete the feature, the test must fail" did not hold.
+check_dump "flood: >${DUMP_MAX_LINES} lines and >64 KiB" "$DUMP_FLOOD_PAYLOAD" 'line(s) elided' '| 1 x' "$((DUMP_MAX_LINES + 100)) x"
 
 # run_case <label> <expect: pass|fail> <needle> <mutator-fn> [also-needle]
 #
@@ -747,6 +773,38 @@ task lab:apply DIR=examples/does-not-exist
 EOF
 }
 
+# R1 — cover the WIRING, not just the function.
+#
+# The lane's actual deliverable is the two `dump_case_output "$out"` calls in
+# run_case's failure branches. Nothing exercised them: no green run enters a
+# failure branch, so reverting both call sites to the old
+# `grep -E 'drift|annotated|pin drift|Formatting'` filter left all checks
+# passing — the deliverable had zero regression protection.
+#
+# run_case is driven in a subshell so its deliberate failure cannot pollute
+# pass_n/fail_n. The probe is EXPECTED to fail; that is the point.
+#
+# The needles are the dump's own delimiters, decisive because the old filter
+# could not emit them under any input: it printed matching lines only, never a
+# header, a marker or a line count. ('Formatting' WOULD have matched the old
+# filter, which is exactly why it is not used here.)
+check_run_case_wiring() {
+  local out
+  set +e
+  out="$(set -euo pipefail; run_case "wiring probe — deliberately impossible needle" \
+          pass 'NEEDLE-THAT-CANNOT-APPEAR-XYZZY' m_clean 2>&1)"
+  set -e
+  if has_text "$out" '---- verify.sh output (' \
+     && has_text "$out" '---- end of verify.sh output ----' \
+     && has_text "$out" '» Preflight'; then
+    ok "run_case wiring: a failing case emits the full dump, not a filtered grep"
+  else
+    bad "run_case wiring: a failing case did not emit the dump — the call site is gone or filtered"
+    printf '%s\n' "$out" | tail -n 10 | sed 's/^/        | /'
+  fi
+}
+check_run_case_wiring
+
 run_case "clean fixture"        pass "no drift: labs/fixtures/drift-demo/main.tf matches" m_clean
 run_case "LF-authored drift"    fail "drift: block in labs/fixtures/drift-demo.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_drift_lf
 run_case "CRLF-authored drift"  fail "drift: block in labs/fixtures/drift-demo.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_drift_crlf
@@ -799,7 +857,6 @@ for rel_script in release-tag-guard-selftest.sh release-notes-flags-selftest.sh;
     ok "release self-test: $rel_script"
   else
     bad "release self-test: $rel_script"
-    fail_n=$((fail_n + 1))
   fi
 done
 
@@ -808,13 +865,11 @@ if node --test "$REPO_ROOT/scripts/lab-inventory.test.mjs"; then
   ok "lab-inventory unit tests"
 else
   bad "lab-inventory unit tests"
-  fail_n=$((fail_n + 1))
 fi
 if node "$REPO_ROOT/scripts/lab-inventory.mjs" --check; then
   ok "lab-inventory --check (matrix ↔ JSON)"
 else
   bad "lab-inventory --check (matrix ↔ JSON)"
-  fail_n=$((fail_n + 1))
 fi
 
 # --- OpenTofu SEC-4 offline pin (US-P-PINS) ------------------------------------
@@ -826,12 +881,15 @@ if node --test "$REPO_ROOT/scripts/opentofu-sec4-pin.test.mjs"; then
   ok "OpenTofu SEC-4 offline pin matches versions.env + Dockerfile verify path"
 else
   bad "OpenTofu SEC-4 offline pin failed"
-  fail_n=$((fail_n + 1))
 fi
 
 printf '\n'
 if [ "$fail_n" -eq 0 ]; then
-  printf '  enforcement self-test PASSED — %d/%d cases OK.\n' "$pass_n" "$pass_n"
+  # Denominator is pass+fail, NOT pass twice. `%d/%d "$pass_n" "$pass_n"` is
+  # tautological: it renders "46/46" no matter what, so it can never expose a
+  # miscount. (It hid a double-increment: four call sites incremented fail_n
+  # after a `bad` that already increments, so one failure there reported as two.)
+  printf '  enforcement self-test PASSED — %d/%d cases OK.\n' "$pass_n" "$((pass_n + fail_n))"
   exit 0
 else
   printf '  enforcement self-test FAILED — %d case(s) failed, %d OK.\n' "$fail_n" "$pass_n"
