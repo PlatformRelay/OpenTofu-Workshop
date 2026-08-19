@@ -374,8 +374,8 @@ Then: "One honest caveat before the lab — OpenTofu is not the only tool in thi
 
 <div class="kw-cols-3 mt-4">
   <KwCard heading="Pulumi">
-    <strong>IaC in a general-purpose language.</strong> Its docs list TypeScript,
-    Python, Go, .NET, Java and YAML.
+    <strong>IaC in a general-purpose language.</strong> Its docs list
+    TypeScript/JavaScript, Python, Go, .NET, Java and YAML.
     <br><br>
     <em>Fits when</em> the team already thinks in one of those languages and the
     config needs real control flow. <em>Costs</em> you reviewers who can read
