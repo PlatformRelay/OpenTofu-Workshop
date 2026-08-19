@@ -93,7 +93,15 @@ Continuity is therefore carried by **addresses**, not by files:
 - **Project spine — carried forward, never renamed, never silently dropped:**
   `local_file.manifest`, `variable "service"`, `variable "environment"`,
   `output "manifest_path"`. Once a stage introduces a spine address, every later
-  Day-1 stage still declares it.
+  Day-1 stage still declares it — with **one deliberate exception, stage 8**.
+  S07 teaches modules by *extracting* the manifest into
+  `./modules/service-manifest`, so there the spine lives inside the child module
+  and the root reaches it through the instances:
+  `module.checkout.local_file.manifest`,
+  `module.payments.local_file.manifest`, each instance's own `manifest_path`
+  output, and `service`/`environment` passed in as module arguments. The names
+  never change; only the prefix does. That extraction *is* the lesson, which is
+  why stage 8 needs framing and no structural edit.
 - **Auxiliary — demonstration resources whose teaching purpose ends** (for
   example `local_file.summary`, which exists only to give the dependency-graph
   beat a second node): may be retired, but **only explicitly**, with the lab
@@ -102,33 +110,45 @@ Continuity is therefore carried by **addresses**, not by files:
 A stage conforms when its diff from the previous stage reads as *spine + an
 explicit auxiliary delta*.
 
-**Open point — where the spine's first `variable` lands.** Stage 2 already
-teaches `variable` and declares one; the stage-3 workdir
-(`labs/day-1/03-core-workflow/`) declares none. So either **(a)** stage 3 gains
-`variable "service"` / `variable "environment"` to satisfy the carry-forward rule
-above, or **(b)** stage 2's variable counts as **auxiliary** and the spine's
-inputs are introduced at stage 4 — in which case the stage-2 variable must
-**keep a non-spine name**. Naming it `variable "service"` at stage 2 and letting
-it disappear at stage 3 is not a third option: that is exactly the silent spine
-drop the rule above forbids. **This table does not settle (a) vs (b)** — it is a
-named decision for the Day-1 continuity pass, to be recorded there rather than
-assumed.
+**Where the spine's first `variable` lands — decided.** The Day-1 continuity
+pass (US-C-STAGE-D1a) settled this: **the spine arrives in two instalments.**
+`local_file.manifest` and `output "manifest_path"` are introduced at **stage 1**
+(`labs/day-1/01-iac-fork/`); `variable "service"` and `variable "environment"` at
+**stage 4** (`labs/day-1/06-variables/`), where S06 teaches typed, validated
+inputs and they become the project's own. Stage 2 does teach the `variable` block
+type, but the variable it declares — `variable "owner"` — is **auxiliary and
+keeps a non-spine name**, and stage 3 retires it explicitly in its preamble.
+Stage 3 therefore still declares no variables, which is deliberate: its whole
+skill is reading a plan.
+
+The alternative — giving stage 3 `variable "service"` / `variable "environment"`
+so a stage-2 spine input could carry forward — was rejected because it would
+force S06 to *re-type* a spine address from `string` to `object({…})`, teaching
+the opposite of "the spine is stable", and because it would have required
+inventing a stage-2 `variable "environment"` that no plan sanctions. Naming it
+`variable "service"` at stage 2 and letting it vanish at stage 3 was never an
+option: that is exactly the silent spine drop the rule above forbids.
 
 **A stage is not the previous stage's files plus more.** The tree contradicts a
-file-superset reading at **six of the seven** Day-1 transitions:
+file-superset reading at **six of the seven** Day-1 transitions. Every drop below
+is named in the receiving lab's preamble:
 
-- 2 → 3 drops `variable "owner"`, `locals`, `data.local_file.motd`,
-  `module "greeting"` and `output "summary_path"`;
-- 3 → 4 drops `random_pet.release`, `local_file.summary` and
-  `output "release_name"`;
-- 4 → 5 drops `variable "api_token"` and two outputs;
-- 5 → 6 shares nothing — `labs/day-1/04-state/` declares no variables at all;
-- 6 → 7 drops `random_pet.service`, `local_file.service_name` and both outputs,
-  keeping only a password resource and *introducing*
-  `variable "state_passphrase"`;
-- 7 → 8 drops `variable "state_passphrase"` and `random_password.db`.
+- 2 → 3 drops `variable "owner"`, `locals`, `data.local_file.motd` and
+  `module "greeting"` — the block-taxonomy demonstrations — and adds
+  `local_file.summary` as the dependency graph's second node;
+- 3 → 4 drops `random_pet.env` and `local_file.summary`, because every manifest
+  field now comes from a typed variable;
+- 4 → 5 drops `variable "api_token"` and the outputs `effective_environment` and
+  `api_token`, and brings `random_pet.env` back — a postcondition needs a
+  non-sensitive value that is unknown at plan;
+- 5 → 6 drops both guard variables (`max_manifest_bytes`, `min_secret_length`)
+  and the `precondition`/`postcondition`/`check` blocks they fed;
+- 6 → 7 drops `random_pet.env`, `output "db_password"` and the explicit
+  `backend "local"` block, and *introduces* `variable "state_passphrase"`;
+- 7 → 8 drops `variable "state_passphrase"` and `random_password.session`, and
+  moves the spine inside `./modules/service-manifest`.
 
-Only 1 → 2 renames rather than retires.
+Only 1 → 2 retires nothing at all — it is the one pure superset.
 
 S04 and S05 also teach deliberately *against* a small config, so a growing-only
 config would work against the beat. Judge a stage by the spine + explicit

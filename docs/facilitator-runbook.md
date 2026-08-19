@@ -87,15 +87,21 @@ snapshot for a mutating directory to cite. Continuity is carried by addresses:
 - **Project spine — never renamed, never silently dropped:**
   `local_file.manifest`, `variable "service"`, `variable "environment"`,
   `output "manifest_path"`.
-- **Auxiliary demo resources** (e.g. `local_file.summary`) may retire, but the
-  lab preamble says so. If a learner asks where something went, the preamble has
-  the answer — if it does not, that is a defect worth filing.
+- **Auxiliary demo resources** (e.g. `local_file.summary`, `random_pet.env`) may
+  retire — and `random_pet.env` even returns at stage 5 — but the lab preamble
+  says so every time. If a learner asks where something went, the preamble has
+  the answer; if it does not, that is a defect worth filing.
 
 **Do not tell the room "each lab is the last one plus more".** It is not true of
 the tree: **six of the seven** Day-1 transitions drop material (2→3, 3→4, 4→5,
-5→6, 6→7, 7→8 — only 1→2 renames rather than retires), and S04/S05 teach
-deliberately against a small config. Say instead: the spine carries forward, and
-anything retired is named. Details in the [syllabus](syllabus.md).
+5→6, 6→7, 7→8 — only 1→2 retires nothing), and S04/S05 teach deliberately
+against a small config. Say instead: the spine carries forward, and anything
+retired is named — every lab's `### Continuity` preamble lists what the previous
+stage left behind and why, so that is your answer when someone asks. Stage 8 is
+the one place the spine is not at the root: S07 *extracts* it into
+`./modules/service-manifest`, so the addresses become
+`module.checkout.local_file.manifest` and friends. Details in the
+[syllabus](syllabus.md).
 
 ---
 
@@ -209,7 +215,7 @@ skip from the fit plan or `hide:` in `slides-3day.md`.
 | --- | --- | --- | ---: | ---: | --- | --- | --- |
 | S00 | Welcome & setup | core | 40 → **25** | 20 | Compress | Can everyone `tofu apply` local + reach LocalStack health? | First LocalStack boot; Docker not running |
 | S01 | Infrastructure as Code | core | 40 → **20** | 20 | Compress | Declarative vs imperative — what does the plan give you that a script doesn’t? | Fork timeline is pre-reading when compressed |
-| S02 | HCL & building blocks | core | 50 → **35** | 20 | Compress | Name the seven block types; which one alone mutates the world? | Reference wiring; `.tofu` vs `.tf` aside |
+| S02 | HCL & building blocks | core | 50 → **35** | 20 | Compress | Name the six block types; which one alone mutates the world? | Reference wiring; `.tofu` vs `.tf` aside |
 | S03 | Core workflow | core | 60 → **45** | 20 | Compress | Read a plan line: `+` / `~` / `-` and “known after apply”? | One lifecycle run when compressed |
 | S04 | State | core | 50 → **35** | 20 | Compress | Why is `terraform.tfstate` a secret store even when the CLI redacts? | Backend migration is follow-up when compressed |
 | S05 | State encryption | core | 60 → **45** | 25 | Compress | Prove ciphertext on disk; what does `enforced = true` change? | PBKDF2 lab key handling; fallback migrate |

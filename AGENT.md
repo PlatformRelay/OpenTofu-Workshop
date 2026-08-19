@@ -157,34 +157,46 @@ by **addresses**:
 
 - **Project spine — carried forward, never renamed, never silently dropped:**
   `local_file.manifest`, `variable "service"`, `variable "environment"`,
-  `output "manifest_path"`. Once introduced, every later Day-1 stage declares it.
+  `output "manifest_path"`. Once introduced, every later Day-1 stage declares it —
+  except **stage 8**, where S07 *extracts* the spine into
+  `./modules/service-manifest` and the root reaches it through the instances
+  (`module.checkout.local_file.manifest`, each instance's `manifest_path`,
+  `service`/`environment` passed as module arguments). Names unchanged, prefix
+  moved; the extraction is the lesson, so stage 8 is framing only — never a
+  structural edit.
 - **Auxiliary** demonstration resources (e.g. `local_file.summary`, which only
   gives the dependency-graph beat a second node) may be retired — but **only
   explicitly**, with the lab preamble naming what was retired and why. A silent
   disappearance is a defect.
 - A stage conforms when its diff from the previous stage reads as *spine + an
   explicit auxiliary delta*.
-- **Open point — where the spine's first `variable` lands.** Stage 2 teaches
-  `variable` and declares one, but the stage-3 workdir
-  (`labs/day-1/03-core-workflow/`) declares none. Either **(a)** stage 3 gains
-  `variable "service"` / `variable "environment"`, or **(b)** stage 2's variable
-  is **auxiliary** and the spine's inputs start at stage 4 — under (b) the
-  stage-2 variable must **keep a non-spine name**, since naming it
-  `variable "service"` there and dropping it at stage 3 is the silent spine drop
-  this rule forbids. Undecided — the Day-1 continuity pass must record which,
-  not assume it.
+- **Where the spine's first `variable` lands — decided (US-C-STAGE-D1a).** The
+  spine arrives in **two instalments**: `local_file.manifest` and
+  `output "manifest_path"` at **stage 1**, `variable "service"` and
+  `variable "environment"` at **stage 4** (`labs/day-1/06-variables/`), where S06
+  teaches typed inputs. Stage 2 teaches the `variable` block type with
+  `variable "owner"` — **auxiliary, non-spine name**, retired explicitly at stage
+  3, which still declares no variables. Do not "fix" that by adding spine inputs
+  to stage 3: the alternative was rejected because it forces S06 to re-type a
+  spine address from `string` to `object({…})`. Rationale and revert live in the
+  lane's decision note; the canonical statement is in
+  [`docs/syllabus.md`](./docs/syllabus.md).
 
 **Do not author to a file superset.** "Stage N is stage N−1 plus a delta" is
 contradicted by the tree at **six of the seven** Day-1 transitions — 2→3 drops
-`variable "owner"`, `locals`, `data.local_file.motd`, `module "greeting"` and
-`output "summary_path"`; 3→4 drops `random_pet.release`, `local_file.summary`
-and `output "release_name"`; 4→5 drops `variable "api_token"` and two outputs;
-5→6 shares nothing (`labs/day-1/04-state/` declares no variables at all); 6→7
-drops `random_pet.service`, `local_file.service_name` and both outputs, keeping
-only a password resource and *introducing* `variable "state_passphrase"`; 7→8
-drops `variable "state_passphrase"` and `random_password.db`. Only 1→2 renames
-rather than retires. S04 and S05 also teach deliberately against a *small*
-config. Judge a stage by the spine rule, never by counting files.
+`variable "owner"`, `locals`, `data.local_file.motd` and `module "greeting"`;
+3→4 drops `random_pet.env` and `local_file.summary`; 4→5 drops
+`variable "api_token"` and the outputs `effective_environment` and `api_token`
+(and brings `random_pet.env` back); 5→6 drops both guard variables and the
+`precondition`/`postcondition`/`check` blocks they fed; 6→7 drops
+`random_pet.env`, `output "db_password"` and the explicit `backend "local"`
+block, *introducing* `variable "state_passphrase"`; 7→8 drops
+`variable "state_passphrase"` and `random_password.session`, moving the spine
+into `./modules/service-manifest`. Only 1→2 retires nothing. S04 and S05 also
+teach deliberately against a *small* config. Judge a stage by the spine rule,
+never by counting files. Every one of those drops is named in the receiving
+lab's `### Continuity` preamble — that is where a learner's "where did it go?"
+is answered, and an unnamed drop is a defect.
 
 **Showing the transition on a slide:** use the drift-checked pattern the repo
 already ships — a `code-walkthrough` whose `magic-move` container holds
