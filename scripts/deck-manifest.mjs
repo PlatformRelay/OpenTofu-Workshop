@@ -433,6 +433,10 @@ export function validatePlanningLanguage(markdown, manifest = sections) {
   // statement of the plan, so bind its endpoints to the computed values: the
   // first chain must start at the superset total and the last must end at the
   // fit-plan target. No chain in the document is a no-op, not a pass.
+  // Ordering is deliberate and load-bearing: the README prints the superset
+  // chain first and the compressed chain last. If a future edit reverses them,
+  // or introduces an unrelated bold arrow chain earlier in the file, this throws
+  // on arithmetic that is fine — fix the guard rather than the arithmetic.
   const fitChains = [...markdown.matchAll(/\*\*\s*(\d+(?:\s*→\s*\d+)+)\s*\*\*/g)]
     .map((match) => match[1].split('→').map((value) => Number(value.trim())))
   if (fitChains.length) {
