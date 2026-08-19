@@ -211,25 +211,92 @@ build_root() {
 # Bounded so a runaway verify.sh cannot flood a CI log: full output up to
 # DUMP_MAX_LINES, otherwise head+tail around an explicit elision marker (the
 # summary at the tail and the section headings at the head are both load-bearing).
-DUMP_MAX_LINES=400
+#
+# The cap is DERIVED, never written twice: head+tail must tile the budget
+# exactly, or the elided count goes negative and the two halves silently
+# overlap-duplicate.
 DUMP_HEAD_LINES=120
 DUMP_TAIL_LINES=280
+DUMP_MAX_LINES=$((DUMP_HEAD_LINES + DUMP_TAIL_LINES))
 
 dump_case_output() {
-  local out="$1" n
-  n="$(printf '%s\n' "$out" | wc -l | tr -d ' ')"
+  local out="$1" n=0
+  # Command substitution strips trailing newlines, so `printf '%s\n'` re-adds
+  # exactly the one that was removed. Empty output is 0 lines, not the 1 that
+  # `printf '%s\n' "" | wc -l` reports — the header must not contradict the
+  # "(no output at all)" line directly beneath it.
+  [ -n "$out" ] && n="$(printf '%s\n' "$out" | wc -l | tr -d ' ')"
   printf '        ---- verify.sh output (%s line(s)) ----\n' "$n"
   if [ -z "$out" ]; then
     printf '        | (no output at all — verify.sh produced nothing on stdout or stderr)\n'
   elif [ "$n" -le "$DUMP_MAX_LINES" ]; then
     printf '%s\n' "$out" | sed 's/^/        | /'
   else
-    printf '%s\n' "$out" | head -n "$DUMP_HEAD_LINES" | sed 's/^/        | /'
+    # `sed -n 1,Np`, NOT `head -n N`. This script runs under `set -euo pipefail`
+    # (line 86): `head` closes the pipe as soon as it has its N lines, the
+    # upstream `printf` takes SIGPIPE, `pipefail` surfaces 141 and `set -e`
+    # kills the WHOLE self-test — losing the elision marker, the tail, the end
+    # marker, every remaining case and the final summary. That is strictly
+    # worse than the narrow grep this dump replaced, and it is the exact
+    # evidence-free failure this dump exists to abolish.
+    #
+    # It only fires above BOTH thresholds — more than DUMP_MAX_LINES lines and
+    # more than the pipe capacity (64 KiB on Linux). macOS buffers more and
+    # stays green, so the local gate matrix could not have caught it; it was
+    # found by independent review and confirmed in a Linux container (rc=141).
+    # `sed -n` consumes stdin to EOF, so there is no early close to race.
+    printf '%s\n' "$out" | sed -n "1,${DUMP_HEAD_LINES}p" | sed 's/^/        | /'
     printf '        | ... %s line(s) elided ...\n' "$((n - DUMP_HEAD_LINES - DUMP_TAIL_LINES))"
     printf '%s\n' "$out" | tail -n "$DUMP_TAIL_LINES" | sed 's/^/        | /'
   fi
   printf '        ---- end of verify.sh output ----\n'
 }
+
+# The dump is gate code, and gate code that nothing exercises rots silently.
+# NONE of the run_case cases below reach dump_case_output on a green run — a
+# self-test whose every case passes never enters the failure branch — so these
+# three direct checks are the only coverage it has. Their absence is how the
+# `head` SIGPIPE above shipped past three green local gate runs.
+#
+# Case (c) is the regression pin and MUST exceed BOTH thresholds (line count and
+# pipe capacity); shrink it and it stops testing the thing that broke.
+dump_big_payload() {
+  local pad i
+  pad="$(printf 'x%.0s' $(seq 1 200))"
+  for i in $(seq 1 $((DUMP_MAX_LINES + 100))); do printf '%s %s\n' "$i" "$pad"; done
+}
+
+# check_dump <label> <payload> [needle...] — the dump must exit 0 and always
+# terminate with its closing marker, whatever it was handed.
+check_dump() {
+  local label="$1" payload="$2"
+  shift 2
+  local out rc missing=""
+  # `set -euo pipefail` INSIDE the substitution, not merely inherited: `set +e`
+  # in the caller propagates into the subshell and would disable the very
+  # errexit that turns a SIGPIPE into a visible failure — a check that can only
+  # ever pass. (Confirmed: without this, the pre-fix `head` form scored rc=0 on
+  # Linux; with it, rc=141 and no closing marker.) The outer `set +e` exists
+  # only so a non-zero rc can be CAPTURED here instead of killing the run.
+  set +e
+  out="$(set -euo pipefail; dump_case_output "$payload" 2>&1)"
+  rc=$?
+  set -e
+  local needle
+  for needle in '---- end of verify.sh output ----' "$@"; do
+    printf '%s' "$out" | grep -qF -- "$needle" || missing="$needle"
+  done
+  if [ "$rc" -eq 0 ] && [ -z "$missing" ]; then
+    ok "dump self-check: $label — exit 0 and output terminated cleanly"
+  else
+    bad "dump self-check: $label — expected exit 0 + closing marker; got exit $rc${missing:+, missing '$missing'}"
+    printf '%s\n' "$out" | tail -n 5 | sed 's/^/        | /'
+  fi
+}
+
+check_dump "empty output" "" '(no output at all' '(0 line(s))'
+check_dump "short output" "$(printf 'alpha\nbeta\ngamma')" '| gamma' '(3 line(s))'
+check_dump "flood: >${DUMP_MAX_LINES} lines and >64 KiB" "$(dump_big_payload)" 'line(s) elided' "$((DUMP_MAX_LINES + 100)) x"
 
 # run_case <label> <expect: pass|fail> <needle> <mutator-fn> [also-needle]
 #
