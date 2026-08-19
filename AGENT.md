@@ -144,8 +144,9 @@ Flat file `labs/day-N/NN-topic.md`, one per section. Every lab:
 Every hands-on stage grows one project, **`service-manifest`** — the child
 module already at `labs/day-1/07-modules/modules/service-manifest/` is the
 name's source of truth (`svc-manifest` is informal shorthand). The published
-stage→section map lives in
-[`docs/syllabus.md`](./docs/syllabus.md) · *The evolving project*.
+stage→section map is **canonical** in
+[`docs/syllabus.md`](./docs/syllabus.md) · *The evolving project* — edit it there
+first; the rule below is the authoring-side copy.
 
 A shared mutating directory is impossible here for two physical reasons: every
 lab must run standalone from its own tracked workdir (`task lab:validate
@@ -163,14 +164,23 @@ by **addresses**:
   disappearance is a defect.
 - A stage conforms when its diff from the previous stage reads as *spine + an
   explicit auxiliary delta*.
+- **Open point — where the spine's first `variable` lands.** Stage 2 teaches
+  `variable` and declares one, but the stage-3 workdir
+  (`labs/day-1/03-core-workflow/`) declares none. Either stage 3 gains
+  `variable "service"` / `variable "environment"`, or stage 2's variable is
+  **auxiliary** and the spine's inputs start at stage 4. Undecided — the Day-1
+  continuity pass must record which, not assume it.
 
 **Do not author to a file superset.** "Stage N is stage N−1 plus a delta" is
-contradicted by the tree at five transitions — 3→4 drops `random_pet.release`,
-`local_file.summary` and `output "release_name"`; 4→5 drops
-`variable "api_token"` and two outputs; 5→6 shares nothing
-(`labs/day-1/04-state/` declares no variables at all); 6→7 keeps only a password
-resource and a passphrase variable; 7→8 drops `variable "state_passphrase"` and
-`random_password.db`. S04 and S05 also teach deliberately against a *small*
+contradicted by the tree at **six of the seven** Day-1 transitions — 2→3 drops
+`variable "owner"`, `locals`, `data.local_file.motd`, `module "greeting"` and
+`output "summary_path"`; 3→4 drops `random_pet.release`, `local_file.summary`
+and `output "release_name"`; 4→5 drops `variable "api_token"` and two outputs;
+5→6 shares nothing (`labs/day-1/04-state/` declares no variables at all); 6→7
+drops `random_pet.service`, `local_file.service_name` and both outputs, keeping
+only a password resource and *introducing* `variable "state_passphrase"`; 7→8
+drops `variable "state_passphrase"` and `random_password.db`. Only 1→2 renames
+rather than retires. S04 and S05 also teach deliberately against a *small*
 config. Judge a stage by the spine rule, never by counting files.
 
 **Showing the transition on a slide:** use the drift-checked pattern the repo

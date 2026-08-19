@@ -32,37 +32,48 @@ Every hands-on stage grows **one** project — `service-manifest` — so a learn
 who asks "why are we doing this?" can be answered with "you are extending what
 you built last session". The name is the child module in the tree at
 `labs/day-1/07-modules/modules/service-manifest/`; `svc-manifest` is informal
-shorthand for the same thing. Full rationale: [syllabus](syllabus.md).
+shorthand for the same thing. The [syllabus](syllabus.md) holds the **canonical**
+stage map and the full rationale — this table is a delivery-side copy; edit the
+syllabus first.
 
 Stage numbers below are the **target** teaching sequence. Section IDs never
 change, and the live delivery order is still the cut-order below — the two
-converge when the Day-1 resequencing lands. Use this table to answer, at the top
-of any section, *what the learner is carrying in*.
+converge when the Day-1 resequencing lands.
+
+**Until then, stage adjacency is not delivery adjacency.** Today's order runs
+S03 → S04 → S05 → S06 → S15, so a room reaching S04 (stage 6) has **not** yet
+seen stages 4–5 (variables, guards). Read *what the learner is carrying in* off
+the cut-order below, and use this table for the target arc only.
 
 **Where each concept is introduced:** `resource` → stage 0 · `variable` →
-stage 4 · `output` → stage 1 · `plan` → stage 0 (read line by line at stage 3) ·
-`apply` → stage 0 (full lifecycle at stage 3) · state → stage 6 · modules →
-stage 8 · testing → stage 10 · CI → stage 14.
+stage 2 (block taxonomy; typed, validated and sensitive at stage 4) · `output` →
+stage 1 · `plan` → stage 0 (read line by line at stage 3) · `apply` → stage 0
+(full lifecycle at stage 3) · state → stage 6 (named and motivated at stage 3) ·
+modules → stage 8 · testing → stage 10 · CI → stage 14.
 
 | Stage | Section | Workdir | Introduces |
 | --- | --- | --- | --- |
 | 0 | S00 · Welcome & setup | `labs/day-1/00-setup/` | **`resource`**, `init`, the first **`plan`** and **`apply`** |
 | 0b | S00 · stretch | `labs/day-1/00-setup/` | the first cloud-shaped resource (S3 on LocalStack) |
 | 1 | S01 · Infrastructure as Code | `labs/day-1/01-iac-fork/` | declarative vs imperative; **`output`** |
-| 2 | S02 · HCL & building blocks | `labs/day-1/02-hcl-blocks/` | block taxonomy, `locals`, `data`, references |
-| 3 | S03 · The core workflow | `labs/day-1/03-core-workflow/` | the four-command loop — **plan diffs**, the graph, `destroy` |
-| 4 | S06 · Variables, validation & types | `labs/day-1/06-variables/` | **`variable`** — typed, validated, sensitive |
+| 2 | S02 · HCL & building blocks | `labs/day-1/02-hcl-blocks/` | the block taxonomy — **`variable`**, `locals`, `data`, references (`module` is only a forward reference to stage 8) |
+| 3 | S03 · The core workflow | `labs/day-1/03-core-workflow/` | the four-command loop — **plan diffs**, the graph, `destroy`, and *why* state exists |
+| 4 | S06 · Variables, validation & types | `labs/day-1/06-variables/` | **typed, validated and sensitive `variable`s** — the project's own inputs |
 | 5 | S15 · Validation, preconditions & checks | `labs/day-1/15-conditions-checks/` | `precondition`, `postcondition`, `check` |
 | 6 | S04 · State | `labs/day-1/04-state/` | **state**, drift, backends |
 | 7 | S05 · State encryption | `labs/day-1/05-state-encryption/` | encrypted state and encrypted plan |
 | 8 | S07 · Modules | `labs/day-1/07-modules/` | **`module`** — `./modules/service-manifest` consumed twice |
-| 9 | S08 · Naming & labelling | `examples/naming-labels-demo/` | one naming + labelling taxonomy |
+| 9 | S08 · Naming & labelling module | `examples/naming-labels-demo/` | one naming + labelling taxonomy |
 | 10 | S12, S13 | `labs/day-2/12-testing-pyramid/`, `13-static-analysis/` | **testing** — the pyramid, `fmt`, TFLint, pre-commit |
 | 11 | S14 · Security & policy scanners | `labs/day-2/14-security-scanners/` | policy + security scanning (planted insecure fixture — deliberately *not* the learner's project) |
 | 12 | S16, S17 | `labs/day-2/16-tofu-test/`, `17-mocking/` | native `tofu test`, `mock_provider` |
 | 13 | S18 · Integration, e2e & cost | `labs/day-2/18-terratest-cost/` | integration + cost (optional tier) |
 | 14 | S19 · Testing in CI/CD | `labs/day-2/19-testing-cicd/` | **CI** — the whole ladder as pipeline jobs |
 | 15 | S20–S26 | `labs/day-3/**`, `examples/capstone/` | stacks → codegen → ordering → filtering → capstone |
+
+**S09, S10 and S11 carry no stage number** — they are skipped by the fit plan, so
+they sit outside the stage sequence. If you do run S09, its `local_file.manifest`
+is the same project spine, not a new example.
 
 **What carries forward.** Labs do not share one mutating directory — each runs
 standalone from its own tracked workdir (`task lab:validate DIR=…`), and the
@@ -77,10 +88,10 @@ snapshot for a mutating directory to cite. Continuity is carried by addresses:
   the answer — if it does not, that is a defect worth filing.
 
 **Do not tell the room "each lab is the last one plus more".** It is not true of
-the tree: five transitions drop material (3→4, 4→5, 5→6, 6→7, 7→8), and S04/S05
-teach deliberately against a small config. Say instead: the spine carries
-forward, and anything retired is named. Details in the
-[syllabus](syllabus.md).
+the tree: **six of the seven** Day-1 transitions drop material (2→3, 3→4, 4→5,
+5→6, 6→7, 7→8 — only 1→2 renames rather than retires), and S04/S05 teach
+deliberately against a small config. Say instead: the spine carries forward, and
+anything retired is named. Details in the [syllabus](syllabus.md).
 
 ---
 

@@ -27,6 +27,11 @@ of truth; `svc-manifest` is informal shorthand for the same thing.
 This is a different axis from **Author → Test → Scale** above: that is the
 three-day arc, this is the single artefact carried along it.
 
+This page is the **canonical** copy of the stage map and the continuity rule.
+The [facilitator runbook](facilitator-runbook.md) repeats the table for delivery
+use and `AGENT.md` repeats the rule for authoring — edit here first, then
+propagate.
+
 ### Stage map
 
 Stage numbers are the **target** teaching sequence. Section IDs never change —
@@ -35,29 +40,37 @@ nothing is renumbered. The live delivery order is the one published under
 stage order when the Day-1 resequencing lands.
 
 **Where each concept is introduced:** `resource` → stage 0 · `variable` →
-stage 4 · `output` → stage 1 · `plan` → stage 0 (read line by line at stage 3) ·
-`apply` → stage 0 (full lifecycle at stage 3) · state → stage 6 · modules →
-stage 8 · testing → stage 10 · CI → stage 14.
+stage 2 (block taxonomy; typed, validated and sensitive at stage 4) · `output` →
+stage 1 · `plan` → stage 0 (read line by line at stage 3) · `apply` → stage 0
+(full lifecycle at stage 3) · state → stage 6 (named and motivated at stage 3) ·
+modules → stage 8 · testing → stage 10 · CI → stage 14.
 
 | Stage | Section | Workdir | Introduces |
 | --- | --- | --- | --- |
 | 0 | S00 · Welcome & setup | `labs/day-1/00-setup/` | **`resource`**, `init`, the first **`plan`** and **`apply`** |
 | 0b | S00 · stretch | `labs/day-1/00-setup/` | the first cloud-shaped resource (S3 on LocalStack) |
 | 1 | S01 · Infrastructure as Code | `labs/day-1/01-iac-fork/` | declarative vs imperative; **`output`** |
-| 2 | S02 · HCL & building blocks | `labs/day-1/02-hcl-blocks/` | block taxonomy, `locals`, `data`, references |
-| 3 | S03 · The core workflow | `labs/day-1/03-core-workflow/` | the four-command loop — **plan diffs**, the graph, `destroy` |
-| 4 | S06 · Variables, validation & types | `labs/day-1/06-variables/` | **`variable`** — typed, validated, sensitive |
+| 2 | S02 · HCL & building blocks | `labs/day-1/02-hcl-blocks/` | the block taxonomy — **`variable`**, `locals`, `data`, references (`module` is only a forward reference to stage 8) |
+| 3 | S03 · The core workflow | `labs/day-1/03-core-workflow/` | the four-command loop — **plan diffs**, the graph, `destroy`, and *why* state exists |
+| 4 | S06 · Variables, validation & types | `labs/day-1/06-variables/` | **typed, validated and sensitive `variable`s** — the project's own inputs |
 | 5 | S15 · Validation, preconditions & checks | `labs/day-1/15-conditions-checks/` | `precondition`, `postcondition`, `check` |
 | 6 | S04 · State | `labs/day-1/04-state/` | **state**, drift, backends |
 | 7 | S05 · State encryption | `labs/day-1/05-state-encryption/` | encrypted state and encrypted plan |
 | 8 | S07 · Modules | `labs/day-1/07-modules/` | **`module`** — `./modules/service-manifest` consumed twice |
-| 9 | S08 · Naming & labelling | `examples/naming-labels-demo/` | one naming + labelling taxonomy |
+| 9 | S08 · Naming & labelling module | `examples/naming-labels-demo/` | one naming + labelling taxonomy |
 | 10 | S12, S13 | `labs/day-2/12-testing-pyramid/`, `13-static-analysis/` | **testing** — the pyramid, `fmt`, TFLint, pre-commit |
 | 11 | S14 · Security & policy scanners | `labs/day-2/14-security-scanners/` | policy + security scanning (planted insecure fixture — deliberately *not* the learner's project) |
 | 12 | S16, S17 | `labs/day-2/16-tofu-test/`, `17-mocking/` | native `tofu test`, `mock_provider` |
 | 13 | S18 · Integration, e2e & cost | `labs/day-2/18-terratest-cost/` | integration + cost (optional tier) |
 | 14 | S19 · Testing in CI/CD | `labs/day-2/19-testing-cicd/` | **CI** — the whole ladder as pipeline jobs |
 | 15 | S20–S26 | `labs/day-3/**`, `examples/capstone/` | stacks → codegen → ordering → filtering → capstone |
+
+**Fit-plan-skipped sections carry no stage number.** S09, S10 and S11 are
+`recommended`/`optional` and are skipped in the canonical cut, so they are
+outside the stage sequence. They are not outside the project: if S09 is
+delivered, the `local_file.manifest` in `labs/day-1/09-best-practices/` **is**
+the spine address and must keep that name. S10 and S11 stand apart from the
+project by design.
 
 ### What "one evolving project" means here
 
@@ -84,15 +97,30 @@ Continuity is therefore carried by **addresses**, not by files:
 A stage conforms when its diff from the previous stage reads as *spine + an
 explicit auxiliary delta*.
 
-**A stage is not the previous stage's files plus more.** The tree contradicts a
-file-superset reading at five transitions:
+**Open point — where the spine's first `variable` lands.** Stage 2 already
+teaches `variable` and declares one; the stage-3 workdir
+(`labs/day-1/03-core-workflow/`) declares none. So either stage 3 must gain
+`variable "service"` / `variable "environment"` to satisfy the carry-forward
+rule above, or stage 2's variable counts as **auxiliary** and the spine's inputs
+are introduced at stage 4. **This table does not settle it** — it is a named
+decision for the Day-1 continuity pass, and whichever way it goes must be
+recorded there rather than assumed.
 
+**A stage is not the previous stage's files plus more.** The tree contradicts a
+file-superset reading at **six of the seven** Day-1 transitions:
+
+- 2 → 3 drops `variable "owner"`, `locals`, `data.local_file.motd`,
+  `module "greeting"` and `output "summary_path"`;
 - 3 → 4 drops `random_pet.release`, `local_file.summary` and
   `output "release_name"`;
 - 4 → 5 drops `variable "api_token"` and two outputs;
 - 5 → 6 shares nothing — `labs/day-1/04-state/` declares no variables at all;
-- 6 → 7 keeps only a password resource and a passphrase variable;
+- 6 → 7 drops `random_pet.service`, `local_file.service_name` and both outputs,
+  keeping only a password resource and *introducing*
+  `variable "state_passphrase"`;
 - 7 → 8 drops `variable "state_passphrase"` and `random_password.db`.
+
+Only 1 → 2 renames rather than retires.
 
 S04 and S05 also teach deliberately *against* a small config, so a growing-only
 config would work against the beat. Judge a stage by the spine + explicit
