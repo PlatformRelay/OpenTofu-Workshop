@@ -110,7 +110,6 @@ nobody hunts for “their” bucket from before the crash. Detail:
 | State / resources “missing” after restart | Expected with `PERSISTENCE=0` | Re-apply from lab step; do not chase old IDs |
 | Docker disk / memory pressure | Many images; Terratest profile pull | `docker system df`; prune unused; don’t `lab:up` the terratest profile by accident |
 | `task verify` fails on macOS bash | `/bin/bash` 3.2 first on `PATH` | Put `/opt/homebrew/bin` or `/usr/local/bin` first (Bash ≥4) |
-| Lab 03 `init` says “Reusing previous version…” instead of “created a lock file” | `task verify` validates every lab workdir (US-C-GATE), seeding `.terraform/` + `.terraform.lock.hcl` there | Clear the lab before rehearsing or delivering it: `git clean -Xfd labs/day-1/03-core-workflow` (any lab dir) — Step 3 teaches the FIRST-init output |
 | Tool-version drift vs spoilers | Newer tofu / scanners / Terramate | Spoilers are captured pins — accept output shape drift; re-run `task setup`; do not improvise unpinned `:latest` |
 | Day-2 scanner missing | Optional toolchain not installed | `task setup`; install TFLint / Trivy / Checkov / Conftest before S13–S14 |
 | Terramate `list` empty | No `stack {}` yet (S20) or missing block (S21 break) | Teaching moment — silent non-discovery; don’t “fix” ahead of the lab |

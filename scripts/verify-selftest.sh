@@ -66,13 +66,6 @@
 #    19. planted labs/day-2/*/tests/*.tftest.hcl → exit 0 AND "…: tofu test (plan/mock)"
 #    20. broken lab unit assert → exit !=0 AND the lab path named (discovery ARMED)
 #    21. lab with only *integration*.tftest.hcl → exit 0 AND deferred message (unit skip)
-#   day-1/day-3 lab workdir validation (US-C-GATE / section 3 CODE_DIRS):
-#    21a. clean labs/day-1/** workdir → exit 0 AND "…: validate" (discovery ARMED —
-#         a pass alone would also be produced by never looking at the dir)
-#    21b. labs/day-1/** with an undeclared reference → exit !=0 AND the dir named,
-#         with every annotated block in sync (the §6 drift gate CANNOT see this)
-#    21c. labs/day-3/**/stacks/<name>/ with an undeclared reference → exit !=0 AND
-#         the nested dir named (pins RECURSIVE discovery; day-3 has no top-level roots)
 #   §5 smoke-check scope (US-F-R4):
 #    22. prose mentioning modules/does-not-exist → exit 0 (NOT a shared-code ref)
 #    23. missing path in HCL source = "…modules/…" → exit !=0 AND path named (ARMED)
@@ -159,7 +152,7 @@ build_root() {
   local root="$1"
   mkdir -p "$root/scripts" "$root/setup" "$root/labs/fixtures/drift-demo" \
     "$root/labs/fixtures/templates-demo" \
-    "$root/labs/day-1" "$root/labs/day-2/13-static-analysis/messy" \
+    "$root/labs/day-1/00-setup" "$root/labs/day-2/13-static-analysis/messy" \
     "$root/docs/decisions" "$root/pages/S99-drift-selftest"
   cp "$REPO_ROOT/scripts/verify.sh" "$root/scripts/verify.sh"
   cp "$REPO_ROOT/scripts/deck-manifest.mjs" "$root/scripts/deck-manifest.mjs"
@@ -186,19 +179,9 @@ build_root() {
   mkdir -p "$root/setup/terratest"
   cp "$REPO_ROOT/setup/terratest/Dockerfile" "$root/setup/terratest/Dockerfile"
   cp "$REPO_ROOT/scripts/lab-terratest.sh" "$root/scripts/lab-terratest.sh"
-  # Lab 00 markdown is needed by the README-navigation route check and by the §5
-  # smoke-check mutators, which append to it. Its two annotated ```hcl blocks are
-  # DISARMED on the way in, and labs/day-1/00-setup/{hello,bucket}.tf are
-  # deliberately NOT copied: since US-C-GATE, verify.sh validates every
-  # labs/day-1/** workdir that holds .tf, and those two files pull the real aws
-  # provider — a ~9s `tofu init` in EVERY case here (measured, and a warm
-  # TF_PLUGIN_CACHE_DIR does not help: tofu copies the ~600MB provider rather
-  # than linking it), i.e. minutes added to a sub-minute self-test. Nothing is
-  # lost: the drift gate's dedicated fixture is labs/fixtures/drift-demo, and the
-  # day-1/day-3 validate loop has its own provider-free cases below
-  # (m_lab_validate_day1_* / m_lab_validate_day3_*). Do NOT re-add those .tf.
-  sed 's/<!-- source: labs\/day-1\/00-setup\//<!-- source-disarmed: labs\/day-1\/00-setup\//' \
-    "$REPO_ROOT/labs/day-1/00-setup.md" >"$root/labs/day-1/00-setup.md"
+  cp "$REPO_ROOT/labs/day-1/00-setup.md" "$root/labs/day-1/00-setup.md"
+  cp "$REPO_ROOT/labs/day-1/00-setup/hello.tf" "$root/labs/day-1/00-setup/hello.tf"
+  cp "$REPO_ROOT/labs/day-1/00-setup/bucket.tf" "$root/labs/day-1/00-setup/bucket.tf"
   cp "$REPO_ROOT/labs/day-2/13-static-analysis/messy/main.tf" \
     "$root/labs/day-2/13-static-analysis/messy/main.tf"
   cp "$REPO_ROOT/setup/localstack.md" "$root/setup/localstack.md"
@@ -256,9 +239,6 @@ run_case() {
 # Heading literals that identify which scan path section 2 selected.
 GIT_SCAN_HEADING='git-tracked .tf, S13 messy fixture excluded'
 FIND_SCAN_HEADING='no git index — filesystem walk'
-# Section 3-4 heading literal — names the validate scope, so a case can assert
-# that day-1/day-3 discovery is the path that produced its verdict (US-C-GATE).
-VALIDATE_SCOPE_HEADING='Validate & test (modules · examples · labs/day-1 · labs/day-2 · labs/day-3)'
 
 # --- mutators (operate on the temp copy only) --------------------------------
 m_clean() { :; }   # leave the copy pristine → block matches source
@@ -541,71 +521,6 @@ m_lab_tftest_fail() {
     "$root/$LAB_TFTTEST_DIR/tests/unit.tftest.hcl"
 }
 
-# Day-1/Day-3 lab workdir validation (US-C-GATE / section 3 CODE_DIRS).
-#
-# The hole these cases close: before US-C-GATE, CODE_DIRS covered only
-# modules/*, examples/* and labs/day-2/* WITH a *.tftest.hcl. A Day-1 lab whose
-# HCL had a dangling reference was caught only INDIRECTLY, by the §6 drift gate
-# noticing the annotated ```hcl block no longer matched the file. Regenerating
-# the block — exactly what a curriculum story asks an author to do — made the
-# gate green over structurally broken HCL, and the learner met the error as a
-# failing `tofu plan`.
-#
-# Both fixtures are deliberately PROVIDER-FREE so `tofu init -backend=false`
-# resolves nothing and each case stays sub-second. The broken variant references
-# an undeclared resource, which init accepts (it is a validate-time error) and
-# `tofu validate` rejects with "Reference to undeclared resource".
-DAY1_VALIDATE_DIR="labs/day-1/99-validate-selftest"
-DAY3_VALIDATE_DIR="labs/day-3/99-validate-selftest/stacks/app"
-
-plant_lab_validate_root() {
-  local root="$1" rel="$2" body="$3"
-  mkdir -p "$root/$rel"
-  if [ "$body" = "clean" ]; then
-    cat >"$root/$rel/main.tf" <<'EOF'
-terraform {
-  required_version = ">= 1.8"
-}
-
-locals {
-  release = "lab-validate-ok"
-}
-
-output "release_name" {
-  value = local.release
-}
-EOF
-  else
-    # Undeclared `random_pet.release` — the exact shape of the defect this
-    # story was written against (labs/day-1/03-core-workflow/main.tf).
-    cat >"$root/$rel/main.tf" <<'EOF'
-terraform {
-  required_version = ">= 1.8"
-}
-
-output "release_name" {
-  value = random_pet.release.id
-}
-EOF
-  fi
-}
-
-m_lab_validate_day1_clean() {
-  plant_lab_validate_root "$1" "$DAY1_VALIDATE_DIR" clean
-}
-
-m_lab_validate_day1_broken() {
-  plant_lab_validate_root "$1" "$DAY1_VALIDATE_DIR" broken
-}
-
-# Day-3's runnable roots are NESTED (labs/day-3/NN-topic/stacks/<name>/), never
-# at the top of the lab dir — a top-level-only scan would validate exactly one
-# of them. This case pins the recursive discovery: drop it and a day-1-only glob
-# would still leave every other case green.
-m_lab_validate_day3_nested_broken() {
-  plant_lab_validate_root "$1" "$DAY3_VALIDATE_DIR" broken
-}
-
 m_lab_integration_only() {
   local root="$1"
   mkdir -p "$root/$LAB_TFTTEST_DIR/tests"
@@ -710,9 +625,6 @@ run_case "git mode: tracked-but-absent path is warned not silently passed" pass 
 run_case "day-2 lab unit tftest gated" pass "labs/day-2/99-lab-tftest-selftest: tofu test (plan/mock)" m_lab_tftest_clean
 run_case "day-2 lab unit tftest failure armed" fail "labs/day-2/99-lab-tftest-selftest: tofu test" m_lab_tftest_fail
 run_case "day-2 lab integration tftest deferred" pass "labs/day-2/99-lab-tftest-selftest: only integration test(s) — deferred to task verify:integration / CI verify-integration" m_lab_integration_only
-run_case "day-1 lab workdir validated" pass "$DAY1_VALIDATE_DIR: validate" m_lab_validate_day1_clean "$VALIDATE_SCOPE_HEADING"
-run_case "day-1 dangling reference armed" fail "$DAY1_VALIDATE_DIR: validate" m_lab_validate_day1_broken "$VALIDATE_SCOPE_HEADING"
-run_case "day-3 nested stack dangling reference armed" fail "$DAY3_VALIDATE_DIR: validate" m_lab_validate_day3_nested_broken "$VALIDATE_SCOPE_HEADING"
 run_case "§5 prose fake module ref ignored" pass "no modules/|examples/ references in labs (all HCL is scratch/inline) — nothing to drift-check yet" m_smoke_prose_fake_module
 run_case "§5 HCL source missing module armed" fail "lab ref missing on disk: modules/does-not-exist" m_smoke_hcl_missing_source
 run_case "§5 chdir/cd/DIR missing example armed" fail "lab ref missing on disk: examples/does-not-exist" m_smoke_chdir_missing_example
