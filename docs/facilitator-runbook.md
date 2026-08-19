@@ -176,7 +176,7 @@ Canonical visible order: `S12 → S13 → S14 → S16 → S17 → S19`.
 
 #### The tooling ladder — reached by cross-reference, not by promotion
 
-Four tools sit off the canonical Day-2 path: `terraform-docs` and Gitleaks in
+Three tools sit off the canonical Day-2 path: `terraform-docs` and Gitleaks in
 [S28 · Ecosystem tooling](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/pages/S28-ecosystem-tooling/index.md)
 (optional, Day 3), Infracost in
 [S18 · Integration, e2e & cost](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/pages/S18-integration-cost/index.md)
@@ -187,7 +187,7 @@ no cost to the day:
 | Cross-reference | Points at | What the facilitator says |
 | --- | --- | --- |
 | S12 → S15 | Day-1 `precondition` / `postcondition` / `check` | S15 is **rung 0** — assertions inside the configuration, beneath the pyramid's base |
-| S13 → S28 | `terraform_docs` + `gitleaks` hooks in `.pre-commit-config.yaml` | Both tools **already run** in the learner's own `pre-commit run --all-files`; S28 is their home beat |
+| S13 → S28 | `terraform_docs` + `gitleaks` hooks in `.pre-commit-config.yaml` | Gitleaks **already runs** in the learner's own `pre-commit run --all-files` (golang hook, binary provisioned); `terraform_docs` is a script hook needing `terraform-docs` on `PATH` — a **one-time install** ([Lab 28](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-3/28-ecosystem-tooling.md)). S28 is their home beat |
 | S19 → S18 | S18's Infracost beat | A **signpost to optional material** — S18 is outside the canonical cut, so cost is *not* covered on the three-day path |
 
 **Why not just promote a tier?** Tier alone would not have pulled S18 in: the

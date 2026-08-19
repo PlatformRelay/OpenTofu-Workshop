@@ -187,9 +187,9 @@ pre-commit run --all-files
 - Fixing hooks **fail the run and repair the file in the same pass** — the
   rerun goes green.
 - S13/S19 showed this config as the fast feedback loop; S28 adds where it
-  sits in the wider belt. S13 names **`terraform-docs`** and **Gitleaks** as
-  already running in the learner's own `pre-commit run --all-files` and sends
-  them here for the beat.
+  sits in the wider belt. S13 names **Gitleaks** as already running in the
+  learner's own `pre-commit run --all-files`, flags that **`terraform-docs`**
+  needs the binary on `PATH` first, and sends both here for the beat.
 
 <!--
 Say: The commit-time gate is the repository's own pre-commit config — the same

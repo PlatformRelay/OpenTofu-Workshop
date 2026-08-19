@@ -219,15 +219,17 @@ The checked-in hooks run formatting, TFLint, **`terraform-docs`**
 <p v-click class="mt-5 text-sm opacity-75">Pre-commit shortens feedback; CI remains the shared authority.</p>
 
 <div v-click class="mt-3 kw-panel p-3 text-sm">
-<strong>Two rungs you are already standing on.</strong> That one command runs
-<code>terraform-docs</code> and Gitleaks in <em>your</em> gate — no extra install, no extra
-minutes. Their home beat is <strong>S28 · Ecosystem tooling</strong>, the optional appendix
-that walks the same <code>.pre-commit-config.yaml</code> plus <code>tenv</code>.
+<strong>Two more rungs on the same ladder.</strong> That one command already runs
+<strong>Gitleaks</strong> — pre-commit builds the binary for you. The
+<code>terraform_docs</code> hook is wired too, but it shells out, so it needs
+<code>terraform-docs</code> on your <code>PATH</code> first
+(<code>brew install terraform-docs</code>). Both get their beat in
+<strong>S28 · Ecosystem tooling</strong>, the optional appendix.
 </div>
 
 <!--
 Say: The checked-in pre-commit configuration reuses these commands and selects the OpenTofu binary through `PCT_TFPATH`. Local hooks improve speed, while CI still protects contributors who have not installed the hook. (~3 min)
-Cross-reference: name `terraform-docs` and Gitleaks out loud here. The `terraform_docs` and `gitleaks` hooks are already in `.pre-commit-config.yaml`, so learners who ran `pre-commit run --all-files` have executed both without knowing it — that makes them visible rungs on the same ladder at zero extra time. Point at S28 · Ecosystem tooling as their home beat (optional appendix, Day 3); do not teach either tool here.
+Cross-reference: name `terraform-docs` and Gitleaks out loud here. Both hooks are already wired in `.pre-commit-config.yaml`, so the ladder is wider than this slide's four steps — but be precise about the difference. `gitleaks` is a golang hook: pre-commit provisions the binary, so anyone who ran `pre-commit run --all-files` has already executed it without knowing. `terraform_docs` is a script hook that shells out, so it hard-fails with "terraform-docs is required by terraform_docs pre-commit hook but is not installed" unless the binary is on PATH — a one-time `brew install terraform-docs`, exactly as Lab 28 states. Point at S28 · Ecosystem tooling as their home beat (optional appendix, Day 3); do not teach either tool here.
 Then: Put the full loop into practice on a deliberately broken module.
 -->
 
@@ -264,7 +266,7 @@ next: S14 · Security & policy scanners
 - **Validate** enforces OpenTofu syntax and native contracts.
 - **TFLint** adds repository and ecosystem conventions.
 - **Pre-commit + CI** make the loop repeatable for the whole team.
-- The same hook run already gives you **`terraform-docs`** and **Gitleaks** — see **S28**.
+- The same hook run already gives you **Gitleaks**; **`terraform-docs`** needs a one-time install — both in **S28**.
 
 <p v-click class="mt-8 text-xl font-semibold">Static checks are necessary—and intentionally incomplete.</p>
 
