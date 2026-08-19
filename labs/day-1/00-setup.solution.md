@@ -38,8 +38,8 @@ Your version and platform may be newer or different. If `task` is missing, run
 ### Step 2 — First plan and apply (no Docker, no cloud)
 
 The files are already tracked—read them before running them.
-[`versions.tf`](./00-setup/versions.tf) is boilerplate you set once—it pins the
-OpenTofu version and every provider this lab can reach for:
+[`versions.tf`](./00-setup/versions.tf) is boilerplate you set once—it sets the
+minimum OpenTofu version and pins every provider the lab uses:
 
 <!-- source: labs/day-1/00-setup/versions.tf -->
 ```hcl
