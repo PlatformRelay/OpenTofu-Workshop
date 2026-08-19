@@ -37,43 +37,18 @@ Your version and platform may be newer or different. If `task` is missing, run
 
 ### Step 2 — First plan and apply (no Docker, no cloud)
 
-The first file is already tracked—read it before running it:
+The files are already tracked—read them before running them.
+[`versions.tf`](./00-setup/versions.tf) is boilerplate you set once: it requires
+OpenTofu ≥ 1.8 and pins the `aws`, `local`, and `random` providers.
+
+`hello.tf` is your first resource, and it is the whole file—one block, no
+variables, no conditionals:
 
 <!-- source: labs/day-1/00-setup/hello.tf -->
 ```hcl
-terraform {
-  required_version = ">= 1.8"
-
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 6.0"
-    }
-    local = {
-      source  = "hashicorp/local"
-      version = "~> 2.5"
-    }
-    random = {
-      source  = "hashicorp/random"
-      version = "~> 3.7"
-    }
-  }
-}
-
-variable "enable_random_pet" {
-  description = "Create the optional stretch resource."
-  type        = bool
-  default     = false
-}
-
 resource "local_file" "hello" {
   content  = "hello, opentofu\n"
   filename = "${path.module}/hello.txt"
-}
-
-resource "random_pet" "stretch" {
-  count  = var.enable_random_pet ? 1 : 0
-  length = 2
 }
 ```
 
@@ -137,8 +112,8 @@ fails, use the [troubleshooting guide](../../setup/localstack.md#troubleshooting
 
 ### Step 4 — Create the first emulated AWS resource
 
-The second tracked file keeps the LocalStack resource disabled until the health
-check has passed:
+`bucket.tf` keeps the LocalStack resource disabled until the health check has
+passed:
 
 <!-- source: labs/day-1/00-setup/bucket.tf -->
 ```hcl
@@ -192,7 +167,8 @@ tofu apply -auto-approve -var='enable_localstack=true'
 
 The summary is `Apply complete! Resources: 0 added, 0 changed, 0 destroyed.`
 
-Then enable the tracked stretch resource and inspect the one-addition plan:
+Then enable the tracked stretch resource in
+[`stretch.tf`](./00-setup/stretch.tf) and inspect the one-addition plan:
 
 ```bash
 tofu plan -var='enable_localstack=true' -var='enable_random_pet=true'
@@ -306,7 +282,8 @@ tofu apply -auto-approve -var='enable_localstack=true'
 
 The summary is `Apply complete! Resources: 0 added, 0 changed, 0 destroyed.`
 
-Then enable the tracked stretch resource and inspect the one-addition plan:
+Then enable the tracked stretch resource in
+[`stretch.tf`](./00-setup/stretch.tf) and inspect the one-addition plan:
 
 ```bash
 tofu plan -var='enable_localstack=true' -var='enable_random_pet=true'
