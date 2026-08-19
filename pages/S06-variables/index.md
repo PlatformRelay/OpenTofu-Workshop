@@ -224,7 +224,7 @@ outputs."
 
 `sensitive` stops shoulder-surfing and log leaks — it is **not** encryption. The
 value is still plaintext in state, which is exactly why **S05 — state
-encryption** exists two sections from here. *Forward reference; not taught yet.*
+encryption** comes later today. *Forward reference; not taught yet.*
 
 </div>
 
@@ -233,9 +233,9 @@ Say: Two constructs for secrets and results. sensitive = true masks a value as
 angle-bracket-sensitive everywhere it would print — plan, apply, tofu output — so
 it doesn't leak into a shared terminal or CI log. Say the important caveat out
 loud: masking is not encryption; the value is still plaintext in state, which is
-exactly the problem S05 — state encryption — solves two sections from here. Flag
-it as a forward reference so nobody thinks they missed it. Outputs are
-your config's return values — export a computed result for a parent module or the
+exactly the problem S05 — state encryption — solves later today. Flag it as a
+forward reference so nobody thinks they missed it. Outputs are your config's
+return values — export a computed result for a parent module or the
 CLI, and unmask a sensitive one deliberately with tofu output -raw. (~3 min)
 Then: "One point of pride for OpenTofu before we send you to the lab."
 -->
