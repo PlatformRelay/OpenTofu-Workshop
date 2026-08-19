@@ -135,8 +135,51 @@ Flat file `labs/day-N/NN-topic.md`, one per section. Every lab:
 - **Break → fix:** show the failure, then the fix (e.g. enforced-plaintext error →
   add `fallback`).
 - **Single source of truth:** the HCL a slide teaches **is** the file the lab
-  applies. The next lab extends the same files.
+  applies. The next lab continues the same project — by carrying its **spine
+  addresses** forward, not by being a file superset (see below).
 - **Panic reset is always safe:** `task lab:down` + `tofu destroy` leaves no residue.
+
+### The evolving project: `service-manifest`
+
+Every hands-on stage grows one project, **`service-manifest`** — the child
+module already at `labs/day-1/07-modules/modules/service-manifest/` is the
+name's source of truth (`svc-manifest` is informal shorthand). The published
+stage→section map lives in
+[`docs/syllabus.md`](./docs/syllabus.md) · *The evolving project*.
+
+A shared mutating directory is impossible here for two physical reasons: every
+lab must run standalone from its own tracked workdir (`task lab:validate
+DIR=labs/day-N/NN-topic`, below), and `scripts/verify.sh` byte-compares an
+annotated block against the **whole** source file, so a directory that mutates
+between sections has no stable snapshot to cite. Continuity is therefore carried
+by **addresses**:
+
+- **Project spine — carried forward, never renamed, never silently dropped:**
+  `local_file.manifest`, `variable "service"`, `variable "environment"`,
+  `output "manifest_path"`. Once introduced, every later Day-1 stage declares it.
+- **Auxiliary** demonstration resources (e.g. `local_file.summary`, which only
+  gives the dependency-graph beat a second node) may be retired — but **only
+  explicitly**, with the lab preamble naming what was retired and why. A silent
+  disappearance is a defect.
+- A stage conforms when its diff from the previous stage reads as *spine + an
+  explicit auxiliary delta*.
+
+**Do not author to a file superset.** "Stage N is stage N−1 plus a delta" is
+contradicted by the tree at five transitions — 3→4 drops `random_pet.release`,
+`local_file.summary` and `output "release_name"`; 4→5 drops
+`variable "api_token"` and two outputs; 5→6 shares nothing
+(`labs/day-1/04-state/` declares no variables at all); 6→7 keeps only a password
+resource and a passphrase variable; 7→8 drops `variable "state_passphrase"` and
+`random_password.db`. S04 and S05 also teach deliberately against a *small*
+config. Judge a stage by the spine rule, never by counting files.
+
+**Showing the transition on a slide:** use the drift-checked pattern the repo
+already ships — a `code-walkthrough` whose `magic-move` container holds
+consecutive annotated fences, each byte-checked against its own whole file.
+Reference: `slides-templates.md:123-172` over
+`labs/fixtures/templates-demo/naming-step-{1,2,3}.tf`. Step snapshots belong
+under `labs/fixtures/` (carve-out below) — never as an excerpt of a lab workdir
+file, which the whole-file gate rejects.
 
 ### Lab workdir & drift contract
 
