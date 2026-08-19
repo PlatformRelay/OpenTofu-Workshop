@@ -65,36 +65,6 @@
       "cleanupCommand": "cd labs/day-1/03-core-workflow"
     },
     {
-      "id": "day-1/04-state",
-      "labPath": "labs/day-1/04-state.md",
-      "solutionPath": "labs/day-1/04-state.solution.md",
-      "section": "S04",
-      "sectionTitle": "S04 State",
-      "day": 1,
-      "environment": "`mock ✓ (no docker)`",
-      "tools": "None",
-      "pinned": "`random` + `local` providers",
-      "validationState": "unrun",
-      "estimatedDurationMin": 20,
-      "automationTier": "mock-only",
-      "cleanupCommand": "cd labs/day-1/04-state"
-    },
-    {
-      "id": "day-1/05-state-encryption",
-      "labPath": "labs/day-1/05-state-encryption.md",
-      "solutionPath": "labs/day-1/05-state-encryption.solution.md",
-      "section": "S05",
-      "sectionTitle": "S05 State encryption",
-      "day": 1,
-      "environment": "`localstack ✓` · `mock ✓`",
-      "tools": "None for mock path",
-      "pinned": "`local` + `random` providers; encryption keys local",
-      "validationState": "unrun",
-      "estimatedDurationMin": 25,
-      "automationTier": "mixed",
-      "cleanupCommand": "cd labs/day-1/05-state-encryption"
-    },
-    {
       "id": "day-1/06-variables",
       "labPath": "labs/day-1/06-variables.md",
       "solutionPath": "labs/day-1/06-variables.solution.md",
@@ -123,6 +93,36 @@
       "estimatedDurationMin": 30,
       "automationTier": "mock-only",
       "cleanupCommand": "cd labs/day-1/15-conditions-checks"
+    },
+    {
+      "id": "day-1/04-state",
+      "labPath": "labs/day-1/04-state.md",
+      "solutionPath": "labs/day-1/04-state.solution.md",
+      "section": "S04",
+      "sectionTitle": "S04 State",
+      "day": 1,
+      "environment": "`mock ✓ (no docker)`",
+      "tools": "None",
+      "pinned": "`random` + `local` providers",
+      "validationState": "unrun",
+      "estimatedDurationMin": 20,
+      "automationTier": "mock-only",
+      "cleanupCommand": "cd labs/day-1/04-state"
+    },
+    {
+      "id": "day-1/05-state-encryption",
+      "labPath": "labs/day-1/05-state-encryption.md",
+      "solutionPath": "labs/day-1/05-state-encryption.solution.md",
+      "section": "S05",
+      "sectionTitle": "S05 State encryption",
+      "day": 1,
+      "environment": "`localstack ✓` · `mock ✓`",
+      "tools": "None for mock path",
+      "pinned": "`local` + `random` providers; encryption keys local",
+      "validationState": "unrun",
+      "estimatedDurationMin": 25,
+      "automationTier": "mixed",
+      "cleanupCommand": "cd labs/day-1/05-state-encryption"
     },
     {
       "id": "day-1/07-modules",
