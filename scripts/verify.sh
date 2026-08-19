@@ -49,8 +49,33 @@ title "OpenTofu Workshop · verify (unit lane)"
 # ---------------------------------------------------------------------------
 heading "Preflight"
 if have tofu; then
-  TOFU_VER="$(tofu version 2>/dev/null | head -n1 | awk '{print $2}')"
-  if min_version "${TOFU_VER#v}" "1.8"; then
+  # This is the FIRST external call the gate makes, and it used to be:
+  #     TOFU_VER="$(tofu version 2>/dev/null | head -n1 | awk '{print $2}')"
+  # which packs two silent-death traps into one line under `set -euo pipefail`
+  # (line 22):
+  #
+  #   1. `2>/dev/null` throws away tofu's OWN diagnosis, so a failing probe
+  #      leaves nothing to read.
+  #   2. `head` as a pipe SINK closes the pipe as soon as it has its line;
+  #      the upstream `tofu` takes SIGPIPE and `pipefail` surfaces it.
+  #
+  # Either way the assignment is a plain command, so `set -e` kills verify.sh
+  # right here — after the "Preflight" heading and before anything else prints.
+  # CI caught exactly that (job 96001788290, 2026-08-19): a FOUR-line run —
+  # blank, title, blank, "Preflight" — exiting 1 with no failure message. It
+  # had been read as an unexplainable flake and cost a revert, because a gate
+  # that dies without a word gives its reader nothing to go on.
+  #
+  # Now: capture rc instead of dying (`|| rc=$?` is exempt from errexit), keep
+  # stderr, and parse with `awk` reading to EOF so there is no early close.
+  TOFU_VER_RC=0
+  TOFU_VER_OUT="$(tofu version 2>&1)" || TOFU_VER_RC=$?
+  TOFU_VER="$(printf '%s\n' "$TOFU_VER_OUT" | awk 'NR == 1 { print $2 }')"
+  if [ "$TOFU_VER_RC" -ne 0 ] || [ -z "$TOFU_VER" ]; then
+    fail "tofu version probe failed (exit $TOFU_VER_RC) — cannot establish the toolchain version"
+    info "tofu said:"
+    printf '%s\n' "$TOFU_VER_OUT" | sed 's/^/    /'
+  elif min_version "${TOFU_VER#v}" "1.8"; then
     pass "tofu ${TOFU_VER} (>= 1.8)"
   else
     fail "tofu ${TOFU_VER} is below the required 1.8"

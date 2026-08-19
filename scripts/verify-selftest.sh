@@ -195,6 +195,30 @@ build_root() {
   done
 }
 
+# Substring test with NO subprocess and NO pipe.
+#
+# The obvious spelling — `printf '%s' "$out" | grep -qF -- "$needle"` — is a
+# false-NEGATIVE generator under `set -o pipefail` (line 86): `grep -q` exits
+# the instant it finds a match, closing the pipe; if the payload is larger than
+# the pipe capacity the upstream `printf` is still writing and takes SIGPIPE, so
+# the pipeline reports 141 for a needle that IS present. The earlier the needle,
+# the likelier it fires — which makes it a flake, not a clean failure.
+#
+# Measured, needle present in every case (100 KB payload):
+#     macOS  needle at line 1   -> pipeline rc 141   <- WRONG, needle is there
+#     macOS  needle at line 250 -> pipeline rc 0
+#     GitHub runner              -> hit the elision marker in a 400+ line dump,
+#                                   reporting it "missing" while it was printed
+#
+# Bash's own pattern matching does the comparison in-process: no fork, no pipe,
+# nothing to SIGPIPE, and it is faster besides.
+has_text() {
+  case "$1" in
+    *"$2"*) return 0 ;;
+    *)      return 1 ;;
+  esac
+}
+
 # Dump everything a failing case produced.
 #
 # WHY THE WHOLE THING: this used to be
@@ -283,13 +307,16 @@ check_dump() {
   rc=$?
   set -e
   local needle
+  # Accumulate EVERY missing needle. Keeping only the last one hides how badly
+  # a dump is broken — "missing the end marker" and "missing the end marker AND
+  # the elision marker" are different diagnoses.
   for needle in '---- end of verify.sh output ----' "$@"; do
-    printf '%s' "$out" | grep -qF -- "$needle" || missing="$needle"
+    has_text "$out" "$needle" || missing="${missing:+$missing, }'$needle'"
   done
   if [ "$rc" -eq 0 ] && [ -z "$missing" ]; then
     ok "dump self-check: $label — exit 0 and output terminated cleanly"
   else
-    bad "dump self-check: $label — expected exit 0 + closing marker; got exit $rc${missing:+, missing '$missing'}"
+    bad "dump self-check: $label — expected exit 0 + closing marker; got exit $rc${missing:+, missing $missing}"
     printf '%s\n' "$out" | tail -n 5 | sed 's/^/        | /'
   fi
 }
@@ -317,19 +344,19 @@ run_case() {
   rc=$?
   set -e
 
-  if [ -n "$also" ] && ! printf '%s' "$out" | grep -qF "$also"; then
+  if [ -n "$also" ] && ! has_text "$out" "$also"; then
     also_ok=0
   fi
 
   if [ "$expect" = "pass" ]; then
-    if [ "$rc" -eq 0 ] && [ "$also_ok" -eq 1 ] && printf '%s' "$out" | grep -qF "$needle"; then
+    if [ "$rc" -eq 0 ] && [ "$also_ok" -eq 1 ] && has_text "$out" "$needle"; then
       ok "$label — exit 0 and enforcement armed ('$needle')"
     else
       bad "$label — expected exit 0 + '$needle'${also:+ + '$also'}; got exit $rc"
       dump_case_output "$out"
     fi
   else
-    if [ "$rc" -ne 0 ] && [ "$also_ok" -eq 1 ] && printf '%s' "$out" | grep -qF "$needle"; then
+    if [ "$rc" -ne 0 ] && [ "$also_ok" -eq 1 ] && has_text "$out" "$needle"; then
       ok "$label — exit $rc (non-zero) and drift named ('$needle')"
     else
       bad "$label — expected non-zero + '$needle'${also:+ + '$also'}; got exit $rc"
@@ -624,6 +651,29 @@ m_lab_tftest_fail() {
     "$root/$LAB_TFTTEST_DIR/tests/unit.tftest.hcl"
 }
 
+# Preflight: a FAILING toolchain probe must be named and the run must continue
+# to its summary — never a silent death.
+#
+# THE HOLE THIS CLOSES: `tofu version` used to be piped through `2>/dev/null |
+# head -n1 | awk`, so under `set -euo pipefail` a non-zero probe (or a SIGPIPE
+# from `head` closing the pipe) killed verify.sh as a bare assignment failure,
+# immediately after the "Preflight" heading. CI produced exactly that on
+# 2026-08-19 (job 96001788290): four lines of output, exit 1, no message. With
+# nothing to read it was misdiagnosed as a flake in an unrelated lane, and that
+# lane was reverted for a defect it did not have.
+#
+# The stub lands in test-bin/, which run_case puts FIRST on PATH, so `have tofu`
+# still succeeds and only the probe fails — the exact shape of the CI failure.
+m_tofu_version_probe_fails() {
+  local root="$1"
+  cat >"$root/test-bin/tofu" <<'STUB'
+#!/bin/sh
+echo "tofu: simulated toolchain probe failure (self-test)" >&2
+exit 1
+STUB
+  chmod +x "$root/test-bin/tofu"
+}
+
 m_lab_integration_only() {
   local root="$1"
   mkdir -p "$root/$LAB_TFTTEST_DIR/tests"
@@ -728,6 +778,10 @@ run_case "git mode: tracked-but-absent path is warned not silently passed" pass 
 run_case "day-2 lab unit tftest gated" pass "labs/day-2/99-lab-tftest-selftest: tofu test (plan/mock)" m_lab_tftest_clean
 run_case "day-2 lab unit tftest failure armed" fail "labs/day-2/99-lab-tftest-selftest: tofu test" m_lab_tftest_fail
 run_case "day-2 lab integration tftest deferred" pass "labs/day-2/99-lab-tftest-selftest: only integration test(s) — deferred to task verify:integration / CI verify-integration" m_lab_integration_only
+# `also` pins the SURVIVAL half: exit non-zero alone would also be produced by
+# the silent death this case exists to forbid. Reaching the summary proves the
+# gate reported and kept going.
+run_case "tofu version probe failure is named, not a silent death" fail "tofu version probe failed" m_tofu_version_probe_fails "verify FAILED"
 run_case "§5 prose fake module ref ignored" pass "no modules/|examples/ references in labs (all HCL is scratch/inline) — nothing to drift-check yet" m_smoke_prose_fake_module
 run_case "§5 HCL source missing module armed" fail "lab ref missing on disk: modules/does-not-exist" m_smoke_hcl_missing_source
 run_case "§5 chdir/cd/DIR missing example armed" fail "lab ref missing on disk: examples/does-not-exist" m_smoke_chdir_missing_example
