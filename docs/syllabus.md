@@ -173,8 +173,8 @@ in the [README](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/REA
 
 - **Tier:** `core` (always in the cut) · `recommended` (keep if time) · `optional` (cut first).
 - **Canonical cut:** [slides-3day.md](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/slides-3day.md) — serve with `task dev:3day`.
-- **Day 1** overflows a raw full-section budget; apply the README fit plan before facilitating.
-- **Day 2–3** full-section minute totals are not published in-repo yet — pace from lab durations and presenter notes (see the runbook). Do not invent day totals.
+- **Day totals (slides + labs, unrehearsed planning estimates)** against a 390 min/day budget, from `canonicalDayTotals()`: **Day 1 = 770 (525 + 245), +380 over** · **Day 2 = 360 (180 + 180), 30 under** · **Day 3 = 400 (200 + 200), +10 over**. Published in the [README](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/README.md#published-day-totals) and the [runbook](facilitator-runbook.md#live-cut-order).
+- **Day 1 and Day 3 do not fit.** The README fit plan compresses Day-1 *slide* time from 655 to 390; the 245 minutes of Day-1 labs sit on top, so a fit-plan Day 1 is still 635 of slides + labs. Apply it before facilitating, and plan the overflow.
 
 ## Section map (S00–S28)
 
@@ -214,7 +214,9 @@ in the [README](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/REA
 
 Slides and lab minutes are **unrehearsed planning estimates** from
 `scripts/deck-manifest.mjs`. Day 1 fit-plan compression lives in the README and
-`slides-3day.md` markers — not in this table.
+`slides-3day.md` markers — not in this table. Summing the rows the section map
+marks as kept in the three-day cut — that is, excluding S09, S10 and S11 (Day 1),
+S18 (Day 2) and S25, S27 and S28 (Day 3) — gives that day's published total above.
 
 | ID | Section | Slides | Lab |
 | --- | --- | ---: | ---: |

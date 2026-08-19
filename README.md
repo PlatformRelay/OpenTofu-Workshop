@@ -112,20 +112,40 @@ cut.
 
 > [!WARNING]
 > This repository is a **content superset**: the section library (`S00`–`S26`)
-> is deliberately **larger than fits in three days**. At a **6.5 h/day** budget
-> (~50/50 explain-then-run), the full superset runs well over three days, and
-> even the **`core`** tier makes **Day 1 tight — it overflows a single day's
-> budget**. That is a deliberate design choice ("choice over fit"), not an
-> oversight. For a standard delivery, start with the canonical three-day cut;
-> when trimming further, cut **`optional` first, then `recommended`**, and keep
-> `core`. Before facilitating Day 1, apply the
+> is deliberately **larger than fits in three days**. At a **390 min/day** budget
+> (6.5 h, ~50/50 explain-then-run), the full superset runs well over three days,
+> and even the canonical three-day cut **overflows on two of the three days** —
+> see the published totals below. That is a deliberate design choice ("choice
+> over fit"), not an oversight. For a standard delivery, start with the canonical
+> three-day cut; when trimming further, cut **`optional` first, then
+> `recommended`**, and keep `core`. Before facilitating Day 1, apply the
 > [executable Day 1 fit plan](#day-1-fit-plan).
+
+### Published day totals
+
+Slides **and** labs for the canonical three-day cut, computed from
+`canonicalDayTotals()` in `scripts/deck-manifest.mjs`. They are **unrehearsed
+planning estimates** derived from section frontmatter, never rehearsal timings,
+and the facilitator budget is 390 min/day:
+
+- **Day 1 slides+labs: 770 min (planned)** — 525 slides + 245 labs, **+380 over** budget.
+- **Day 2 slides+labs: 360 min (planned)** — 180 slides + 180 labs, 30 under budget.
+- **Day 3 slides+labs: 400 min (planned)** — 200 slides + 200 labs, **+10 over** budget.
+
+Two of the three days do not fit: plan the overflow rather than discovering it
+mid-morning. The [fit plan](#day-1-fit-plan) below brings Day-1 **slide** time
+down to 390 — a separate, slides-only deck-runtime figure. The 245 minutes of
+Day-1 lab time sit on top of it and the fit plan does not touch them.
 
 ### Day 1 fit plan
 
-The planning estimate starts at **655 minutes** for every Day 1 section. Apply
-the rows in order. The first three remove optional/recommended material; the
-remaining rows shorten core delivery while preserving each section's outcome.
+This plan compresses **slide time only**. It starts at **655 minutes** of slide
+time across all thirteen Day-1 sections (`dayOneSupersetSlidesTotal()`) and ends
+at **390** (`dayOneFitTotal()`). Day-1 lab time — 245 minutes — is untouched, so
+a fit-plan delivery still runs **635 minutes** of slides+labs against a 390
+budget: the plan makes the *deck* fit the day, not the *day* fit the budget.
+Apply the rows in order. The first three remove optional/recommended material;
+the remaining rows shorten core delivery while preserving each section's outcome.
 The arithmetic is explicit: **655 → 620 → 575 → 525**, then
 **525 → 510 → 490 → 475 → 460 → 445 → 430 → 415 → 400 → 390**.
 
@@ -133,7 +153,7 @@ The arithmetic is explicit: **655 → 620 → 575 → 525**, then
 | ---: | --- | ---: | ---: | --- |
 | 1 | Skip S11 (optional); its `hide: true` toggle is already set | −35 | 620 | Defer the TACO vendor-selection landscape |
 | 2 | Skip S10 (recommended) at its `DAY1-FIT` marker; keep `hide: false` | −45 | 575 | Defer the differentiator survey; S05 still demonstrates encryption |
-| 3 | Skip S09 (recommended) at its `DAY1-FIT` marker; keep `hide: false` | −50 | 525 | Defer lifecycle/refactoring patterns to follow-up study |
+| 3 | Skip S09 (recommended) at its `DAY1-FIT` marker; keep `hide: false` | −50 | 525 | Defer the `count` vs `for_each` lesson and `moved`-based refactoring to follow-up study |
 | 4 | Compress S00 from 40→25 at its marker | −15 | 510 | Move installation checks before class; retain orientation and first apply |
 | 5 | Compress S01 from 40→20 at its marker | −20 | 490 | Make the detailed fork timeline pre-reading; retain why IaC and governance |
 | 6 | Compress S02 from 50→35 at its marker | −15 | 475 | Demo fewer block variants; retain syntax, references, and the break→fix |
@@ -147,6 +167,18 @@ The arithmetic is explicit: **655 → 620 → 575 → 525**, then
 `hide: true` remains reserved for optional sections, so S09/S10 and every core
 section stay `hide: false`. Their comments in
 [the three-day deck](slides-3day.md) are delivery markers, not tier changes.
+
+The Day-1 resequencing (S06 and S15 moved ahead of S04 and S05) changed no
+section's length, so the 770 planning total and every row above are unchanged by
+the reorder — only the order of rows 4–12 moved.
+
+Skipping S09 and S10 carries a known, accepted cost: a learner on the canonical
+cut **never sees `for_each` taught** — neither S09's `count` vs `for_each`
+lesson and `moved`-based refactoring without replacement, nor S10's
+provider-level `for_each` and `-exclude`. The keyword survives only incidentally,
+in a `dynamic` block toggle inside the Day-3 capstone's provider boilerplate and
+in an optional stretch prompt at the end of Lab 07; neither is taught or checked.
+Restore S09 first if time returns.
 
 ## Common local commands
 

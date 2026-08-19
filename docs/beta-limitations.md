@@ -5,10 +5,13 @@ contract. Room tempo depends on the presenter, the audience, and which optional
 sections you keep.
 
 - **The section library is a content superset** — `S00`–`S26` is deliberately
-  larger than fits in three days. Even the **`core`** tier makes **Day 1 tight**
-  at a ~6.5 h/day budget. Use the [Day 1 fit plan](https://platformrelay.github.io/OpenTofu-Workshop/#day-1-fit-plan)
-  before facilitating; cut **`optional` first, then `recommended`**, and keep
-  `core`.
+  larger than fits in three days, and the canonical three-day cut overflows too.
+  Against a **390 min/day** budget (6.5 h), the planned slides+labs totals are
+  **Day 1 = 770 — 380 over**, Day 2 = 360, and **Day 3 = 400 — 10 over**. Use the
+  [Day 1 fit plan](https://platformrelay.github.io/OpenTofu-Workshop/#day-1-fit-plan)
+  before facilitating — it compresses Day-1 *slide* time to 390 and leaves the
+  245 minutes of Day-1 labs untouched; cut **`optional` first, then
+  `recommended`**, and keep `core`.
 - **Syllabus minute marks** are planning aids for facilitators, not measured
   delivery facts. Adjust on the day.
 - **Day 2/3 tool-dependent labs** (TFLint, Trivy, Checkov, Conftest, Terramate,

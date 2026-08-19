@@ -107,12 +107,28 @@ the one place the spine is not at the root: S07 *extracts* it into
 
 ## Live cut-order
 
-Budget is **6.5 h/day** (~50/50 explain-then-run). Full section minutes for Day 1
-come from the
-[Day 1 fit plan](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/README.md#day-1-fit-plan).
-Lab minutes come from section frontmatter / lab headers. Day 2–3 full-section
-budgets are not published in-repo yet — use **lab duration + presenter-note cues**;
-do not invent totals.
+Budget is **390 min/day** (6.5 h, ~50/50 explain-then-run). The authoritative
+planning totals for the canonical cut — **slides *and* labs**, computed by
+`canonicalDayTotals()` in `scripts/deck-manifest.mjs` — are published here and in
+the
+[README](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/README.md#published-day-totals):
+
+| Day | Slides | Labs | Slides+labs (planned) | Against the 390 budget |
+| --- | ---: | ---: | ---: | --- |
+| 1 | 525 | 245 | **770** | **+380 over** |
+| 2 | 180 | 180 | 360 | 30 under |
+| 3 | 200 | 200 | **400** | **+10 over** |
+
+**Day 1 and Day 3 do not fit.** Say so when you plan the delivery: the honest
+statement is "Day 1 is 380 over a one-day budget", not "Day 1 fits once you apply
+the fit plan". These are **unrehearsed planning estimates** from section
+frontmatter and lab headers — no rehearsal has timed them, so treat them as a
+budget, not a stopwatch.
+
+The README fit plan's **390 is a different figure**: it is Day-1 **slide**
+runtime only (`dayOneFitTotal()`), compressed from 655. Day-1 lab time (245) is
+untouched by it, so a fit-plan Day 1 still runs **635** of slides+labs. Use 390
+to check the deck against the day; use 770 to plan the day itself.
 
 ### Day 1 (author → guard → package)
 
@@ -124,11 +140,24 @@ do not invent totals.
 | --- | --- | --- |
 | 1 | Skip **S11** (optional; already `hide: true`) | README fit plan row 1 (−35) |
 | 2 | Skip **S10**, then **S09** at their `DAY1-FIT` markers | README rows 2–3 (−45, −50) |
-| 3 | Compress S00–S03, S06, S15, S04, S05, S07 at markers until ≤390 min | README rows 4–12 |
+| 3 | Compress S00–S03, S06, S15, S04, S05, S07 at markers until slide time is ≤390 | README rows 4–12 |
 | Keep | **S08** at 65 min — flagship synthesis | `slides-3day.md` marker |
 
 Cut optional → recommended → compress core. Never drop S08 or S15's blocking
 `precondition` + `check` beat when compressing.
+
+**The Day-1 resequencing was timing-neutral.** Moving S06 and S15 ahead of S04
+and S05 changed no section's length, so the 770 planning total and every fit-plan
+row are exactly what they were before the reorder — only the order changed.
+
+**Accepted cost of the canonical cut: `for_each` is never taught.** S09 and S10
+are both skipped, which removes S09's `count` vs `for_each` lesson (and
+`moved`-based refactoring without replacement) and S10's provider-level
+`for_each` / `-exclude`. A canonical-cut learner meets the keyword only
+incidentally — a `dynamic` block toggle in the Day-3 capstone's provider
+boilerplate, and an optional stretch prompt at the end of Lab 07 — and is never
+taught or checked on it. This is deliberate, not an oversight; S09 is the first
+section to restore when time returns.
 
 ### Day 2 (test)
 
@@ -205,9 +234,11 @@ nobody hunts for “their” bucket from before the crash. Detail:
 
 ## Shipped sections
 
-Timing legend: **Section** = README Day 1 fit-plan full budget (explain+lab).
-**Lab** = `duration:` on the lab slide / lab header. **3-day cut** = compress /
-skip from the fit plan or `hide:` in `slides-3day.md`.
+Timing legend: **Full (fit plan)** = the section's uncompressed **slide**
+minutes, the figure the README fit plan compresses — explain time only.
+**Lab** = `duration:` on the lab slide / lab header; add the two for the section's
+share of the day. **3-day cut** = compress / skip from the fit plan or `hide:` in
+`slides-3day.md`. All minutes are unrehearsed planning estimates.
 
 ### Day 1
 
