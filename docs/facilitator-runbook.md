@@ -47,16 +47,17 @@ the cut-order below, and use this table for the target arc only.
 
 **Where each concept is introduced:** `resource` → stage 0 · `variable` →
 stage 2 (block taxonomy; typed, validated and sensitive at stage 4) · `output` →
-stage 1 · `plan` → stage 0 (read line by line at stage 3) · `apply` → stage 0
-(full lifecycle at stage 3) · state → stage 6 (named and motivated at stage 3) ·
-modules → stage 8 · testing → stage 10 · CI → stage 14.
+stage 2 (block taxonomy; first appears in the stage-1 lab config) · `plan` →
+stage 0 (read line by line at stage 3) · `apply` → stage 0 (full lifecycle at
+stage 3) · state → stage 6 (named and motivated at stage 3) · modules → stage 8 ·
+testing → stage 10 · CI → stage 14.
 
 | Stage | Section | Workdir | Introduces |
 | --- | --- | --- | --- |
 | 0 | S00 · Welcome & setup | `labs/day-1/00-setup/` | **`resource`**, `init`, the first **`plan`** and **`apply`** |
 | 0b | S00 · stretch | `labs/day-1/00-setup/` | the first cloud-shaped resource (S3 on LocalStack) |
-| 1 | S01 · Infrastructure as Code | `labs/day-1/01-iac-fork/` | declarative vs imperative; **`output`** |
-| 2 | S02 · HCL & building blocks | `labs/day-1/02-hcl-blocks/` | the block taxonomy — **`variable`**, `locals`, `data`, references (`module` is only a forward reference to stage 8) |
+| 1 | S01 · Infrastructure as Code | `labs/day-1/01-iac-fork/` | declarative vs imperative — the lab config surfaces its first `output`, though the block type is taught at stage 2 |
+| 2 | S02 · HCL & building blocks | `labs/day-1/02-hcl-blocks/` | the block taxonomy — **`variable`**, **`output`**, `locals`, `data`, references (`module` is only a forward reference to stage 8) |
 | 3 | S03 · The core workflow | `labs/day-1/03-core-workflow/` | the four-command loop — **plan diffs**, the graph, `destroy`, and *why* state exists |
 | 4 | S06 · Variables, validation & types | `labs/day-1/06-variables/` | **typed, validated and sensitive `variable`s** — the project's own inputs |
 | 5 | S15 · Validation, preconditions & checks | `labs/day-1/15-conditions-checks/` | `precondition`, `postcondition`, `check` |
@@ -71,9 +72,11 @@ modules → stage 8 · testing → stage 10 · CI → stage 14.
 | 14 | S19 · Testing in CI/CD | `labs/day-2/19-testing-cicd/` | **CI** — the whole ladder as pipeline jobs |
 | 15 | S20–S26 | `labs/day-3/**`, `examples/capstone/` | stacks → codegen → ordering → filtering → capstone |
 
-**S09, S10 and S11 carry no stage number** — they are skipped by the fit plan, so
-they sit outside the stage sequence. If you do run S09, its `local_file.manifest`
-is the same project spine, not a new example.
+**S09, S10 and S11 carry no stage number** — the fit plan skips S09 and S10, and
+S11 is hidden in the 3-day cut, so all three sit outside the **Day-1** stage
+sequence. Skippable does not mean unstaged elsewhere: S18 is hidden yet holds
+stage 13, and S25 sits inside stage 15's span. If you do run S09, its
+`local_file.manifest` is the same project spine, not a new example.
 
 **What carries forward.** Labs do not share one mutating directory — each runs
 standalone from its own tracked workdir (`task lab:validate DIR=…`), and the

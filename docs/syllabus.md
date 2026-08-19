@@ -41,16 +41,17 @@ stage order when the Day-1 resequencing lands.
 
 **Where each concept is introduced:** `resource` → stage 0 · `variable` →
 stage 2 (block taxonomy; typed, validated and sensitive at stage 4) · `output` →
-stage 1 · `plan` → stage 0 (read line by line at stage 3) · `apply` → stage 0
-(full lifecycle at stage 3) · state → stage 6 (named and motivated at stage 3) ·
-modules → stage 8 · testing → stage 10 · CI → stage 14.
+stage 2 (block taxonomy; first appears in the stage-1 lab config) · `plan` →
+stage 0 (read line by line at stage 3) · `apply` → stage 0 (full lifecycle at
+stage 3) · state → stage 6 (named and motivated at stage 3) · modules → stage 8 ·
+testing → stage 10 · CI → stage 14.
 
 | Stage | Section | Workdir | Introduces |
 | --- | --- | --- | --- |
 | 0 | S00 · Welcome & setup | `labs/day-1/00-setup/` | **`resource`**, `init`, the first **`plan`** and **`apply`** |
 | 0b | S00 · stretch | `labs/day-1/00-setup/` | the first cloud-shaped resource (S3 on LocalStack) |
-| 1 | S01 · Infrastructure as Code | `labs/day-1/01-iac-fork/` | declarative vs imperative; **`output`** |
-| 2 | S02 · HCL & building blocks | `labs/day-1/02-hcl-blocks/` | the block taxonomy — **`variable`**, `locals`, `data`, references (`module` is only a forward reference to stage 8) |
+| 1 | S01 · Infrastructure as Code | `labs/day-1/01-iac-fork/` | declarative vs imperative — the lab config surfaces its first `output`, though the block type is taught at stage 2 |
+| 2 | S02 · HCL & building blocks | `labs/day-1/02-hcl-blocks/` | the block taxonomy — **`variable`**, **`output`**, `locals`, `data`, references (`module` is only a forward reference to stage 8) |
 | 3 | S03 · The core workflow | `labs/day-1/03-core-workflow/` | the four-command loop — **plan diffs**, the graph, `destroy`, and *why* state exists |
 | 4 | S06 · Variables, validation & types | `labs/day-1/06-variables/` | **typed, validated and sensitive `variable`s** — the project's own inputs |
 | 5 | S15 · Validation, preconditions & checks | `labs/day-1/15-conditions-checks/` | `precondition`, `postcondition`, `check` |
@@ -65,12 +66,15 @@ modules → stage 8 · testing → stage 10 · CI → stage 14.
 | 14 | S19 · Testing in CI/CD | `labs/day-2/19-testing-cicd/` | **CI** — the whole ladder as pipeline jobs |
 | 15 | S20–S26 | `labs/day-3/**`, `examples/capstone/` | stacks → codegen → ordering → filtering → capstone |
 
-**Fit-plan-skipped sections carry no stage number.** S09, S10 and S11 are
-`recommended`/`optional` and are skipped in the canonical cut, so they are
-outside the stage sequence. They are not outside the project: if S09 is
-delivered, the `local_file.manifest` in `labs/day-1/09-best-practices/` **is**
-the spine address and must keep that name. S10 and S11 stand apart from the
-project by design.
+**Three Day-1 sections carry no stage number.** The Day-1 fit plan skips S09 and
+S10, and S11 is hidden in the 3-day cut, so all three sit outside the Day-1 stage
+sequence. This is a Day-1 statement only — being skippable does not by itself
+remove a section from the map: S18 is hidden yet holds stage 13, S25 sits inside
+stage 15's S20–S26 span, and the S27/S28 appendices have no stage.
+
+S09 is not outside the *project*, though: if it is delivered, the
+`local_file.manifest` in `labs/day-1/09-best-practices/` **is** the spine address
+and must keep that name. S10 and S11 stand apart from the project by design.
 
 ### What "one evolving project" means here
 
@@ -99,12 +103,15 @@ explicit auxiliary delta*.
 
 **Open point — where the spine's first `variable` lands.** Stage 2 already
 teaches `variable` and declares one; the stage-3 workdir
-(`labs/day-1/03-core-workflow/`) declares none. So either stage 3 must gain
-`variable "service"` / `variable "environment"` to satisfy the carry-forward
-rule above, or stage 2's variable counts as **auxiliary** and the spine's inputs
-are introduced at stage 4. **This table does not settle it** — it is a named
-decision for the Day-1 continuity pass, and whichever way it goes must be
-recorded there rather than assumed.
+(`labs/day-1/03-core-workflow/`) declares none. So either **(a)** stage 3 gains
+`variable "service"` / `variable "environment"` to satisfy the carry-forward rule
+above, or **(b)** stage 2's variable counts as **auxiliary** and the spine's
+inputs are introduced at stage 4 — in which case the stage-2 variable must
+**keep a non-spine name**. Naming it `variable "service"` at stage 2 and letting
+it disappear at stage 3 is not a third option: that is exactly the silent spine
+drop the rule above forbids. **This table does not settle (a) vs (b)** — it is a
+named decision for the Day-1 continuity pass, to be recorded there rather than
+assumed.
 
 **A stage is not the previous stage's files plus more.** The tree contradicts a
 file-superset reading at **six of the seven** Day-1 transitions:

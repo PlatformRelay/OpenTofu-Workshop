@@ -166,10 +166,13 @@ by **addresses**:
   explicit auxiliary delta*.
 - **Open point — where the spine's first `variable` lands.** Stage 2 teaches
   `variable` and declares one, but the stage-3 workdir
-  (`labs/day-1/03-core-workflow/`) declares none. Either stage 3 gains
-  `variable "service"` / `variable "environment"`, or stage 2's variable is
-  **auxiliary** and the spine's inputs start at stage 4. Undecided — the Day-1
-  continuity pass must record which, not assume it.
+  (`labs/day-1/03-core-workflow/`) declares none. Either **(a)** stage 3 gains
+  `variable "service"` / `variable "environment"`, or **(b)** stage 2's variable
+  is **auxiliary** and the spine's inputs start at stage 4 — under (b) the
+  stage-2 variable must **keep a non-spine name**, since naming it
+  `variable "service"` there and dropping it at stage 3 is the silent spine drop
+  this rule forbids. Undecided — the Day-1 continuity pass must record which,
+  not assume it.
 
 **Do not author to a file superset.** "Stage N is stage N−1 plus a delta" is
 contradicted by the tree at **six of the seven** Day-1 transitions — 2→3 drops
