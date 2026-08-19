@@ -1,0 +1,9 @@
+# Learner-generated artifacts — never committed. Mirrors the sibling Terramate
+# labs. The lock files appear because verify.sh now runs
+# `tofu init -backend=false` in every day-3 unit (US-C-GATE), and a lock
+# recorded on one platform is not portable to CI's.
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/*.marker
+.terraform.lock.hcl

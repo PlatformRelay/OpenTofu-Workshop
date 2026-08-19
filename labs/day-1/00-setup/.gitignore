@@ -1,0 +1,13 @@
+# Learner-generated artifacts from running this lab in place — never committed.
+# The lab's canonical HCL is hello.tf / bucket.tf (tracked, drift-checked).
+# The lock file is generated: verify.sh now runs `tofu init -backend=false` here
+# (US-C-GATE), and a lock recorded on one platform is not portable to CI's.
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.*
+*.tfstate
+*.tfstate.*
+hello.txt
+crash.log
+crash.*.log

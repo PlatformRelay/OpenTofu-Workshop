@@ -5,7 +5,9 @@
 #   1. deps preflight (tofu present, version)
 #   2. tofu fmt -check over git-tracked *.tf (minus the S13 messy fixture);
 #      falls back to a filesystem walk when the root is not a git work tree
-#   3. per module/example/day-2-lab that has *.tf: tofu init -backend=false + validate
+#   3. per module/example/day-2-lab-with-tests, and per day-1/day-3 lab workdir
+#      holding *.tf (recursively — day-3 roots are nested under stacks/):
+#      tofu init -backend=false + validate
 #   4. per module/example/day-2-lab that has *.tftest.hcl: tofu test (plan/mock lanes;
 #      *integration*.tftest.hcl deferred to task verify:integration / CI verify-integration)
 #   5. slide ↔ lab drift smoke check (source=/chdir=/cd/DIR= → modules|examples exist)
@@ -101,9 +103,9 @@ else
 fi
 
 # Collect module/example dirs that actually contain Terraform/OpenTofu code,
-# plus day-2 lab workdirs that ship *.tftest.hcl (audit TEST-A2). Lab dirs
-# without a tftest suite stay out of the validate/test loop — they are learner
-# scratch or tool-only fixtures (e.g. S13 messy) and are covered elsewhere.
+# plus day-2 lab workdirs that ship *.tftest.hcl (audit TEST-A2), plus EVERY
+# day-1/day-3 lab workdir that holds .tf (US-C-GATE — see the recursive scan
+# below for why those two days are swept recursively while day-2 is not).
 # nullglob makes empty globs vanish instead of expanding to a literal '*'.
 shopt -s nullglob
 CODE_DIRS=()
@@ -124,6 +126,48 @@ for d in labs/day-2/*/; do
   lab_tests=("$d"*.tftest.hcl "$d"tests/*.tftest.hcl)
   [ "${#lab_tests[@]}" -gt 0 ] && CODE_DIRS+=("${d%/}")
 done
+
+# Day-1 / Day-3 lab workdirs (US-C-GATE).
+#
+# WHY THIS EXISTS: these two days shipped ZERO semantic validation. A dangling
+# reference in a Day-1 lab was caught only INDIRECTLY, by the §6 drift gate
+# noticing that the annotated ```hcl block no longer matched its source file.
+# Regenerate that block — exactly what a curriculum story asks an author to do —
+# and the gate goes green over structurally broken HCL, which the learner then
+# meets as a failing `tofu plan`. Nothing in CI ran `task lab:validate`.
+#
+# WHY RECURSIVE, unlike the day-2 loop above: Day-3's runnable roots are NESTED,
+# never at the top of the lab dir — Terramate stacks live at
+# labs/day-3/NN-topic/stacks/<name>/ and the Terragrunt comparison at
+# .../terragrunt-style/units/<name>/. A top-level-only scan would validate 1 of
+# the 15 Day-3 roots. Day-1 nests too (07-modules/modules/service-manifest, a
+# child module; 02-hcl-blocks/greeting). Child modules are validated as roots as
+# well: it costs ~1s, and it keeps them covered even when no parent references
+# them. `**/` matches zero or more directories, so top-level roots are included.
+#
+# NO EXCLUSIONS: all 28 discovered roots init and validate standalone today
+# (Day-3's generated _providers.tf/_backend.tf are committed, so no
+# `terramate generate` is needed first). The one intentionally-broken fixture in
+# the repo — labs/day-2/13-static-analysis/messy, whose `default = "payments"`
+# for a list(string) even fails `init` — is Day-2 and has no *.tftest.hcl, so it
+# stays out of this loop exactly as before.
+declare -A LAB_DIR_SEEN=()
+shopt -s globstar
+for base in labs/day-1 labs/day-3; do
+  [ -d "$base" ] || continue
+  for tf_path in "$base"/**/*.tf; do
+    [ -f "$tf_path" ] || continue
+    d="${tf_path%/*}"
+    # Provider plugins that a previous run installed are not lab source. Without
+    # this the check COUNT grows between two consecutive runs of an unchanged
+    # tree — a gate whose result depends on whether it has run before.
+    case "$d" in */.terraform | */.terraform/*) continue ;; esac
+    [ -n "${LAB_DIR_SEEN[$d]+set}" ] && continue
+    LAB_DIR_SEEN["$d"]=1
+    CODE_DIRS+=("$d")
+  done
+done
+shopt -u globstar
 shopt -u nullglob
 
 # ---------------------------------------------------------------------------
@@ -249,9 +293,9 @@ fi
 # ---------------------------------------------------------------------------
 # 3 & 4. validate + test per code dir
 # ---------------------------------------------------------------------------
-heading "Validate & test"
+heading "Validate & test (modules · examples · labs/day-1 · labs/day-2 · labs/day-3)"
 if [ "${#CODE_DIRS[@]}" -eq 0 ]; then
-  warn "no modules/* / examples/* / labs/day-2 tftest roots with .tf files yet — nothing to validate."
+  warn "no modules/* / examples/* / labs/day-1|day-3 / labs/day-2 tftest roots with .tf files yet — nothing to validate."
   info "This is expected before lab content is authored. (pass)"
 else
   for d in "${CODE_DIRS[@]}"; do
