@@ -5,7 +5,7 @@ terraform {
   }
 }
 
-# Carried forward from S06: the typed object that drives the config.
+# SPINE — carried forward from stage 4: the typed object that drives the config.
 variable "service" {
   description = "The service this config renders a manifest for."
   type = object({
@@ -15,6 +15,7 @@ variable "service" {
   })
 }
 
+# SPINE — carried forward from stage 4.
 variable "environment" {
   description = "Deployment environment. Drives the prod output precondition."
   type        = string
@@ -35,9 +36,12 @@ variable "min_secret_length" {
   default     = 24
 }
 
-# A non-sensitive, known-after-apply value — so the postcondition can read the
-# rendered content at apply time without tripping OpenTofu's sensitive-value guard.
-resource "random_pet" "release" {
+# AUXILIARY — random_pet.env RETURNS here, under the same address stages 1-3
+# used. Stage 4 had no use for it because every manifest field came from a typed
+# variable; a postcondition needs the opposite — a non-sensitive value that is
+# known only AFTER apply, so it can read the rendered content at apply time
+# without tripping OpenTofu's sensitive-value guard. No variable can be that.
+resource "random_pet" "env" {
   length = 2
 }
 
@@ -47,6 +51,7 @@ resource "random_password" "session" {
   length = var.min_secret_length
 }
 
+# SPINE — local_file.manifest, carried forward from stage 4 and now guarded.
 resource "local_file" "manifest" {
   filename = "${path.module}/out/${var.service.name}.env"
   content  = <<-EOT
@@ -54,7 +59,7 @@ resource "local_file" "manifest" {
     SERVICE_TIER=${var.service.tier}
     REPLICAS=${var.service.replicas}
     ENVIRONMENT=${var.environment}
-    RELEASE=${random_pet.release.id}
+    RELEASE=${random_pet.env.id}
   EOT
 
   lifecycle {
@@ -75,7 +80,8 @@ resource "local_file" "manifest" {
   }
 }
 
-# An OUTPUT precondition (1.2) — evaluated at PLAN, guarding what we export.
+# SPINE — output manifest_path, carried forward from stage 4. An OUTPUT
+# precondition (1.2) — evaluated at PLAN, guarding what we export.
 output "manifest_path" {
   description = "Where the rendered manifest landed."
   value       = local_file.manifest.filename

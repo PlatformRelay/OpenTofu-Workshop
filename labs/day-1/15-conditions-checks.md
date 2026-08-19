@@ -30,6 +30,33 @@ what you apply is exactly what CI verified. The config lives at
 - `terraform.tfvars` — the auto-loaded `staging` / `replicas = 2` baseline; the
   Steps override individual values with `-var`.
 
+### Continuity — stage 5 of the `service-manifest` project
+
+**Carried forward from stage 4** (`labs/day-1/06-variables/`): all four spine
+addresses — `variable "service"`, `variable "environment"`, `local_file.manifest`
+and `output "manifest_path"` — plus the auxiliary `random_password.session`.
+
+**Deliberately retired here — three auxiliary blocks from stage 4, whose teaching
+job is done:**
+
+- `variable "api_token"` and `output "api_token"` — they existed to show what
+  `sensitive` does (and does not) protect. That beat is finished; a *sensitive*
+  value would also trip OpenTofu's sensitive-value guard inside the postcondition
+  below, so the guards are cleaner without it. The token returns at stage 6
+  (`labs/day-1/04-state/`), where the point is that `sensitive` never protects the
+  state file.
+- `output "effective_environment"` — it made the variable-precedence stack visible
+  in `tofu output`. Precedence is taught; the guards are the subject now.
+
+**Returning here:** `random_pet.env`, under the same address stages 1–3 used. It
+is back for one specific reason, and the comment in `main.tf` says it too: a
+`postcondition` reads `self.content` at **apply** time, so the manifest needs a
+value that is *unknown at plan* and *not sensitive*. No variable can be either.
+
+**Introduced here, and auxiliary:** `variable "max_manifest_bytes"` and
+`variable "min_secret_length"` — the two knobs the postcondition and the `check`
+assert against.
+
 ## Prerequisites
 
 - `tofu` ≥ 1.6 — OpenTofu's first GA — (`task setup` installs it); any current
@@ -60,7 +87,7 @@ terraform {
   }
 }
 
-# Carried forward from S06: the typed object that drives the config.
+# SPINE — carried forward from stage 4: the typed object that drives the config.
 variable "service" {
   description = "The service this config renders a manifest for."
   type = object({
@@ -70,6 +97,7 @@ variable "service" {
   })
 }
 
+# SPINE — carried forward from stage 4.
 variable "environment" {
   description = "Deployment environment. Drives the prod output precondition."
   type        = string
@@ -90,9 +118,12 @@ variable "min_secret_length" {
   default     = 24
 }
 
-# A non-sensitive, known-after-apply value — so the postcondition can read the
-# rendered content at apply time without tripping OpenTofu's sensitive-value guard.
-resource "random_pet" "release" {
+# AUXILIARY — random_pet.env RETURNS here, under the same address stages 1-3
+# used. Stage 4 had no use for it because every manifest field came from a typed
+# variable; a postcondition needs the opposite — a non-sensitive value that is
+# known only AFTER apply, so it can read the rendered content at apply time
+# without tripping OpenTofu's sensitive-value guard. No variable can be that.
+resource "random_pet" "env" {
   length = 2
 }
 
@@ -102,6 +133,7 @@ resource "random_password" "session" {
   length = var.min_secret_length
 }
 
+# SPINE — local_file.manifest, carried forward from stage 4 and now guarded.
 resource "local_file" "manifest" {
   filename = "${path.module}/out/${var.service.name}.env"
   content  = <<-EOT
@@ -109,7 +141,7 @@ resource "local_file" "manifest" {
     SERVICE_TIER=${var.service.tier}
     REPLICAS=${var.service.replicas}
     ENVIRONMENT=${var.environment}
-    RELEASE=${random_pet.release.id}
+    RELEASE=${random_pet.env.id}
   EOT
 
   lifecycle {
@@ -130,7 +162,8 @@ resource "local_file" "manifest" {
   }
 }
 
-# An OUTPUT precondition (1.2) — evaluated at PLAN, guarding what we export.
+# SPINE — output manifest_path, carried forward from stage 4. An OUTPUT
+# precondition (1.2) — evaluated at PLAN, guarding what we export.
 output "manifest_path" {
   description = "Where the rendered manifest landed."
   value       = local_file.manifest.filename
@@ -197,9 +230,9 @@ every assertion is satisfied and the apply succeeds.
 ```console
 $ tofu apply -auto-approve
 ...
-random_pet.release: Creating...
+random_pet.env: Creating...
 random_password.session: Creating...
-random_pet.release: Creation complete after 0s [id=pet-imp]
+random_pet.env: Creation complete after 0s [id=pet-imp]
 local_file.manifest: Creating...
 local_file.manifest: Creation complete after 0s [id=96112707eaebeadbdd00c340cbdbf089a65605ef]
 random_password.session: Creation complete after 0s [id=none]
