@@ -822,11 +822,14 @@ EOF
 
 # R1 — cover the WIRING, not just the function.
 #
-# The lane's actual deliverable is the two `dump_case_output "$out"` calls in
-# run_case's failure branches. Nothing exercised them: no green run enters a
-# failure branch, so reverting both call sites to the old
-# `grep -E 'drift|annotated|pin drift|Formatting'` filter left all checks
-# passing — the deliverable had zero regression protection.
+# The lane's actual deliverable is the `dump_case_output "$out"` call in
+# run_case. Nothing exercised it: no green run enters a failure branch, so
+# reverting it to the old `grep -E 'drift|annotated|pin drift|Formatting'`
+# filter left all checks passing — the deliverable had zero regression
+# protection. (It was originally TWO calls, one per failure branch, and this
+# check drove only the `expect=pass` one, so reverting just the other stayed
+# green. The call is now hoisted past the verdict to a SINGLE site, which makes
+# that mutation unrepresentable rather than merely tested for.)
 #
 # run_case is driven in a subshell so its deliberate failure cannot pollute
 # pass_n/fail_n. The probe is EXPECTED to fail; that is the point.
