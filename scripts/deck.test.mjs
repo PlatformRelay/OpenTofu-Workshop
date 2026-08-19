@@ -108,6 +108,27 @@ describe('deck manifest validation', () => {
     )
   })
 
+  it('binds the published fit-plan chain to the computed day-1 totals', () => {
+    const manifest = [
+      section('S00', { canonical: true, day: 1, slidesMinutes: 40, compressedSlides: 25 }),
+      section('S01', { canonical: true, day: 1, slidesMinutes: 40, compressedSlides: 30 }),
+    ]
+    // superset 80, fit 55.
+    assert.doesNotThrow(
+      () => validatePlanningLanguage('Chain: **80 → 65**, then **65 → 55**.', manifest),
+    )
+    assert.throws(
+      () => validatePlanningLanguage('Chain: **70 → 65**, then **65 → 55**.', manifest),
+      /chain starts at 70; expected 80/i,
+    )
+    assert.throws(
+      () => validatePlanningLanguage('Chain: **80 → 65**, then **65 → 50**.', manifest),
+      /chain ends at 50; expected 55/i,
+    )
+    // A document with no published chain is not gated by this rule.
+    assert.doesNotThrow(() => validatePlanningLanguage('No chain here.', manifest))
+  })
+
   it('validates deck tier truth with verify.sh-compatible errors', () => {
     const root = mkdtempSync(join(tmpdir(), 'ot-deck-'))
     writeFileSync(join(root, 'slides.md'), `---

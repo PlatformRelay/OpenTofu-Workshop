@@ -134,8 +134,9 @@ and the facilitator budget is 390 min/day:
 
 Two of the three days do not fit: plan the overflow rather than discovering it
 mid-morning. The [fit plan](#day-1-fit-plan) below brings Day-1 **slide** time
-down to 400 — a separate, slides-only deck-runtime figure. The 245 minutes of
-Day-1 lab time sit on top of it and the fit plan does not touch them.
+down to 400 — a separate, slides-only deck-runtime figure that is itself 10
+minutes over the budget. The 245 minutes of Day-1 lab time sit on top of it and
+the fit plan does not touch them.
 
 ### Day 1 fit plan
 
@@ -143,7 +144,11 @@ This plan compresses **slide time only**. It starts at **665 minutes** of slide
 time across all thirteen Day-1 sections (`dayOneSupersetSlidesTotal()`) and ends
 at **400** (`dayOneFitTotal()`). Day-1 lab time — 245 minutes — is untouched, so
 a fit-plan delivery still runs **645 minutes** of slides+labs against a 390
-budget: the plan makes the *deck* fit the day, not the *day* fit the budget.
+budget. Be precise about what the plan now buys. Since S01 grew to carry the
+design-principles and alternatives beats, the compressed **deck alone** is 10
+minutes over the whole-day budget, so the plan no longer makes even the deck fit
+the day. What it does is remove 265 minutes of slide time and turn the remaining
+overflow into a planned, published one instead of a mid-morning surprise.
 Apply the rows in order. The first three remove optional/recommended material;
 the remaining rows shorten core delivery while preserving each section's outcome.
 The arithmetic is explicit: **665 → 630 → 585 → 535**, then

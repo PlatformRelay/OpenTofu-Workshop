@@ -427,6 +427,23 @@ export function validatePlanningLanguage(markdown, manifest = sections) {
   if (/\b390\b/.test(markdown) && !markdown.includes(String(dayOneFit)))
     throw new Error(`README Day 1 fit-plan target must be ${dayOneFit}`)
 
+  // The two guards above are `includes()` checks with no proximity requirement,
+  // so they go quiet as soon as the literals they name stop being the current
+  // totals. The published fit-plan arithmetic (`**A → B → … → Z**`) is the real
+  // statement of the plan, so bind its endpoints to the computed values: the
+  // first chain must start at the superset total and the last must end at the
+  // fit-plan target. No chain in the document is a no-op, not a pass.
+  const fitChains = [...markdown.matchAll(/\*\*\s*(\d+(?:\s*→\s*\d+)+)\s*\*\*/g)]
+    .map((match) => match[1].split('→').map((value) => Number(value.trim())))
+  if (fitChains.length) {
+    const chainStart = fitChains[0][0]
+    const chainEnd = fitChains.at(-1).at(-1)
+    if (chainStart !== dayOneSuperset)
+      throw new Error(`README fit-plan chain starts at ${chainStart}; expected ${dayOneSuperset}`)
+    if (chainEnd !== dayOneFit)
+      throw new Error(`README fit-plan chain ends at ${chainEnd}; expected ${dayOneFit}`)
+  }
+
   const totals = canonicalDayTotals(manifest)
   for (const line of markdown.split('\n')) {
     const durations = line.matchAll(/\bDay ([123])\b[^\n]{0,80}?\b(\d+)\s*(?:min(?:ute)?s?)\b/gi)

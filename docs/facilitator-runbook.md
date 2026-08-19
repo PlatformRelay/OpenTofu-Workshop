@@ -128,7 +128,9 @@ budget, not a stopwatch.
 The README fit plan's **400 is a different figure**: it is Day-1 **slide**
 runtime only (`dayOneFitTotal()`), compressed from 665. Day-1 lab time (245) is
 untouched by it, so a fit-plan Day 1 still runs **645** of slides+labs. Use 400
-to check the deck against the day; use 780 to plan the day itself.
+to check the deck against the day; use 780 to plan the day itself. Note that 400
+does not fit either: since S01 grew, the compressed deck is 10 minutes over the
+390 budget before a single lab runs.
 
 ### Day 1 (author → guard → package)
 

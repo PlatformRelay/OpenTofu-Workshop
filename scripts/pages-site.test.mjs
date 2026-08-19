@@ -31,6 +31,26 @@ test('mkdocs.yml site_url uses canonical OpenTofu-Workshop case', () => {
   assert.match(yml, /site_url:\s*https:\/\/platformrelay\.github\.io\/OpenTofu-Workshop\//)
 })
 
+// US-C-ORIENT AC(1): before that story `grep -rniE 'design principle|devops'`
+// over pages/S01-iac/ and `grep -rniE 'pulumi|crossplane|ansible'` over pages/
+// both returned zero hits. Nothing else asserts the orientation content exists,
+// so without this test a future edit could delete both new beats and leave every
+// gate green. Presenter notes are stripped first: the AC requires the content on
+// the slide, not only in the facilitator's notes.
+test('S01 keeps its design-principles and practical-alternatives orientation', () => {
+  const body = readFileSync(resolve(ROOT, 'pages/S01-iac/index.md'), 'utf8')
+    .replace(/<!--[\s\S]*?-->/g, '')
+  assert.match(body, /design principles?/i, 'S01 must name the design principles')
+  assert.match(body, /devops/i, 'S01 must place IaC in its DevOps context')
+  for (const alternative of ['pulumi', 'crossplane', 'ansible']) {
+    assert.match(
+      body,
+      new RegExp(alternative, 'i'),
+      `S01 must name ${alternative} among the practical alternatives`,
+    )
+  }
+})
+
 test('docs landing and run-slides exist', () => {
   assert.ok(existsSync(resolve(ROOT, 'docs/index.md')))
   assert.ok(existsSync(resolve(ROOT, 'docs/run-slides.md')))
