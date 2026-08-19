@@ -46,16 +46,17 @@ seen stages 4–5 (variables, guards). Read *what the learner is carrying in* of
 the cut-order below, and use this table for the target arc only.
 
 **Where each concept is introduced:** `resource` → stage 0 · `variable` →
-stage 2 (block taxonomy; typed, validated and sensitive at stage 4) · `output` →
-stage 2 (block taxonomy; first appears in the stage-1 lab config) · `plan` →
-stage 0 (read line by line at stage 3) · `apply` → stage 0 (full lifecycle at
-stage 3) · state → stage 6 (named and motivated at stage 3) · modules → stage 8 ·
-testing → stage 10 · CI → stage 14.
+stage 2 (block taxonomy; first appears as a feature switch at stage 0b; typed,
+validated and sensitive at stage 4) · `output` → stage 2 (block taxonomy; first
+appears in the stage-1 lab config) · `plan` → stage 0 (read line by line at
+stage 3) · `apply` → stage 0 (full lifecycle at stage 3) · state → stage 6
+(named at stage 0, motivated at stage 3) · modules → stage 8 · testing → stage 10
+(`tofu test` with `mock_provider` first taught at stage 9) · CI → stage 14.
 
 | Stage | Section | Workdir | Introduces |
 | --- | --- | --- | --- |
 | 0 | S00 · Welcome & setup | `labs/day-1/00-setup/` | **`resource`**, `init`, the first **`plan`** and **`apply`** |
-| 0b | S00 · stretch | `labs/day-1/00-setup/` | the first cloud-shaped resource (S3 on LocalStack) |
+| 0b | S00 · stretch | `labs/day-1/00-setup/` | the first cloud-shaped resource (S3 on LocalStack), gated by the first `variable` — a `bool` feature switch |
 | 1 | S01 · Infrastructure as Code | `labs/day-1/01-iac-fork/` | declarative vs imperative — the lab config surfaces its first `output`, though the block type is taught at stage 2 |
 | 2 | S02 · HCL & building blocks | `labs/day-1/02-hcl-blocks/` | the block taxonomy — **`variable`**, **`output`**, `locals`, `data`, references (`module` is only a forward reference to stage 8) |
 | 3 | S03 · The core workflow | `labs/day-1/03-core-workflow/` | the four-command loop — **plan diffs**, the graph, `destroy`, and *why* state exists |
@@ -64,10 +65,10 @@ testing → stage 10 · CI → stage 14.
 | 6 | S04 · State | `labs/day-1/04-state/` | **state**, drift, backends |
 | 7 | S05 · State encryption | `labs/day-1/05-state-encryption/` | encrypted state and encrypted plan |
 | 8 | S07 · Modules | `labs/day-1/07-modules/` | **`module`** — `./modules/service-manifest` consumed twice |
-| 9 | S08 · Naming & labelling module | `examples/naming-labels-demo/` | one naming + labelling taxonomy |
-| 10 | S12, S13 | `labs/day-2/12-testing-pyramid/`, `13-static-analysis/` | **testing** — the pyramid, `fmt`, TFLint, pre-commit |
+| 9 | S08 · Naming & labelling module | `examples/naming-labels-demo/` | one naming + labelling taxonomy — and the first `tofu test` run, with an aliased `mock_provider` |
+| 10 | S12, S13 | `labs/day-2/12-testing-pyramid/`, `13-static-analysis/` | **testing as a discipline** — the pyramid, `fmt`, TFLint, pre-commit |
 | 11 | S14 · Security & policy scanners | `labs/day-2/14-security-scanners/` | policy + security scanning (planted insecure fixture — deliberately *not* the learner's project) |
-| 12 | S16, S17 | `labs/day-2/16-tofu-test/`, `17-mocking/` | native `tofu test`, `mock_provider` |
+| 12 | S16, S17 | `labs/day-2/16-tofu-test/`, `17-mocking/` | `tofu test` in depth — apply vs plan runs, and mocking beyond stage 9's first taste |
 | 13 | S18 · Integration, e2e & cost | `labs/day-2/18-terratest-cost/` | integration + cost (optional tier) |
 | 14 | S19 · Testing in CI/CD | `labs/day-2/19-testing-cicd/` | **CI** — the whole ladder as pipeline jobs |
 | 15 | S20–S26 | `labs/day-3/**`, `examples/capstone/` | stacks → codegen → ordering → filtering → capstone |
