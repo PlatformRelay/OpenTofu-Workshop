@@ -64,7 +64,7 @@ state, no diff — every apply would be a blind re-create.
 <!--
 Say: State is one of three things a plan juggles. Desired is your config — what you
 want. Actual is the real world, read back by a refresh. State is what OpenTofu last
-built: the map from config addresses like random_pet.service to real resource IDs.
+built: the map from config addresses like local_file.manifest to real resource IDs.
 Click: a plan reconciles all three. Click again: it compares desired to state to
 find what you changed in config, and state to actual to find drift — changes someone
 made by hand outside OpenTofu. Without state there's no diff at all; every apply
@@ -109,27 +109,27 @@ heading: 'The reconcile, step by step'
 ````md magic-move
 ```console
 # 1. desired (config) — what you wrote
-resource "random_pet" "service" {
+resource "random_pet" "env" {
   length = 2
 }
 ```
 
 ```console
 # 2. state — what OpenTofu last built
-random_pet.service:
+random_pet.env:
   id = "crack-parrot"   # recorded last apply
 ```
 
 ```console
 # 3. actual — refresh reads the real world
-random_pet.service: Refreshing state... [id=crack-parrot]
+random_pet.env: Refreshing state... [id=crack-parrot]
 # real == state == desired  →  nothing to do
 ```
 
 ```console
-# 4. drift! someone edited service.txt by hand
-local_file.service_name: Refreshing state...
-  ~ content = "edited by hand" -> "service = crack-parrot"
+# 4. drift! someone edited checkout.env by hand
+local_file.manifest: Refreshing state...
+  ~ content = "edited by hand" -> "SERVICE_NAME=checkout..."
     # plan reconciles ACTUAL back to your config
 ```
 ````
@@ -150,10 +150,11 @@ local_file.service_name: Refreshing state...
 </div>
 
 <!--
-Say: The reconcile as a four-step morph. One: desired, the config you wrote. Two:
-state, what OpenTofu recorded last apply — the pet's id crack-parrot. Three: the
+Say: The reconcile as a four-step morph. One: desired, the config you wrote — the
+same random_pet.env and local_file.manifest the project has been carrying since
+Lab 01. Two: state, what OpenTofu recorded last apply — the pet's id crack-parrot. Three: the
 refresh reads actual and it matches state and desired, so there's nothing to do —
-the no-op. Four: the drift case — someone edited service.txt by hand, so actual no
+the no-op. Four: the drift case — someone edited checkout.env by hand, so actual no
 longer matches state, the refresh catches it, and the plan proposes to reconcile
 ACTUAL back to your config — it always steers reality toward what you declared, not
 the other way. State is the fixed reference point both comparisons pivot on. The
@@ -231,12 +232,12 @@ lab: labs/day-1/04-state.md
 
 ```console {none|1-4|5|6|7|all}
 $ tofu state list
-local_file.service_name
-random_password.db
-random_pet.service
-$ tofu state show random_pet.service
-$ tofu state mv  random_pet.service random_pet.svc
-$ tofu state rm  random_pet.service
+local_file.manifest
+random_password.session
+random_pet.env
+$ tofu state show random_pet.env
+$ tofu state mv  random_pet.env random_pet.stage
+$ tofu state rm  random_pet.env
 ```
 
 ::notes::
@@ -281,7 +282,7 @@ lab: labs/day-1/04-state.md
 ---
 
 ```console {none|1-2|4-5|7-9|all}
-$ tofu state show random_password.db | grep result
+$ tofu state show random_password.session | grep result
     result = (sensitive value)          # CLI redacts
 
 $ grep -o '"result": "[^"]*"' terraform.tfstate

@@ -1,7 +1,8 @@
 # Learner-generated artifacts from running this lab in place — never committed.
 # The lab's canonical HCL is main.tf (tracked, drift-checked). Everything below
 # is generated at apply time or by the backend migration in this lab. The state
-# file MUST NEVER be committed: it holds the generated DB password in plaintext.
+# file MUST NEVER be committed: it holds the generated secret in plaintext.
+# The tracked files are main.tf and terraform.tfvars.
 .terraform/
 .terraform.lock.hcl
 terraform.tfstate
@@ -10,6 +11,7 @@ terraform.tfstate.*
 *.tfstate.*
 state/
 build/
+out/
 main.tf.bak
 crash.log
 crash.*.log

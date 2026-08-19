@@ -23,8 +23,39 @@ You run **tracked files**, not heredocs — what you apply is exactly what CI
 verified. The config lives in this repo at `labs/day-1/04-state/`:
 
 - `main.tf` — a three-resource config: a `random_password` (the secret), a
-  `random_pet`, and a `local_file`, plus two outputs. This is the exact HCL S04
-  teaches; the slide's block is drift-checked to stay byte-identical to this file.
+  `random_pet`, and the project's `local_file.manifest`, plus two outputs. This is
+  the exact HCL S04 teaches; the slide's block is drift-checked to stay
+  byte-identical to this file.
+- `terraform.tfvars` — the auto-loaded `service` object and `environment`, carried
+  forward from stage 5 so the lab runs non-interactively.
+
+### Continuity — stage 6 of the `service-manifest` project
+
+This is the stage where the project's own state is the thing under the
+microscope. Until now this workdir shared nothing with the rest of Day 1; it
+does now.
+
+**Carried forward from stage 5** (`labs/day-1/15-conditions-checks/`): all four
+spine addresses — `variable "service"`, `variable "environment"`,
+`local_file.manifest` and `output "manifest_path"` — plus the auxiliary
+`random_pet.env` and `random_password.session`. The `state list` you are about to
+read is a list of *your project's* addresses.
+
+**Deliberately retired here — the stage-5 guards, whose teaching job is done:**
+the `precondition`/`postcondition` on `local_file.manifest`, the `precondition`
+on `output "manifest_path"`, the `check "secret_strength"` block, and the two
+variables that fed them (`max_manifest_bytes`, `min_secret_length`). Assertions
+are taught; this stage is about what OpenTofu *remembers*, and a config with no
+guards makes the state file easier to read line by line.
+
+**Returning here:** the secret. Stage 5 dropped `variable "api_token"` because a
+sensitive value trips the postcondition's sensitive-value guard; with the guards
+gone, `random_password.session` is back to being the point — its resolved value
+lands in `terraform.tfstate` as plaintext, and Step 4 greps it out.
+
+**Introduced here, and auxiliary:** the explicit `backend "local"` block (so Step
+5 can migrate it) and `output "db_password"`, which keeps its own name because it
+*is* the plaintext-in-state beat.
 
 ## Prerequisites
 
@@ -39,11 +70,13 @@ verified. The config lives in this repo at `labs/day-1/04-state/`:
 
 All tracked in `labs/day-1/04-state/` — you run them, you do not paste them:
 
-- `main.tf` — the config: a `random_password`, a `random_pet`, a `local_file`,
-  and two outputs, with an explicit `backend "local"` block so you can migrate it.
+- `main.tf` — the config: a `random_password`, a `random_pet`, the project's
+  `local_file.manifest`, and two outputs, with an explicit `backend "local"` block
+  so you can migrate it.
+- `terraform.tfvars` — the auto-loaded `service` object and `environment`.
 - `.gitignore` — keeps the state (which holds the **plaintext secret** — never
-  commit it), `.terraform`, `build/`, and the migrated `state/` dir out of
-  version control.
+  commit it), `.terraform`, the rendered `out/` file, and the migrated `state/`
+  dir out of version control.
 
 ---
 
@@ -61,11 +94,12 @@ ls
 
 ```console
 $ ls
-main.tf
+main.tf  terraform.tfvars
 ```
 
-`main.tf` is tracked in the repo. Everything below runs against this exact file.
-(`.gitignore` is present too; `ls` hides dotfiles by default.)
+`main.tf` and `terraform.tfvars` are tracked in the repo. Everything below runs
+against these exact files. (`.gitignore` is present too; `ls` hides dotfiles by
+default.)
 </details>
 
 ---
@@ -73,7 +107,7 @@ main.tf
 ## Step 1 — Read the config: a secret, on purpose
 
 `cat main.tf` and read it top to bottom. The point of interest is
-`random_password.db`: a generated secret marked `sensitive` in its output.
+`random_password.session`: a generated secret marked `sensitive` in its output.
 
 <!-- source: labs/day-1/04-state/main.tf -->
 ```hcl
@@ -91,33 +125,63 @@ terraform {
   }
 }
 
-# A generated database password. It is `sensitive`, so tofu redacts it in CLI
-# output — but the RESOLVED value is still written to terraform.tfstate as
-# plaintext JSON. That gap is exactly what S05 (state encryption) closes.
-resource "random_password" "db" {
+# SPINE — carried forward from stage 5. The state you are about to read is your
+# own project's state, not a fresh demo's.
+variable "service" {
+  description = "The service this config renders a manifest for."
+  type = object({
+    name     = string
+    tier     = string
+    replicas = number
+  })
+}
+
+# SPINE — carried forward from stage 5.
+variable "environment" {
+  description = "Deployment environment recorded in the rendered manifest."
+  type        = string
+  default     = "dev"
+}
+
+# AUXILIARY — the generated secret, back under stage 4's address. It is
+# `sensitive`, so tofu redacts it in CLI output — but the RESOLVED value is
+# still written to terraform.tfstate as plaintext JSON. That gap is exactly what
+# stage 7 (S05, state encryption) closes.
+resource "random_password" "session" {
   length  = 20
   special = true
 }
 
-# A plain resource so `state list` has more than one entry to show, mv, and rm.
-resource "random_pet" "service" {
+# AUXILIARY — random_pet.env, carried forward from stage 5. It also gives
+# `state list` more than one entry to show, `mv`, and `rm`.
+resource "random_pet" "env" {
   length = 2
 }
 
-# Records the service name (not the secret) to a file — state also stores this.
-resource "local_file" "service_name" {
-  filename = "${path.module}/build/service.txt"
-  content  = "service = ${random_pet.service.id}\n"
+# SPINE — local_file.manifest, carried forward from stage 5. It records the
+# service name, never the secret — and state stores this file's content too.
+resource "local_file" "manifest" {
+  filename = "${path.module}/out/${var.service.name}.env"
+  content  = <<-EOT
+    SERVICE_NAME=${var.service.name}
+    SERVICE_TIER=${var.service.tier}
+    REPLICAS=${var.service.replicas}
+    ENVIRONMENT=${var.environment}
+    RELEASE=${random_pet.env.id}
+  EOT
 }
 
-output "service_name" {
-  description = "The generated service name (safe to print)."
-  value       = random_pet.service.id
+# SPINE — output manifest_path, carried forward from stage 5.
+output "manifest_path" {
+  description = "Where the rendered manifest landed (safe to print)."
+  value       = local_file.manifest.filename
 }
 
+# AUXILIARY — this output IS the plaintext-in-state beat, so it keeps its own
+# name: the lab's `grep`/`jq` spoilers and the S04 slide all cite db_password.
 output "db_password" {
-  description = "The generated DB password — sensitive, so redacted in CLI output."
-  value       = random_password.db.result
+  description = "The generated secret — sensitive, so redacted in CLI output."
+  value       = random_password.session.result
   sensitive   = true
 }
 ```
@@ -166,26 +230,26 @@ $ tofu apply -auto-approve
 Plan: 3 to add, 0 to change, 0 to destroy.
 
 Changes to Outputs:
-  + db_password  = (sensitive value)
-  + service_name = (known after apply)
-random_pet.service: Creating...
-random_password.db: Creating...
-random_pet.service: Creation complete after 0s [id=crack-parrot]
-local_file.service_name: Creating...
-local_file.service_name: Creation complete after 0s [id=0bada648b1f53bed86a57e6183f2188f2935f9f7]
-random_password.db: Creation complete after 0s [id=none]
+  + db_password   = (sensitive value)
+  + manifest_path = "./out/checkout.env"
+random_pet.env: Creating...
+random_password.session: Creating...
+random_pet.env: Creation complete after 0s [id=crack-parrot]
+local_file.manifest: Creating...
+local_file.manifest: Creation complete after 0s [id=00038a4083a27fb3155fc6b00cac682bbcfd30cf]
+random_password.session: Creation complete after 0s [id=none]
 
 Apply complete! Resources: 3 added, 0 changed, 0 destroyed.
 
 Outputs:
 
 db_password = <sensitive>
-service_name = "crack-parrot"
+manifest_path = "./out/checkout.env"
 ```
 
 The output prints `db_password = <sensitive>` — OpenTofu **redacts** it because
 the output is `sensitive`. (`Resources: 3 added` — the `random_password`, the
-`random_pet`, and the `local_file`; `db_password` and `service_name` are
+`random_pet`, and the `local_file`; `db_password` and `manifest_path` are
 **outputs**, not resources, so they don't count here.) The real password was written into
 `terraform.tfstate`. The generated `service` name (`crack-parrot` here — **yours
 will differ**) is safe, so it prints in the clear.
@@ -200,7 +264,7 @@ then `show` one resource.
 
 ```bash
 tofu state list
-tofu state show random_pet.service
+tofu state show random_pet.env
 ```
 
 **Task:** What does `state list` return, and what is `state show` good for?
@@ -209,13 +273,13 @@ tofu state show random_pet.service
 
 ```console
 $ tofu state list
-local_file.service_name
-random_password.db
-random_pet.service
+local_file.manifest
+random_password.session
+random_pet.env
 
-$ tofu state show random_pet.service
-# random_pet.service:
-resource "random_pet" "service" {
+$ tofu state show random_pet.env
+# random_pet.env:
+resource "random_pet" "env" {
     id        = "crack-parrot"
     length    = 2
     separator = "-"
@@ -238,12 +302,12 @@ Now the security lesson. Ask `state show` for the password, then look at the raw
 file.
 
 ```bash
-tofu state show random_password.db | grep result
+tofu state show random_password.session | grep result
 grep -o '"result": "[^"]*"' terraform.tfstate
 jq -r '.resources[] | select(.type=="random_password") | .instances[0].attributes.result' terraform.tfstate
 ```
 
-**Question:** Does `tofu state show random_password.db` reveal the password? Where
+**Question:** Does `tofu state show random_password.session` reveal the password? Where
 *is* the plaintext password, and what does that mean for anyone who can read the
 file?
 
@@ -252,7 +316,7 @@ file?
 `state show` **redacts** it — the CLI honours `sensitive`:
 
 ```console
-$ tofu state show random_password.db | grep result
+$ tofu state show random_password.session | grep result
     result      = (sensitive value)
 ```
 
@@ -330,7 +394,7 @@ Confirm the migration is a no-op — same state, new location:
 
 ```console
 $ tofu plan
-random_pet.service: Refreshing state... [id=crack-parrot]
+random_pet.env: Refreshing state... [id=crack-parrot]
 ...
 No changes. Your infrastructure matches the configuration.
 ```
@@ -345,37 +409,36 @@ No changes. Your infrastructure matches the configuration.
 thing**. That's a sharp edge — do it on purpose and watch what breaks.
 
 ```bash
-tofu state rm random_pet.service
+tofu state rm random_pet.env
 tofu state list
 tofu plan
 ```
 
-**Task (break):** After `state rm random_pet.service`, what does `state list`
+**Task (break):** After `state rm random_pet.env`, what does `state list`
 show, and what does the next `plan` want to do — and *why*?
 
 <details><summary>Solution / expected output</summary>
 
 ```console
-$ tofu state rm random_pet.service
-Removed random_pet.service
+$ tofu state rm random_pet.env
+Removed random_pet.env
 Successfully removed 1 resource instance(s).
 
 $ tofu state list
-local_file.service_name
-random_password.db
+local_file.manifest
+random_password.session
 
 $ tofu plan
 ...
 Plan: 2 to add, 0 to change, 1 to destroy.
-
-Changes to Outputs:
-  ~ service_name = "crack-parrot" -> (known after apply)
 ```
 
-`random_pet.service` is **gone from state** — but the config still declares it.
+`random_pet.env` is **gone from state** — but the config still declares it.
 So OpenTofu now believes the pet doesn't exist and plans to **create** it
-(`2 to add`: the pet, plus a re-created `service.txt` whose content references the
-new pet id; `1 to destroy`: the stale file). `state rm` **forgets**, it does not
+(`2 to add`: the pet, plus a re-created `checkout.env` whose content references the
+new pet id; `1 to destroy`: the stale file). There is no `Changes to Outputs`
+section: `manifest_path` reads the manifest's `filename`, a literal in the config,
+so it is unaffected. `state rm` **forgets**, it does not
 **destroy** — the mismatch between an emptied state and an unchanged config is
 what makes the plan want to recreate. In the real world this is how you'd hand a
 resource to a different config, or drop an object OpenTofu should no longer manage.
@@ -393,25 +456,25 @@ tofu state list
 ```console
 $ tofu apply -auto-approve
 ...
-random_pet.service: Creating...
-random_pet.service: Creation complete after 0s [id=fleet-kite]
-local_file.service_name: Creating...
-local_file.service_name: Creation complete after 0s [id=ae4ca3aa05c950ffc9a72f1582d0eed5db0777cb]
+random_pet.env: Creating...
+random_pet.env: Creation complete after 0s [id=fleet-kite]
+local_file.manifest: Creating...
+local_file.manifest: Creation complete after 0s [id=b4c6c02cb83ba415916d5b90aeac748a47d67227]
 
 Apply complete! Resources: 2 added, 0 changed, 1 destroyed.
 
 Outputs:
 
 db_password = <sensitive>
-service_name = "fleet-kite"
+manifest_path = "./out/checkout.env"
 
 $ tofu state list
-local_file.service_name
-random_password.db
-random_pet.service
+local_file.manifest
+random_password.session
+random_pet.env
 ```
 
-`apply` reconciles: it re-creates the forgotten `random_pet.service` and rewrites
+`apply` reconciles: it re-creates the forgotten `random_pet.env` and rewrites
 the file, so `state list` shows all three again. Note the pet name **changed**
 (`crack-parrot` → `fleet-kite` here — yours will differ): because state *forgot*
 the old pet, OpenTofu generated a **fresh** one rather than reusing the old value.
@@ -422,7 +485,7 @@ never `rm`'d — so it kept its value.)
 
 ## Expected observations
 
-- **State is the map** from config addresses (`random_pet.service`) to real
+- **State is the map** from config addresses (`random_pet.env`) to real
   resource IDs — the memory that makes a `plan` a diff.
 - `tofu state list` is the inventory; `state show` dumps one resource; `state mv`
   renames in state; `state rm` **forgets** (next `plan` wants to recreate).
@@ -444,7 +507,7 @@ cloud resources exist, so nothing to bill or leak:
 cd labs/day-1/04-state
 tofu destroy -auto-approve                       # backend still points at the Step-5 state/ location
 mv -f main.tf.bak main.tf 2>/dev/null || true    # revert the Step 5 backend edit
-rm -rf .terraform .terraform.lock.hcl state build main.tf.bak
+rm -rf .terraform .terraform.lock.hcl state out main.tf.bak
 find . -maxdepth 1 -name 'terraform.tfstate*' -delete   # all root state incl. secret-bearing *.<ts>.backup (shell-agnostic)
 git status --short .      # expect: no output
 ```
@@ -453,19 +516,20 @@ git status --short .      # expect: no output
 
 ```console
 $ tofu destroy -auto-approve
-random_password.db: Destroying... [id=none]
-random_password.db: Destruction complete after 0s
-local_file.service_name: Destroying... [id=ae4ca3aa05c950ffc9a72f1582d0eed5db0777cb]
-local_file.service_name: Destruction complete after 0s
-random_pet.service: Destroying... [id=fleet-kite]
-random_pet.service: Destruction complete after 0s
+random_password.session: Destroying... [id=none]
+random_password.session: Destruction complete after 0s
+local_file.manifest: Destroying... [id=b4c6c02cb83ba415916d5b90aeac748a47d67227]
+local_file.manifest: Destruction complete after 0s
+random_pet.env: Destroying... [id=fleet-kite]
+random_pet.env: Destruction complete after 0s
 
 Destroy complete! Resources: 3 destroyed.
 ```
 
-The generated state (with its plaintext secret), `.terraform`, `build/`, the
-migrated `state/` dir, and the `main.tf.bak` from Step 5 are all gitignored or
-removed; the panic reset leaves the tracked `main.tf` exactly as CI verified it
+The generated state (with its plaintext secret), `.terraform`, the rendered
+`out/` file, the migrated `state/` dir, and the `main.tf.bak` from Step 5 are all
+gitignored or removed; the panic reset leaves the tracked `main.tf` and
+`terraform.tfvars` exactly as CI verified them
 (backend path back to `terraform.tfstate`). Order matters: `tofu destroy` runs
 **before** reverting `main.tf`, so the backend still points at the migrated
 `state/` location and the destroy actually removes the resources. The `find`
@@ -475,28 +539,31 @@ sweep catches every `terraform.tfstate*` in the root — including the timestamp
 
 ## Stretch (optional)
 
-- Rename the resource cleanly with `state mv`. Rename it **everywhere in `main.tf`** —
-  the block label `random_pet "service"` **and both references** to it
-  (`random_pet.service.id` in `local_file.service_name`'s `content`, and in
-  `output "service_name"`) → `svc`. Then run `tofu state mv random_pet.service
-  random_pet.svc` **before** planning. The `plan` is then a no-op — you renamed
-  the *address* in both config and state, so OpenTofu keeps the same real object
-  instead of destroy-recreating it. (Skip the `state mv` and `plan` shows
-  `1 to add, 1 to destroy` — the rename becomes a replacement.)
+- Rename the resource cleanly with `state mv`. Pick the **auxiliary** pet, never a
+  spine address: rename it **everywhere in `main.tf`** — the block label
+  `random_pet "env"` **and** its reference `random_pet.env.id` in
+  `local_file.manifest`'s `content` — to `stage`. Then run
+  `tofu state mv random_pet.env random_pet.stage` **before** planning. The `plan`
+  is then a no-op — you renamed the *address* in both config and state, so
+  OpenTofu keeps the same real object instead of destroy-recreating it. (Skip the
+  `state mv` and `plan` shows `2 to add, 2 to destroy` — the rename becomes a
+  replacement, and it cascades into the manifest that references the pet.)
 
   <details><summary>Solution / expected output (the state-only rename)</summary>
 
   ```console
-  $ tofu state mv random_pet.service random_pet.svc
-  Move "random_pet.service" to "random_pet.svc"
+  $ tofu state mv random_pet.env random_pet.stage
+  Move "random_pet.env" to "random_pet.stage"
   Successfully moved 1 object(s).
   ```
 
-  With the config fully renamed to `random_pet "svc"` — the block **and** both
-  references — the address in state and the address in config match again, so
+  With the config fully renamed to `random_pet "stage"` — the block **and** its
+  reference — the address in state and the address in config match again, so
   `tofu plan` reports `No changes`. `state mv` is the tool for refactoring a
-  resource's *address* without touching the real resource. Restore `"service"`
-  everywhere afterwards, or run the panic reset.
+  resource's *address* without touching the real resource. Restore `"env"`
+  everywhere afterwards, or run the panic reset. (Note what you did **not**
+  rename: `local_file.manifest` and `output "manifest_path"` are spine addresses,
+  carried unchanged through every Day-1 stage.)
   </details>
 - Inspect the whole state as JSON with `tofu show -json | jq` and find every
   `sensitive_values` block — OpenTofu *marks* which attributes are sensitive, but
