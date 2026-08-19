@@ -59,8 +59,16 @@ clicks: 4
 Fast and many at the base → slow and few at the tip
 </div>
 
+<div class="mt-3 text-center kw-muted text-sm">
+<strong>Rung 0 is already behind you.</strong> <strong>S15 · Validation, preconditions &amp;
+checks</strong> (Day 1) put <code>variable</code> validation, <code>precondition</code>,
+<code>postcondition</code> and <code>check</code> <em>inside</em> the configuration — assertions
+that cost nothing to run and sit beneath this base.
+</div>
+
 <!--
 Say: Reveal from the base upward. Static checks inspect configuration; unit/contract tests evaluate plans with controlled inputs; integration crosses a service boundary; end-to-end proves a real environment. The pyramid is a portfolio rule: many cheap checks, progressively fewer expensive ones. (~4 min)
+Cross-reference: call S15 rung 0 out loud. Day 1 already taught variable validation, precondition, postcondition and check — the same ladder, one rung below the base, written into the configuration rather than run beside it. Learners have executed rung 0; this slide only names it. No new material.
 Then: “The layer is determined by the boundary crossed, not the tool’s brand name.”
 -->
 
@@ -155,6 +163,7 @@ next: 'S13 · Static analysis & formatting'
 
 # Evidence before infrastructure
 
+- Rung 0 came on Day 1: **S15**'s `precondition` / `postcondition` / `check` live *in* the config.
 - Choose the cheapest signal that can expose the risk.
 - Build **static → unit → integration → e2e** from many fast checks to few slow ones.
 - Classify by the boundary crossed, not by the tool name.

@@ -39,10 +39,19 @@ clicks: 4
   </KwCard>
 </div>
 
+<div v-click class="mt-6 kw-panel p-3 text-sm">
+<strong>Signpost — optional material.</strong> Above these four sit the tip lanes:
+end-to-end Terratest and <strong>Infracost</strong> cost estimation, both in
+<strong>S18 · Integration, e2e &amp; cost</strong>. S18 is outside the canonical three-day
+cut, so a learner on that cut never runs Infracost — this pipeline is <em>not</em>
+claiming cost coverage. Read S18 when your risk needs it.
+</div>
+
 <p v-click class="mt-8 text-center text-xl font-semibold">Same commands locally and in CI — only the runner changes</p>
 
 <!--
 Say: Order matters because cheaper failures should stop the build before slower lanes spend minutes. Static and unit lanes stay free of cloud credentials; integration earns its cost by crossing a service boundary through LocalStack as a CI service container. (~3 min)
+Cross-reference: the signpost is a pointer, not a lesson. S18 · Integration, e2e & cost carries Terratest and the Infracost beat, and S18 is not in the canonical three-day cut — say plainly that this pipeline does not cover cost, and that S18 is where to read when a team needs it. Do not demo Infracost here; it needs a free API key.
 Then: Show where those lanes live in this repository.
 -->
 

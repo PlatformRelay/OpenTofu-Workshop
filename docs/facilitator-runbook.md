@@ -174,6 +174,29 @@ Canonical visible order: `S12 → S13 → S14 → S16 → S17 → S19`.
 | If short | Shorten explain on S12; keep S13→S14→S16 chain intact |
 | Keep | S17 mock path (Docker-down proof) and S19 `fmt -check` false-green |
 
+#### The tooling ladder — reached by cross-reference, not by promotion
+
+Four tools sit off the canonical Day-2 path: `terraform-docs` and Gitleaks in
+[S28 · Ecosystem tooling](../pages/S28-ecosystem-tooling/index.md) (optional,
+Day 3), Infracost in S18 (optional, Day 2). Rather than promote either section,
+the canonical sections point at them, so the ladder reads as one progression at
+no cost to the day:
+
+| Cross-reference | Points at | What the facilitator says |
+| --- | --- | --- |
+| S12 → S15 | Day-1 `precondition` / `postcondition` / `check` | S15 is **rung 0** — assertions inside the configuration, beneath the pyramid's base |
+| S13 → S28 | `terraform_docs` + `gitleaks` hooks in `.pre-commit-config.yaml` | Both tools **already run** in the learner's own `pre-commit run --all-files`; S28 is their home beat |
+| S19 → S18 | S18's Infracost beat | A **signpost to optional material** — S18 is outside the canonical cut, so cost is *not* covered on the three-day path |
+
+**Why not just promote a tier?** Tier alone would not have pulled S18 in: the
+generated `slides-day-2.md` selects on `section.canonical`, and S18 is
+`canonical: false`. Including it would mean flipping that flag, which adds its
+30 slide + 30 lab minutes — **60 minutes** — to a Day 2 whose planning estimate
+already stands at 360 against a 390 min/day budget, i.e. roughly 30 minutes of
+headroom. Sixty into thirty does not go, so the cross-reference route was chosen
+and no tier, `canonical` or `hide` value was changed. The same reasoning applies
+to S28, which stays a Day-3 optional appendix.
+
 ### Day 3 (scale)
 
 Canonical visible order: `S20 → S21 → S22 → S23 → S24 → S26` (+ optional S25).
