@@ -24,10 +24,12 @@ verified. The config lives in this repo at `labs/day-1/01-iac-fork/`:
 
 ### Continuity — this is stage 1 of the `service-manifest` project
 
-**Carried in from stage 0** (`labs/day-1/00-setup/`): nothing. Stage 0's
-`local_file.hello` was the "does my toolchain work" smoke test and is
-**deliberately retired here** — it proved `init`/`plan`/`apply`, and its job is
-done.
+**Carried in from stage 0** (`labs/day-1/00-setup/`): nothing, deliberately.
+Stage 0's `local_file.hello` was the "does my toolchain work" smoke test — it
+proved `init`/`plan`/`apply`, and its job is done. The stage-0b stretch blocks
+(`aws_s3_bucket.first`, `random_pet.stretch` and the two feature-switch
+variables that gate them) are retired with it: they existed to show a
+cloud-shaped resource on LocalStack, and this stage is deliberately cloud-free.
 
 **Introduced here, and never renamed again:** `local_file.manifest` and
 `output "manifest_path"`. Those are two of the four **spine** addresses the whole

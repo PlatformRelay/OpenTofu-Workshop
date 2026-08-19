@@ -49,9 +49,14 @@ job is done:**
 - `local_file.summary` — it existed only to give S03's dependency-graph beat a
   second node. The graph is taught; the extra file is noise here.
 
-**Introduced here, and auxiliary:** `variable "api_token"` (it feeds stage 6's
-plaintext-in-state beat), `random_password.session`, and the two extra outputs
-`effective_environment` and `api_token`.
+Stage 3's bare `provider "local" {}` goes too. It was there so S02 could point at
+a `provider` block; the `local` provider needs no settings, so OpenTofu infers it
+from `required_providers` and nothing changes at apply time.
+
+**Introduced here, and auxiliary:** `variable "api_token"` and the two extra
+outputs `effective_environment` and `api_token` — all three retire at stage 5,
+which says so — plus `random_password.session`, which does carry forward: it is
+the secret stage 6 finds sitting in plaintext state and stage 7 encrypts.
 
 ## Prerequisites
 

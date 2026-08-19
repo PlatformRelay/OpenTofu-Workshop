@@ -30,10 +30,10 @@ variable "environment" {
   default     = "dev"
 }
 
-# AUXILIARY — the generated secret, back under stage 4's address. It is
-# `sensitive`, so tofu redacts it in CLI output — but the RESOLVED value is
-# still written to terraform.tfstate as plaintext JSON. That gap is exactly what
-# stage 7 (S05, state encryption) closes.
+# AUXILIARY — random_password.session, carried forward from stage 5 under the
+# same address. It is `sensitive`, so tofu redacts it in CLI output — but the
+# RESOLVED value is still written to terraform.tfstate as plaintext JSON. That
+# gap is exactly what stage 7 (S05, state encryption) closes.
 resource "random_password" "session" {
   length  = 20
   special = true

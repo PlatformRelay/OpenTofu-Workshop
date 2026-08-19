@@ -40,11 +40,12 @@ and `output "manifest_path"` — plus the auxiliary `random_password.session`.
 job is done:**
 
 - `variable "api_token"` and `output "api_token"` — they existed to show what
-  `sensitive` does (and does not) protect. That beat is finished; a *sensitive*
-  value would also trip OpenTofu's sensitive-value guard inside the postcondition
-  below, so the guards are cleaner without it. The token returns at stage 6
-  (`labs/day-1/04-state/`), where the point is that `sensitive` never protects the
-  state file.
+  `sensitive` does (and does not) protect. That beat is finished, and a
+  *sensitive* value would trip OpenTofu's sensitive-value guard inside the
+  postcondition below, so the guards are cleaner without it. **The token does not
+  come back.** Stage 6 (`labs/day-1/04-state/`) makes the same point — `sensitive`
+  never protects the state *file* — against `random_password.session`, which is
+  already in this config and carries forward.
 - `output "effective_environment"` — it made the variable-precedence stack visible
   in `tofu output`. Precedence is taught; the guards are the subject now.
 

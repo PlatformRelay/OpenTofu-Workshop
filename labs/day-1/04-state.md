@@ -48,10 +48,13 @@ variables that fed them (`max_manifest_bytes`, `min_secret_length`). Assertions
 are taught; this stage is about what OpenTofu *remembers*, and a config with no
 guards makes the state file easier to read line by line.
 
-**Returning here:** the secret. Stage 5 dropped `variable "api_token"` because a
-sensitive value trips the postcondition's sensitive-value guard; with the guards
-gone, `random_password.session` is back to being the point — its resolved value
-lands in `terraform.tfstate` as plaintext, and Step 4 greps it out.
+**Promoted here, not re-introduced:** `random_password.session` has been in the
+config since stage 4, carried forward under the same address — at stage 5 it only
+gave the `check` block a threshold to assert on. Here it is the **subject**: its resolved
+value lands in `terraform.tfstate` as plaintext, and Step 4 greps it out. Nothing
+came back to make that happen; retiring the stage-5 guards simply left it in the
+spotlight. (Stage 4's `variable "api_token"` retired at stage 5 and does **not**
+return — this stage makes its point with a generated secret instead.)
 
 **Introduced here, and auxiliary:** the explicit `backend "local"` block (so Step
 5 can migrate it) and `output "db_password"`, which keeps its own name because it
@@ -143,10 +146,10 @@ variable "environment" {
   default     = "dev"
 }
 
-# AUXILIARY — the generated secret, back under stage 4's address. It is
-# `sensitive`, so tofu redacts it in CLI output — but the RESOLVED value is
-# still written to terraform.tfstate as plaintext JSON. That gap is exactly what
-# stage 7 (S05, state encryption) closes.
+# AUXILIARY — random_password.session, carried forward from stage 5 under the
+# same address. It is `sensitive`, so tofu redacts it in CLI output — but the
+# RESOLVED value is still written to terraform.tfstate as plaintext JSON. That
+# gap is exactly what stage 7 (S05, state encryption) closes.
 resource "random_password" "session" {
   length  = 20
   special = true
