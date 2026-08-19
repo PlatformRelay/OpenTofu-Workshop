@@ -68,18 +68,31 @@ if have tofu; then
   #
   # Now: capture rc instead of dying (`|| rc=$?` is exempt from errexit), keep
   # stderr, and parse with `awk` reading to EOF so there is no early close.
+  # stdout is PARSED, stderr is only REPORTED — deliberately separate streams.
+  # Merging them (`2>&1`) and parsing line 1 looks harmless until anything emits
+  # a warning first: a proxy notice, TF_LOG, a dyld message. Then line 1 is the
+  # warning, `$2` is a word out of it, min_version strips it to empty, and a
+  # perfectly good toolchain reds the gate with "tofu <junk> is below the
+  # required 1.8". That would be a NEW spurious-red path introduced by the very
+  # change meant to remove one — so stderr goes to a file, out of the parser's
+  # way, and is echoed only when the probe actually fails.
   TOFU_VER_RC=0
-  TOFU_VER_OUT="$(tofu version 2>&1)" || TOFU_VER_RC=$?
+  TOFU_VER_ERR="$(mktemp)"
+  TOFU_VER_OUT="$(tofu version 2>"$TOFU_VER_ERR")" || TOFU_VER_RC=$?
   TOFU_VER="$(printf '%s\n' "$TOFU_VER_OUT" | awk 'NR == 1 { print $2 }')"
   if [ "$TOFU_VER_RC" -ne 0 ] || [ -z "$TOFU_VER" ]; then
     fail "tofu version probe failed (exit $TOFU_VER_RC) — cannot establish the toolchain version"
     info "tofu said:"
-    printf '%s\n' "$TOFU_VER_OUT" | sed 's/^/    /'
+    # Both streams here: when the probe fails, whatever it managed to say is the
+    # whole of the evidence, and dropping either half is how this became a
+    # mystery in the first place.
+    { printf '%s\n' "$TOFU_VER_OUT"; cat "$TOFU_VER_ERR"; } | sed 's/^/    /'
   elif min_version "${TOFU_VER#v}" "1.8"; then
     pass "tofu ${TOFU_VER} (>= 1.8)"
   else
     fail "tofu ${TOFU_VER} is below the required 1.8"
   fi
+  rm -f "$TOFU_VER_ERR"
 else
   fail "tofu not found on PATH (install: brew install opentofu)"
   heading "Summary"

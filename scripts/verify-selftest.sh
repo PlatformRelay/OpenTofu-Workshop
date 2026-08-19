@@ -353,14 +353,21 @@ check_dump "flood: >${DUMP_MAX_LINES} lines and >64 KiB" "$DUMP_FLOOD_PAYLOAD" '
 
 # run_case <label> <expect: pass|fail> <needle> <mutator-fn> [also-needle]
 #
-# `also-needle` is an OPTIONAL second literal that must ALSO appear in the output.
-# It exists so a case can pin down WHICH code path produced the result, not just
-# the verdict: the git-mode cases below use it to assert verify.sh actually
-# selected the `git ls-files` scan. Without it, a regression that silently routed
-# git mode to the `find` fallback would leave every case green.
+# Any arguments AFTER the mutator are additional literals that must ALSO appear
+# in the output. They exist so a case can pin down WHICH code path produced the
+# result, not just the verdict: the git-mode cases below use one to assert
+# verify.sh actually selected the `git ls-files` scan. Without it, a regression
+# that silently routed git mode to the `find` fallback would leave every case
+# green. Variadic because pinning a third thing must not cost you the second.
 run_case() {
-  local label="$1" expect="$2" needle="$3" mutate="$4" also="${5:-}"
-  local tmp out rc also_ok=1
+  local label="$1" expect="$2" needle="$3" mutate="$4"
+  shift 4
+  # Every remaining argument is an ADDITIONAL required needle. Previously this
+  # was a single optional `also`, which forced a case wanting to pin three
+  # things to choose two — and re-purposing `also` off its current literal would
+  # silently drop whatever it already pinned.
+  local extra=("$@")
+  local tmp out rc extra_ok=1 needle_ok=0 verdict_ok=0 missing_extra=""
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' RETURN
   build_root "$tmp"
@@ -370,25 +377,37 @@ run_case() {
   rc=$?
   set -e
 
-  if [ -n "$also" ] && ! has_text "$out" "$also"; then
-    also_ok=0
-  fi
+  local e
+  for e in ${extra[@]+"${extra[@]}"}; do
+    if ! has_text "$out" "$e"; then
+      extra_ok=0
+      missing_extra="${missing_extra:+$missing_extra, }'$e'"
+    fi
+  done
+  has_text "$out" "$needle" && needle_ok=1
 
   if [ "$expect" = "pass" ]; then
-    if [ "$rc" -eq 0 ] && [ "$also_ok" -eq 1 ] && has_text "$out" "$needle"; then
+    if [ "$rc" -eq 0 ] && [ "$extra_ok" -eq 1 ] && [ "$needle_ok" -eq 1 ]; then
       ok "$label — exit 0 and enforcement armed ('$needle')"
+      verdict_ok=1
     else
-      bad "$label — expected exit 0 + '$needle'${also:+ + '$also'}; got exit $rc"
-      dump_case_output "$out"
+      bad "$label — expected exit 0 + '$needle'${missing_extra:+ + $missing_extra}; got exit $rc"
     fi
   else
-    if [ "$rc" -ne 0 ] && [ "$also_ok" -eq 1 ] && has_text "$out" "$needle"; then
+    if [ "$rc" -ne 0 ] && [ "$extra_ok" -eq 1 ] && [ "$needle_ok" -eq 1 ]; then
       ok "$label — exit $rc (non-zero) and drift named ('$needle')"
+      verdict_ok=1
     else
-      bad "$label — expected non-zero + '$needle'${also:+ + '$also'}; got exit $rc"
-      dump_case_output "$out"
+      bad "$label — expected non-zero + '$needle'${missing_extra:+ + $missing_extra}; got exit $rc"
     fi
   fi
+  # ONE call site, deliberately. With a dump call inside each failure branch,
+  # reverting just ONE of them left the whole self-test green — including the
+  # wiring check, which only ever drives the `expect=pass` branch. The uncovered
+  # branch was the `expect=fail` one, which fires for the majority of cases and
+  # would have fired on the CI failure that cost the revert. Hoisting past the
+  # verdict makes that mutation unrepresentable rather than merely tested for.
+  [ "$verdict_ok" -eq 1 ] || dump_case_output "$out"
   trap - RETURN
 }
 
@@ -690,6 +709,34 @@ m_lab_tftest_fail() {
 #
 # The stub lands in test-bin/, which run_case puts FIRST on PATH, so `have tofu`
 # still succeeds and only the probe fails — the exact shape of the CI failure.
+# A HEALTHY tofu whose stderr is noisy must still parse. Proxy notices, TF_LOG
+# and dyld messages all land on stderr before the version line; if the probe
+# merges the streams and parses line 1, `$2` is a word out of the WARNING,
+# min_version strips it to empty, and a perfectly good toolchain reds the gate.
+# That would be a fresh spurious-red path opened by the fix that closed one.
+m_tofu_version_stderr_noise() {
+  local root="$1" real
+  # Resolve the REAL tofu now and bake it in: the stub sits first on PATH, so
+  # every later `tofu fmt/init/validate` in the run would otherwise hit the stub
+  # too. Only `version` is intercepted; everything else is delegated untouched,
+  # so this case exercises the parser without disturbing any other section.
+  # The pinned v1.10.3 is the STUB's answer, deliberately independent of the
+  # host's real version — the assertion is "stdout was parsed", not "this host
+  # runs 1.10.3".
+  real="$(command -v tofu)"
+  cat >"$root/test-bin/tofu" <<STUB
+#!/bin/sh
+if [ "\$1" = "version" ]; then
+  echo "Warning: a noisy stderr line that must NOT be parsed as the version" >&2
+  echo "OpenTofu v1.10.3"
+  echo "on linux_amd64"
+  exit 0
+fi
+exec "$real" "\$@"
+STUB
+  chmod +x "$root/test-bin/tofu"
+}
+
 m_tofu_version_probe_fails() {
   local root="$1"
   cat >"$root/test-bin/tofu" <<'STUB'
@@ -839,7 +886,19 @@ run_case "day-2 lab integration tftest deferred" pass "labs/day-2/99-lab-tftest-
 # `also` pins the SURVIVAL half: exit non-zero alone would also be produced by
 # the silent death this case exists to forbid. Reaching the summary proves the
 # gate reported and kept going.
-run_case "tofu version probe failure is named, not a silent death" fail "tofu version probe failed" m_tofu_version_probe_fails "verify FAILED"
+# Three needles, all load-bearing and none substitutable:
+#   'tofu version probe failed'    — the failure is NAMED
+#   'simulated toolchain probe...' — tofu's OWN words are echoed. This is the
+#                                    whole reason `2>/dev/null` was dropped;
+#                                    without it, deleting the `info "tofu said:"`
+#                                    echo leaves the case green.
+#   'verify FAILED'                — the run SURVIVED to its summary. Exit
+#                                    non-zero alone would also be produced by
+#                                    the silent death this case forbids.
+run_case "tofu version probe failure is named, not a silent death" fail "tofu version probe failed" m_tofu_version_probe_fails "simulated toolchain probe failure" "verify FAILED"
+# The other half of the same fix: a noisy-but-HEALTHY probe must parse cleanly.
+# Pinning only the failure path would let the parse regress to stderr-first.
+run_case "noisy tofu stderr does not corrupt the parsed version" pass "tofu v1.10.3 (>= 1.8)" m_tofu_version_stderr_noise
 run_case "§5 prose fake module ref ignored" pass "no modules/|examples/ references in labs (all HCL is scratch/inline) — nothing to drift-check yet" m_smoke_prose_fake_module
 run_case "§5 HCL source missing module armed" fail "lab ref missing on disk: modules/does-not-exist" m_smoke_hcl_missing_source
 run_case "§5 chdir/cd/DIR missing example armed" fail "lab ref missing on disk: examples/does-not-exist" m_smoke_chdir_missing_example
