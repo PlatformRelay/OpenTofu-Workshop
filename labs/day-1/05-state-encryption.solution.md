@@ -22,11 +22,11 @@ ls
 
 ```console
 $ ls
-encryption.tf  main.tf  variables.tf
+encryption.tf  main.tf  terraform.tfvars  variables.tf
 ```
 
-`main.tf`, `encryption.tf`, and `variables.tf` are tracked in the repo. Everything
-below runs against these exact files.
+`main.tf`, `encryption.tf`, `variables.tf` and `terraform.tfvars` are tracked in
+the repo. Everything below runs against these exact files.
 
 </details>
 
@@ -53,12 +53,16 @@ tofu apply -auto-approve
 <details><summary>Solution / expected output</summary>
 
 ```console
-$ tofu state pull | jq '.resources[0].instances[0].attributes.result'
-"S3cr3t-...-plaintext"
+$ tofu state pull \
+  | jq -r '.resources[] | select(.type=="random_password")
+           | .instances[0].attributes.result'
+S3cr3t-...-plaintext
 ```
 
 The secret is sitting in `terraform.tfstate` in the clear. Anyone who reads the
-file reads the password.
+file reads the password. Note *what* is exposed: your project's own state — the
+same `local_file.manifest` and `random_password.session` you have been carrying
+since stage 6, not a throwaway demo's.
 
 </details>
 
@@ -194,7 +198,7 @@ NfQ8k1p...base64-ciphertext...          # single opaque blob (illustrative)
 ```
 
 The file is still valid JSON, but the `resources` array (which held the plaintext
-password) is gone — replaced by one `encrypted_data` envelope. `tofu` reads it
+password, and the manifest's recorded content) is gone — replaced by one `encrypted_data` envelope. `tofu` reads it
 transparently because it has the passphrase; without it, the payload is opaque.
 
 </details>
@@ -217,7 +221,8 @@ without the passphrase and runs `tofu plan`?
 
 ## Expected observations
 
-- A generated secret lands in **plaintext** state by default.
+- A generated secret lands in **plaintext** state by default — and so does every
+  attribute of every resource in your project.
 - `encryption` (PBKDF2) needs a one-time `fallback` to migrate existing state.
 - After migration the on-disk file is an **encrypted envelope** — still valid JSON,
   but the resource data is one opaque `encrypted_data` blob.
@@ -233,8 +238,8 @@ state — no residue, `git status` clean:
 cd labs/day-1/05-state-encryption
 export TF_VAR_state_passphrase="correct-horse-battery-staple"
 git checkout -- encryption.tf                          # restore canonical config first
-tofu destroy -auto-approve                             # tear down the random_password
-rm -rf .terraform .terraform.lock.hcl terraform.tfstate terraform.tfstate.* \
+tofu destroy -auto-approve                             # tear down the project
+rm -rf .terraform .terraform.lock.hcl terraform.tfstate terraform.tfstate.* out \
   encryption.tf.off variables.tf.off encryption.tf.bak
 git status --short labs/day-1/05-state-encryption      # expect: no output
 ```
@@ -276,7 +281,8 @@ above — the non-interactive form a CI teammate would hit.)
 
 ## Expected state / output
 
-- A generated secret lands in **plaintext** state by default.
+- A generated secret lands in **plaintext** state by default — and so does every
+  attribute of every resource in your project.
 - `encryption` (PBKDF2) needs a one-time `fallback` to migrate existing state.
 - After migration the on-disk file is an **encrypted envelope** — still valid JSON,
   but the resource data is one opaque `encrypted_data` blob.
@@ -310,8 +316,8 @@ state — no residue, `git status` clean:
 cd labs/day-1/05-state-encryption
 export TF_VAR_state_passphrase="correct-horse-battery-staple"
 git checkout -- encryption.tf                          # restore canonical config first
-tofu destroy -auto-approve                             # tear down the random_password
-rm -rf .terraform .terraform.lock.hcl terraform.tfstate terraform.tfstate.* \
+tofu destroy -auto-approve                             # tear down the project
+rm -rf .terraform .terraform.lock.hcl terraform.tfstate terraform.tfstate.* out \
   encryption.tf.off variables.tf.off encryption.tf.bak
 git status --short labs/day-1/05-state-encryption      # expect: no output
 ```

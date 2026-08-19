@@ -88,7 +88,7 @@
       "day": 1,
       "environment": "`localstack ✓` · `mock ✓`",
       "tools": "None for mock path",
-      "pinned": "`random` provider; encryption keys local",
+      "pinned": "`local` + `random` providers; encryption keys local",
       "validationState": "unrun",
       "estimatedDurationMin": 25,
       "automationTier": "mixed",

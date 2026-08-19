@@ -1,10 +1,12 @@
 # Learner-generated artifacts from running this lab in place — never committed.
-# The lab's canonical HCL is main.tf + encryption.tf (tracked, drift-checked).
+# The lab's canonical HCL is main.tf + encryption.tf (tracked, drift-checked),
+# plus variables.tf and the terraform.tfvars carried in from stage 6.
 .terraform/
 .terraform.lock.hcl
 terraform.tfstate
 terraform.tfstate.*
 *.tfstate
 *.tfstate.*
+out/
 crash.log
 crash.*.log

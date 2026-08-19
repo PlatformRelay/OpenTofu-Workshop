@@ -69,7 +69,7 @@ Host support is a separate claim from lab validation.
 | [`day-1/02-hcl-blocks.md`](../labs/day-1/02-hcl-blocks.md) | S02 HCL & building blocks | `mock ✓ (no docker)` | None | `local` + `random` providers | `unrun` |
 | [`day-1/03-core-workflow.md`](../labs/day-1/03-core-workflow.md) | S03 The core workflow | `mock ✓ (no docker)` | None | `local` + `random` providers | `unrun` |
 | [`day-1/04-state.md`](../labs/day-1/04-state.md) | S04 State | `mock ✓ (no docker)` | None | `random` + `local` providers | `unrun` |
-| [`day-1/05-state-encryption.md`](../labs/day-1/05-state-encryption.md) | S05 State encryption | `localstack ✓` · `mock ✓` | None for mock path | `random` provider; encryption keys local | `unrun` |
+| [`day-1/05-state-encryption.md`](../labs/day-1/05-state-encryption.md) | S05 State encryption | `localstack ✓` · `mock ✓` | None for mock path | `local` + `random` providers; encryption keys local | `unrun` |
 | [`day-1/06-variables.md`](../labs/day-1/06-variables.md) | S06 Variables, validation & types | `mock ✓ (no docker)` | None | `local` + `random` providers | `unrun` |
 | [`day-1/15-conditions-checks.md`](../labs/day-1/15-conditions-checks.md) | S15 Validation, preconditions & checks | `mock ✓ (no docker)` | None | `local` + `random` providers | `unrun` |
 | [`day-1/07-modules.md`](../labs/day-1/07-modules.md) | S07 Modules | `mock ✓ (no docker)` | None | `local` + `random` providers | `unrun` |
