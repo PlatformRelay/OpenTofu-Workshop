@@ -2,15 +2,17 @@
 
 | | |
 | --- | --- |
-| **Section** | S02 — HCL & building blocks *(red line: **syntax** → the seven block types → **references** → break→fix)* |
+| **Section** | S02 — HCL & building blocks *(red line: **syntax** → the six block types → **references** → break→fix)* |
 | **Environment** | `mock ✓ (no docker)` — no cloud, no Docker; uses the `local` + `random` providers only |
 | **Estimated time** | 20 min |
 
 ## Objective
 
 Write one minimal config that uses **every core HCL block type** — `terraform`,
-`provider`, `variable`, `locals`, `data`, `resource`, `module`, `output` — and
-watch OpenTofu wire them together through **references**. Then hit the single most
+`provider`, `variable`, `locals`, `data`, `resource`, `output` — and
+watch OpenTofu wire them together through **references**. One extra block,
+`module "greeting"`, is in the file as a **forward reference**: you read it so the
+shape is familiar, but composition is taught at stage 8 (S07 · Modules). Then hit the single most
 common HCL error on purpose: reference something you never declared, read the
 error, and fix it by declaring it. By the end you can point at any block in a real
 config and name what it does.
@@ -21,8 +23,21 @@ verified. The config lives in this repo at `labs/day-1/02-hcl-blocks/`:
 - `main.tf` — the config that uses every block type. This is the exact HCL S02
   teaches; the slide's block-by-block build is illustrative, and this file is the
   drift-checked source of truth.
-- `greeting/main.tf` — a tiny local **module** `main.tf` calls.
+- `greeting/main.tf` — a tiny local **module** `main.tf` calls (forward reference
+  to S07; not one of this section's taught block types).
 - `motd.txt` — a tracked file the `data` block reads.
+
+### Continuity — stage 2 of the `service-manifest` project
+
+**Carried forward from stage 1** (`labs/day-1/01-iac-fork/`): the spine
+`local_file.manifest` and `output "manifest_path"`, and the auxiliary
+`random_pet.env` — same addresses, now rendering a richer manifest.
+
+**Introduced here, and auxiliary:** `variable "owner"`, `locals`,
+`data.local_file.motd` and `module "greeting"` exist to demonstrate block types.
+`owner` is deliberately **not** a spine input — the project's own inputs
+(`variable "service"` and `variable "environment"`) arrive at stage 4,
+`labs/day-1/06-variables/`. All four of these retire at stage 3, which says so.
 
 ## Prerequisites
 
@@ -89,6 +104,9 @@ provider "local" {}
 
 # variable — a typed input. Override it with -var, a *.tfvars file, or an
 # environment variable; here it defaults so the lab runs with zero flags.
+# AUXILIARY: `owner` exists to demonstrate the block type. It is NOT a spine
+# input — the project's own inputs (variable "service" / variable "environment")
+# arrive at stage 4, labs/day-1/06-variables/. This one retires at stage 3.
 variable "owner" {
   type        = string
   description = "Name recorded as the owner of the generated artifacts."
@@ -99,7 +117,7 @@ variable "owner" {
 # out of the resources below.
 locals {
   banner   = upper(var.owner)
-  out_file = "${path.module}/build/summary.txt"
+  out_file = "${path.module}/build/manifest.txt"
 }
 
 # data — reads something that already exists (here a tracked file on disk)
@@ -109,42 +127,46 @@ data "local_file" "motd" {
 }
 
 # resource — a thing OpenTofu creates, updates, and destroys. random_pet
-# generates a stable identity once and stores it in state.
-resource "random_pet" "id" {
+# generates a stable identity once and stores it in state. AUXILIARY, carried
+# under the same address as stage 1: random_pet.env.
+resource "random_pet" "env" {
   length = 2
 }
 
-# module — calls reusable config in ./greeting, passing an input and reading
-# an output back. This is how you compose configurations.
+# module — a FORWARD REFERENCE, not one of this section's taught block types.
+# It calls reusable config in ./greeting, passing an input and reading an output
+# back, so the manifest below can show what a module reference looks like.
+# Composition itself is taught at stage 8 (S07 · Modules).
 module "greeting" {
   source = "./greeting"
   name   = local.banner
 }
 
-# resource — the file OpenTofu owns. Its content references the variable, the
-# local, the data source, the random_pet resource, and the module output —
-# every reference kind in one place.
-resource "local_file" "summary" {
+# SPINE — local_file.manifest, carried forward from stage 1. Its content
+# references the variable, the local, the data source, the random_pet resource,
+# and the module output — every reference kind in one place.
+resource "local_file" "manifest" {
   filename = local.out_file
   content  = <<-EOT
     owner   = ${var.owner} (${local.banner})
-    id      = ${random_pet.id.id}
+    env     = ${random_pet.env.id}
     motd    = ${trimspace(data.local_file.motd.content)}
     greeting= ${module.greeting.message}
   EOT
 }
 
-# output — a value surfaced after apply and consumable by other configs.
-output "summary_path" {
-  description = "Where the generated summary landed."
-  value       = local_file.summary.filename
+# SPINE — output manifest_path, carried forward from stage 1. An output is a
+# value surfaced after apply and consumable by other configs.
+output "manifest_path" {
+  description = "Where the generated manifest landed."
+  value       = local_file.manifest.filename
 }
 ```
 
 **Task:** Name the block type behind each of these, and say whether it *creates*
 anything: `terraform`, `provider "local"`, `variable "owner"`, `locals`,
-`data "local_file" "motd"`, `resource "random_pet" "id"`, `module "greeting"`,
-`output "summary_path"`.
+`data "local_file" "motd"`, `resource "random_pet" "env"`, `module "greeting"`,
+`output "manifest_path"`.
 
 <details><summary>Solution</summary>
 
@@ -155,9 +177,9 @@ anything: `terraform`, `provider "local"`, `variable "owner"`, `locals`,
 | `variable "owner"` | **variable** — typed input | no |
 | `locals { … }` | **locals** — computed named values | no |
 | `data "local_file" "motd"` | **data** — reads an existing thing | no (read-only) |
-| `resource "random_pet" "id"` | **resource** — managed object | **yes** |
-| `module "greeting"` | **module** — calls reusable config | via its own resources (none here) |
-| `output "summary_path"` | **output** — surfaced value | no |
+| `resource "random_pet" "env"` | **resource** — managed object | **yes** |
+| `module "greeting"` | **module** — calls reusable config (forward reference; taught in S07) | via its own resources (none here) |
+| `output "manifest_path"` | **output** — surfaced value | no |
 
 Only **`resource`** blocks (and resources inside modules) create, change, or
 destroy real objects. Everything else configures, computes, reads, or reports.
@@ -171,13 +193,13 @@ though you run the `tofu` CLI.
 
 Every line in that file is one of three things. Look again and classify them.
 
-**Task:** In `resource "local_file" "summary" { … }`, which part is the **block
+**Task:** In `resource "local_file" "manifest" { … }`, which part is the **block
 header**, which lines are **arguments**, and where is an **expression**?
 
 <details><summary>Solution</summary>
 
 ```hcl
-resource "local_file" "summary" {   # block header: TYPE + two LABELS + { }
+resource "local_file" "manifest" {   # block header: TYPE + two LABELS + { }
   filename = local.out_file          # argument: name = expression
   content  = <<-EOT                  # argument whose expression is a heredoc
     ...
@@ -185,7 +207,7 @@ resource "local_file" "summary" {   # block header: TYPE + two LABELS + { }
 }
 ```
 
-- **Block** = a header (`resource "local_file" "summary"`) plus a `{ … }` body.
+- **Block** = a header (`resource "local_file" "manifest"`) plus a `{ … }` body.
   The words after the type are **labels** (here the provider type and your local
   name).
 - **Argument** = `name = value` inside a body (`filename = …`).
@@ -231,14 +253,14 @@ data.local_file.motd: Read complete after 0s [id=814df8902c4ba19647d206206838570
 Plan: 2 to add, 0 to change, 0 to destroy.
 
 Changes to Outputs:
-  + summary_path = "./build/summary.txt"
+  + manifest_path = "./build/manifest.txt"
 ```
 
 `init` also **initializes the module** (`- greeting in greeting`). `plan` shows
 `Plan: 2 to add` — the `random_pet` and the `local_file` (a `data` source *reads*
 but never counts as an add; the module here declares no resources of its own).
 The `data.local_file.motd` line is OpenTofu **reading the tracked `motd.txt`
-first**, because `local_file.summary` references it. (Provider versions may differ
+first**, because `local_file.manifest` references it. (Provider versions may differ
 as the registry moves; the count of 2 is what matters.)
 </details>
 
@@ -248,10 +270,10 @@ as the registry moves; the count of 2 is what matters.)
 
 ```bash
 tofu apply -auto-approve
-cat build/summary.txt
+cat build/manifest.txt
 ```
 
-**Task:** Every line of `summary.txt` comes from a *different* block. Match each
+**Task:** Every line of `manifest.txt` comes from a *different* block. Match each
 line to the reference that produced it.
 
 <details><summary>Solution / expected output</summary>
@@ -259,25 +281,25 @@ line to the reference that produced it.
 ```console
 $ tofu apply -auto-approve
 ...
-random_pet.id: Creation complete after 0s [id=pleased-javelin]
-local_file.summary: Creation complete after 0s [id=9a783a972b46adaeebdf23f4b19d0961ae014e7b]
+random_pet.env: Creation complete after 0s [id=pleased-javelin]
+local_file.manifest: Creation complete after 0s [id=0e9c8c56d79c5a4ee533b2339aeec34de48149e9]
 
 Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
 
 Outputs:
 
-summary_path = "./build/summary.txt"
+manifest_path = "./build/manifest.txt"
 
-$ cat build/summary.txt
+$ cat build/manifest.txt
 owner   = workshop (WORKSHOP)
-id      = pleased-javelin
+env     = pleased-javelin
 motd    = Welcome to the OpenTofu workshop.
 greeting= Hello, WORKSHOP!
 ```
 
 - `owner = workshop` → `var.owner` (the **variable** default).
 - `(WORKSHOP)` → `local.banner`, i.e. `upper(var.owner)` (the **local**).
-- `id = pleased-javelin` → `random_pet.id.id` (the **resource** — yours will
+- `env = pleased-javelin` → `random_pet.env.id` (the **resource** — yours will
   differ; it is generated once and stored in state).
 - `motd = Welcome…` → `data.local_file.motd.content` (the **data** source reading
   `motd.txt`).
@@ -352,9 +374,9 @@ tofu plan
 
 ```console
 $ tofu plan
-random_pet.id: Refreshing state... [id=pleased-javelin]
+random_pet.env: Refreshing state... [id=pleased-javelin]
 data.local_file.motd: Read complete after 0s [id=814df8902c4ba19647d2062068385706580f0ea7]
-local_file.summary: Refreshing state... [id=9a783a972b46adaeebdf23f4b19d0961ae014e7b]
+local_file.manifest: Refreshing state... [id=0e9c8c56d79c5a4ee533b2339aeec34de48149e9]
 
 OpenTofu used the selected providers to generate the following execution
 plan. Resource actions are indicated with the following symbols:
@@ -405,10 +427,10 @@ git status --short .      # expect: no output
 
 ```console
 $ tofu destroy -auto-approve
-local_file.summary: Destroying... [id=9a783a972b46adaeebdf23f4b19d0961ae014e7b]
-local_file.summary: Destruction complete after 0s
-random_pet.id: Destroying... [id=pleased-javelin]
-random_pet.id: Destruction complete after 0s
+local_file.manifest: Destroying... [id=0e9c8c56d79c5a4ee533b2339aeec34de48149e9]
+local_file.manifest: Destruction complete after 0s
+random_pet.env: Destroying... [id=pleased-javelin]
+random_pet.env: Destruction complete after 0s
 
 Destroy complete! Resources: 2 destroyed.
 ```
@@ -420,7 +442,7 @@ and `motd.txt` exactly as CI verified them.
 
 ## Stretch (optional)
 
-- Add a second output that exposes `random_pet.id.id`, `apply`, and read it with
+- Add a second output that exposes `random_pet.env.id`, `apply`, and read it with
   `tofu output`.
 - Rename `main.tf` to `main.tofu` and re-run `tofu plan` — OpenTofu accepts the
   `.tofu` extension identically. (Rename it back before committing.)

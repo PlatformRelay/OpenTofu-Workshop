@@ -10,14 +10,16 @@ tier: core
 
 Every OpenTofu config is the same small grammar — **blocks** of **arguments**
 whose values are **expressions** — assembled from a handful of block types. Learn
-the seven, and you can read and write any config you meet.
+the six, and you can read and write any config you meet.
 
 <!--
 Say: Frame S02. HCL looks like a lot until you see it's one tiny grammar — blocks,
 arguments, expressions — plus a fixed, small set of block types. By the end of this
-section you'll recognise and be able to write all seven core blocks: resource,
-variable, output, provider, data, locals, and module. That's the whole vocabulary
-of every config you'll ever read. (~1 min)
+section you'll recognise and be able to write all six core blocks: resource,
+variable, output, provider, data, and locals. That's the whole vocabulary of every
+config you'll ever read. The one block you'll SEE but not learn here is module —
+it appears in the lab config as a forward reference; composition is taught in S07.
+(~1 min)
 Then: "Start with the grammar itself — three concepts and you can parse any file."
 -->
 
@@ -47,7 +49,7 @@ Then: "Start with the grammar itself — three concepts and you can parse any fi
 <div v-click class="mt-6 kw-muted text-sm">
 
 That's the entire syntax. Everything else is *which* block type you reach for —
-and there are only seven you need.
+and there are only six you need.
 
 </div>
 
@@ -58,15 +60,15 @@ that's the resource type and your local name. An argument is a name-equals-value
 pair inside a body. An expression is the value side: a literal, a reference like
 var.owner, a function call like upper(), or a "${}" interpolation. Click: that is
 the whole grammar. The only thing left to learn is which block type to use — and
-there are just seven. (~3 min)
-Then: "Here are the seven block types, each with one job."
+there are just six. (~3 min)
+Then: "Here are the six block types, each with one job."
 -->
 
 ---
 
 <span class="kw-kicker">The vocabulary</span>
 
-# The seven core block types
+# The six core block types
 
 <div class="kw-cols-3 mt-4">
   <KwCard heading="resource" kind="resource" variant="ok">
@@ -92,22 +94,28 @@ Then: "Here are the seven block types, each with one job."
   </KwCard>
 </div>
 
-<div class="mt-4">
-  <KwCard heading="module" kind="module" variant="ok">
-    <strong>Calls reusable config</strong>: pass inputs, read outputs back. This is
-    how you compose. (Plus the top-level <code>terraform {}</code> settings block —
-    versions &amp; provider requirements.)
+<div class="kw-cols-2 mt-4">
+  <KwCard heading="…plus the terraform settings block" variant="ok">
+    Not one of the six: the top-level <code>terraform {}</code> block pins the
+    version and declares <strong>provider requirements</strong>.
+  </KwCard>
+  <KwCard heading="Forward reference: module" kind="module">
+    <strong>Calls reusable config</strong>: pass inputs, read outputs back. You'll
+    <em>see</em> one in the Lab 02 config, but composition is taught in
+    <strong>S07 · Modules</strong> — don't learn it yet.
   </KwCard>
 </div>
 
 <!--
-Say: The seven, each with one job. Resource is the only one that creates, updates,
+Say: The six, each with one job. Resource is the only one that creates, updates,
 or destroys real objects — everything else supports it. Variable is a typed input;
 output is a surfaced value; provider configures a plugin; data reads something that
-already exists without managing it; locals are computed named expressions; module
-calls reusable config so you can compose. There's also the top-level terraform {}
-settings block that pins versions and provider requirements. Keep saying: only
-resource (and resources inside modules) actually change the world. (~4 min)
+already exists without managing it; locals are computed named expressions. There's
+also the top-level terraform {} settings block that pins versions and provider
+requirements. Flag module as a forward reference only: it shows up in the lab
+config so the manifest can reference it, but you teach composition in S07 — say
+"you'll see it, you don't need it yet." Keep saying: only resource (and resources
+inside modules) actually change the world. (~4 min)
 Then: "Now watch a real config grow one block at a time."
 -->
 
@@ -126,8 +134,8 @@ provider "local" {}
 provider "local" {}
 
 # resource — the only block that creates real objects.
-resource "local_file" "summary" {
-  filename = "build/summary.txt"
+resource "local_file" "manifest" {
+  filename = "build/manifest.txt"
   content  = "owner = workshop\n"
 }
 ```
@@ -141,8 +149,8 @@ variable "owner" {
   default = "workshop"
 }
 
-resource "local_file" "summary" {
-  filename = "build/summary.txt"
+resource "local_file" "manifest" {
+  filename = "build/manifest.txt"
   content  = "owner = ${var.owner}\n"   # reference!
 }
 ```
@@ -155,14 +163,14 @@ variable "owner" {
   default = "workshop"
 }
 
-resource "local_file" "summary" {
-  filename = "build/summary.txt"
+resource "local_file" "manifest" {
+  filename = "build/manifest.txt"
   content  = "owner = ${var.owner}\n"
 }
 
 # output — surface a value after apply.
-output "summary_path" {
-  value = local_file.summary.filename   # reference!
+output "manifest_path" {
+  value = local_file.manifest.filename   # reference!
 }
 ```
 ````
@@ -178,7 +186,7 @@ output "summary_path" {
   <KwCard heading="variable → output" variant="ok">
     A typed <strong>input</strong> feeds the resource via <code>var.owner</code>;
     an <strong>output</strong> reads back via
-    <code>local_file.summary.filename</code>. Those <code>${…}</code> and dotted
+    <code>local_file.manifest.filename</code>. Those <code>${…}</code> and dotted
     names are <strong>references</strong> — the next slide.
   </KwCard>
   </div>
@@ -189,10 +197,11 @@ Say: Watch a config grow, block by block, via magic-move. Start with just the
 provider. Add the resource — the only block that creates a real object, here a
 managed file. Add a variable and thread it into the resource with the reference
 ${var.owner}. Finally add an output that reads the resource's filename back. Call
-out the two references as they appear: var.owner and local_file.summary.filename —
-that's how blocks connect. This four-block shape is the spine of the config you
-build in Lab 02; the lab's tracked main.tf adds locals, data, and a module too. The
-slide HCL is illustrative — the lab file is the source of truth. (~5 min)
+out the two references as they appear: var.owner and local_file.manifest.filename —
+that's how blocks connect. Name local_file.manifest and output manifest_path as the
+project SPINE carried in from Lab 01 — the same two addresses, growing. The lab's
+tracked main.tf adds locals, data, and a module too. The slide HCL is illustrative —
+the lab file is the source of truth. (~5 min)
 Then: "Those dotted names are the wiring — let's make references explicit."
 -->
 
@@ -218,12 +227,12 @@ clicks: 4
     <span>read an attribute of a <strong>data</strong> source</span>
   </div>
   <div v-click class="flex items-center gap-4">
-    <KwChip>random_pet.id.id</KwChip>
+    <KwChip>random_pet.env.id</KwChip>
     <span>read a <strong>resource's</strong> attribute — <code>&lt;type&gt;.&lt;name&gt;.&lt;attr&gt;</code></span>
   </div>
   <div v-click class="flex items-center gap-4">
     <KwChip variant="ok">module.greeting.message</KwChip>
-    <span>read a <strong>module's</strong> output</span>
+    <span>read a <strong>module's</strong> output — <em>forward reference; S07</em></span>
   </div>
 </div>
 
@@ -238,9 +247,10 @@ order in the file doesn't matter, only what references what.
 <!--
 Say: References are how blocks connect, revealed one line at a time. var.owner
 reads a variable. local.banner reads a computed local. data.local_file.motd.content
-reads an attribute off a data source. random_pet.id.id reads a resource attribute —
+reads an attribute off a data source. random_pet.env.id reads a resource attribute —
 the pattern is type dot name dot attribute. module.greeting.message reads a module
-output. Final click: wrap any of these in "${}" to drop it into a string, and know
+output — flag that last one as a forward reference to S07, shown only so the shape
+is familiar. Final click: wrap any of these in "${}" to drop it into a string, and know
 that OpenTofu resolves every reference at plan time and builds a dependency graph
 from them — which is why file order never matters, only what references what. That
 graph is exactly what makes the undeclared-reference error in the lab possible. (~4
@@ -295,7 +305,8 @@ env: 'mock ✓ (no docker)'
 # Lab 02 — HCL & the building blocks
 
 Read and run one small config that uses **every core block type** —
-`provider`, `variable`, `locals`, `data`, `resource`, `module`, `output` — and
+`provider`, `variable`, `locals`, `data`, `resource`, `output` — plus one
+`module` block as a **forward reference to S07** — and
 watch references wire them into a dependency graph. Then **break it on purpose**:
 reference an undeclared variable, read the `plan` error, and fix it by declaring
 the block OpenTofu asks for.
@@ -305,8 +316,8 @@ plus `rm`.
 
 <!--
 Say: Set up the lab. You'll cat and run a single tracked config that exercises all
-seven block types, then read the generated file line by line to see each reference
-resolve. The payoff is the break-fix: add a scratch file that references
+six block types — plus a module block you only read, not learn — then read the
+generated file line by line to see each reference resolve. The payoff is the break-fix: add a scratch file that references
 var.maintainer without declaring it, watch plan refuse with "Reference to
 undeclared input variable," then declare the variable and watch plan go green. Every
 task and question has a spoiler; panic reset is tofu destroy plus rm — nothing
@@ -317,20 +328,21 @@ Then: regroup for the recap.
 ---
 layout: recap
 heading: HCL & building blocks — recap
-story: 'HCL is blocks of arguments whose values are expressions — seven block types, wired by references.'
+story: 'HCL is blocks of arguments whose values are expressions — six block types, wired by references.'
 next: 'Next: Core workflow (init/plan/apply/destroy)'
 ---
 
 - **HCL grammar** is just three things: **blocks** (header + `{ }`), **arguments** (`name = value`), and **expressions** (the value side).
-- **Seven core block types:** `resource`, `variable`, `output`, `provider`, `data`, `locals`, `module` — plus the top-level `terraform {}` settings block.
+- **Six core block types:** `resource`, `variable`, `output`, `provider`, `data`, `locals` — plus the top-level `terraform {}` settings block. (`module` appears in the lab config as a **forward reference**; it is taught in S07.)
 - Only **`resource`** blocks create, change, or destroy real objects; the rest configure, compute, read, or report.
 - **References** (`var.*`, `local.*`, `data.*.*`, `<res>.*`, `module.*.*`), wrapped in `"${…}"`, wire blocks into a **dependency graph** resolved at plan time.
 - Every `*.tf` in a directory is one merged config; OpenTofu also reads **`.tofu`** (which wins over a same-named `.tf`).
 
 <!--
 Say: Pull the threads together. HCL is three things — blocks, arguments,
-expressions. There are seven core block types plus the terraform settings block,
-and of those only resource actually changes the world. References — var, local,
+expressions. There are six core block types plus the terraform settings block,
+and of those only resource actually changes the world; module is a forward
+reference to S07, seen but not taught. References — var, local,
 data, resource attributes, module outputs — wrapped in "${}" wire everything into a
 dependency graph that OpenTofu resolves at plan time, which is why file order never
 matters. And every .tf in a directory is one config, with .tofu accepted too and
