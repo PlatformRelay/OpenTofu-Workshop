@@ -8,13 +8,14 @@
 
 ## Objective
 
-Write one minimal config that uses **every core HCL block type** — `terraform`,
-`provider`, `variable`, `locals`, `data`, `resource`, `output` — and
-watch OpenTofu wire them together through **references**. One extra block,
-`module "greeting"`, is in the file as a **forward reference**: you read it so the
-shape is familiar, but composition is taught at stage 8 (S07 · Modules). Then hit the single most
-common HCL error on purpose: reference something you never declared, read the
-error, and fix it by declaring it. By the end you can point at any block in a real
+Write one minimal config that uses **every core HCL block type** — the **six**
+(`provider`, `variable`, `locals`, `data`, `resource`, `output`) plus the
+top-level `terraform {}` settings block — and watch OpenTofu wire them together
+through **references**. One extra block, `module "greeting"`, is in the file as a
+**forward reference**: you read it so the shape is familiar, but composition is
+taught at stage 8 (S07 · Modules). Then hit the single most common HCL error on
+purpose: reference something you never declared, read the error, and fix it by
+declaring it. By the end you can point at any block in a real
 config and name what it does.
 
 You run **tracked files**, not heredocs — what you apply is exactly what CI
