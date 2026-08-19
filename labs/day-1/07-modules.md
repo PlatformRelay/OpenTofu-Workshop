@@ -8,9 +8,11 @@
 
 ## Objective
 
-In S06 you gave the config a typed interface; in S15 you guarded it. Now you
-**package** it. You take the manifest resource you have been carrying forward and
-extract it into a **local module** with its own input and output contract — then
+In S06 you gave the config a typed interface; in S15 you guarded it; in S04 and
+S05 you read and then encrypted its state. Now you **package** it. You take the
+`local_file.manifest` you have been carrying forward since S01, with the same
+`service` and `environment` inputs, and extract it into a **local module** with
+its own input and output contract — then
 consume that one module **twice**, with **different inputs**, and watch **both**
 instances apply as distinct addresses (`module.checkout` / `module.payments`).
 
@@ -26,6 +28,36 @@ heredocs — what you apply is exactly what CI verified. The config lives at
 - `modules/service-manifest/` — the **child** module: `variables.tf` (input
   contract), `main.tf` (the extracted `local_file` + `random_pet`), `outputs.tf`
   (output contract). This is the reusable unit.
+
+### Continuity — stage 8 of the `service-manifest` project
+
+**Nothing about the project changes here except where it lives.** This is the one
+Day-1 stage where the spine is not declared at the root — because *extracting it*
+is the lesson. Compare stage 7's `main.tf` with
+`modules/service-manifest/`: the same `variable "service"`, the same
+`variable "environment"`, the same `local_file.manifest`, the same
+`output "manifest_path"`. The names are untouched; only the prefix moved:
+
+| Stage 7 (root) | Stage 8 |
+| --- | --- |
+| `variable "service"` | the module's input contract, passed as `service = { … }` by each caller |
+| `variable "environment"` | the module's input contract, passed as `environment = "…"` |
+| `local_file.manifest` | `module.checkout.local_file.manifest` · `module.payments.local_file.manifest` |
+| `output "manifest_path"` | each instance's own `manifest_path`, re-exported by the root as `checkout_manifest` / `payments_manifest` |
+
+That is what a module *is*: the same addresses, namespaced per instance, with the
+resources private behind a contract. Calling it twice with different inputs gives
+you two independent manifests and two independent sets of state.
+
+**Deliberately retired here — the stage-7 encryption apparatus, whose teaching job
+is done:** `variable "state_passphrase"`, `random_password.session` and the
+`encryption` block itself. Encryption is a property of *state*, and this stage is
+about the shape of the *config*; carrying the passphrase would mean every step
+below ran under `TF_VAR_state_passphrase` for no teaching gain.
+
+**Auxiliary inside the module:** `random_pet.release` and the module's own
+`output "release"`. They are private implementation detail — the caller never
+names them, which is exactly the point of a contract.
 
 > **Scope note (no-Docker, per the Day-1 chain):** the runnable module here is a
 > **local** module (`source = "./modules/…"`) — no registry network, no OCI. The

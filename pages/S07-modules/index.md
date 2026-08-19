@@ -67,6 +67,10 @@ Each `module` block is a distinct **instance** with namespaced addresses —
 `module.checkout.local_file.manifest`, `module.payments.local_file.manifest`.
 Same definition, different inputs, independent state.
 
+That address is the **same `local_file.manifest`** every Day-1 lab has declared
+since S01. Extracting it is the only thing that changed: the names are untouched,
+the prefix moved.
+
 </div>
 
 <!--
@@ -77,7 +81,11 @@ module block, wires its inputs, and reads its outputs by the module-dot-name-dot
 output path. The click drives home the reuse payoff: each module block is its own
 instance with namespaced resource addresses, so calling the same module twice with
 different inputs gives you two independent sets of resources with independent
-state. That is exactly what the lab does. (~3 min)
+state. Say the continuity line out loud: module.checkout.local_file.manifest is
+the SAME local_file.manifest they have declared in every lab since S01, and
+service and environment are the same two variables from S06 — the child module IS
+the extraction of the config they already have, not a new example. That is exactly
+what the lab does. (~3 min)
 Then: "Where does that child module come from? That's the source argument."
 -->
 
