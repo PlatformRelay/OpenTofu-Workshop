@@ -17,45 +17,14 @@ from "what is a resource" to a tested, encrypted, orchestrated multi-module
 project, and we do it all locally with no cloud bill. Reassure anyone new to IaC
 that the ramp is gentle and roughly half the time is hands-on. (~2 min)
 Then: "Here's the red line that ties all three days together" — into what you'll
-build.
--->
-
----
-
-<span class="kw-kicker">Your outcome</span>
-
-# What success looks like
-
-By the end of the workshop, you can:
-
-<div class="kw-cols-3 mt-5">
-  <KwCard heading="Author safely" kind="resource">
-    Read and write HCL, predict a plan, manage state, compose modules, and add
-    validation before infrastructure changes.
-  </KwCard>
-  <KwCard heading="Prove behaviour" kind="test">
-    Choose the right layer of the IaC testing pyramid, from formatting and
-    policy checks to native tests, mocks, and integration.
-  </KwCard>
-  <KwCard heading="Scale delivery" kind="stack" variant="plain">
-    Organise stacks, generate repeated configuration, orchestrate changes, and
-    run only what a monorepo change affects.
-  </KwCard>
-</div>
-
-<!--
-Say: Frame the destination in learner language. They will leave able to author
-safely, prove behaviour with an appropriate test layer, and scale delivery
-without copying configuration by hand. These are practical outcomes, not a list
-of product features. (~2 min)
-Then: "Those outcomes form one continuous red line across the three parts."
+be able to build.
 -->
 
 ---
 
 <span class="kw-kicker">The red line</span>
 
-# What you'll build
+# What you'll be able to build
 
 <div class="kw-cols-3 mt-4">
   <KwCard heading="Part 1 · Author" kind="resource">
@@ -88,7 +57,7 @@ analysis, policy scanners, native tofu test, mocking — the IaC testing pyramid
 Part 3 you grow it with Terramate — stacks, codegen, orchestration. Land the click
 reveal: every block ends in a lab, ~50% hands-on, using local providers, mocks,
 or LocalStack rather than a required cloud account. (~3 min)
-Then: "Before the labs, two ground rules about what we're actually teaching."
+Then: "Before we write a line of it, two ground rules about what we're teaching."
 -->
 
 ---
@@ -106,26 +75,7 @@ HCL you learn is the shared language, so everything transfers to Terraform — b
 the runtime is open source, and a few headline features (state encryption is the
 one they'll remember) exist only in OpenTofu. We don't run a parallel Terraform
 track; we note compatibility as we go. (~2 min)
-Then: "The workshop alternates explanation with a repeatable hands-on rhythm."
--->
-
----
-layout: statement
-kicker: 'The workshop rhythm'
----
-
-**Explain → run → observe → break → fix → debrief**
-
-Every concept earns keyboard time. We use short explanations, run the real
-tool, read what happened, deliberately trigger a useful failure, repair it,
-then name the lesson together.
-
-<!--
-Say: Make the 50/50 promise concrete: explanation and keyboard time alternate,
-they do not live in separate halves of the day. Break-fix is deliberate and
-safe; learners should read the failure before revealing the repair. Debrief is
-where the command becomes a reusable mental model. (~2 min)
-Then: "That rhythm stays safe because the whole environment is local-first."
+Then: "And you'll run all of it locally — no account, no credentials, no bill."
 -->
 
 ---
@@ -145,40 +95,116 @@ mock_provider handles logic that needs no service, while LocalStack provides
 AWS-shaped APIs locally. No learner needs cloud credentials. The pinned
 community image makes the LocalStack badge an executable promise, not an
 aspiration. (~2 min)
-Then: "Here is how to read a lab before you type its first command."
+Then: "So here is the first thing you'll write — four lines, then a real plan."
+-->
+
+---
+layout: code-walkthrough
+heading: First contact — read the code, then plan and apply
+lab: labs/day-1/00-setup.md
+---
+
+````md magic-move
+<!-- source: labs/day-1/00-setup/hello.tf -->
+```hcl
+resource "local_file" "hello" {
+  content  = "hello, opentofu\n"
+  filename = "${path.module}/hello.txt"
+}
+```
+
+```console
+$ tofu init
+Initializing the backend...
+Initializing provider plugins...
+OpenTofu has been successfully initialized!
+```
+
+```console
+$ tofu plan
+OpenTofu will perform the following actions:
+
+  # local_file.hello will be created
+  + resource "local_file" "hello" {
+      + content  = "hello, opentofu"
+      + filename = "./hello.txt"
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+```
+
+```console
+$ tofu apply -auto-approve
+local_file.hello: Creating...
+local_file.hello: Creation complete after 0s
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+```
+````
+
+<!--
+Say: Start on the code, because the plan is only meaningful as a diff of code you
+have read. This is the whole of hello.tf: one resource block, a type, a name, two
+arguments. Then the loop in three magic-move steps. init sets up the backend and
+downloads providers. plan shows what WILL happen — the local_file you just read,
+to be created — and changes nothing. apply -auto-approve makes it real. Hammer the
+mental model: plan is a preview, apply is the commit; nothing touches the world
+until you apply. We use local_file so the very first apply needs no cloud at all.
+If anyone spots that the filename morphs from ${path.module}/hello.txt to
+./hello.txt, that is the answer, not a typo: path.module resolves to . in the
+root module. (~4 min)
+Then: "That shape — explain, run, observe — is the rhythm of the whole workshop."
+-->
+
+---
+layout: statement
+kicker: 'The workshop rhythm'
+---
+
+**Explain → run → observe → break → fix → debrief**
+
+Every concept earns keyboard time. We use short explanations, run the real
+tool, read what happened, deliberately trigger a useful failure, repair it,
+then name the lesson together.
+
+<!--
+Say: Generalise what they just watched. Make the 50/50 promise concrete:
+explanation and keyboard time alternate, they do not live in separate halves of
+the day. Break-fix is deliberate and safe; learners should read the failure
+before revealing the repair. Debrief is where the command becomes a reusable
+mental model. (~2 min)
+Then: "Run that loop for three days and here is what you walk out able to do."
 -->
 
 ---
 
-<span class="kw-kicker">Lab map</span>
+<span class="kw-kicker">Your outcome</span>
 
-# Badges and spoilers
+# What success looks like
 
-<div class="kw-cols-2 mt-4">
-  <KwCard heading="Read the environment badge" icon="🏷️">
-    <code>mock ✓ (no docker)</code> is tool-only. <code>localstack ✓</code>
-    needs a healthy local emulator. <code>real-aws (optional)</code> is never
-    required for the workshop path.
+By the end of the workshop, you can:
+
+<div class="kw-cols-3 mt-5">
+  <KwCard heading="Author safely" kind="resource">
+    Read and write HCL, predict a plan, manage state, compose modules, and add
+    validation before infrastructure changes.
   </KwCard>
-  <KwCard heading="Try, then reveal" icon="🔎">
-    Every task has a <code>Solution / expected output</code> spoiler. Attempt
-    the step first; open the spoiler to unblock yourself or compare observations.
+  <KwCard heading="Prove behaviour" kind="test">
+    Choose the right layer of the IaC testing pyramid, from formatting and
+    policy checks to native tests, mocks, and integration.
   </KwCard>
-</div>
-
-<div v-click class="mt-5 kw-muted text-sm">
-
-Every lab also names its files, expected observations, and a safe
-**cleanup / panic reset**.
-
+  <KwCard heading="Scale delivery" kind="stack" variant="plain">
+    Organise stacks, generate repeated configuration, orchestrate changes, and
+    run only what a monorepo change affects.
+  </KwCard>
 </div>
 
 <!--
-Say: Teach the lab UI once so it never needs explaining again. Badges answer
-"what must be running?" before a command; spoilers make labs self-service
-without stealing the productive struggle. Land the reveal: every lab ends with
-observations and a panic reset, so experimentation is recoverable. (~3 min)
-Then: "With that map, let's check the required toolchain."
+Say: Frame the destination in learner language. They will leave able to author
+safely, prove behaviour with an appropriate test layer, and scale delivery
+without copying configuration by hand. These are practical outcomes, not a list
+of product features. (~2 min)
+Then: "To get there on your own machine, you need four things installed."
 -->
 
 ---
@@ -217,52 +243,40 @@ single entrypoint. Gum, awslocal, and an editor improve ergonomics but do not
 gate the lab. Mention the documented Kubernetes alternative for a Docker-free
 LocalStack runtime. Land the reveal: task setup reports what is missing and can
 offer installation help. (~3 min)
-Then: "Let's prove the whole loop works — first contact, plan then apply."
+Then: "One last thing before you type — how to read a lab."
 -->
 
 ---
-layout: code-walkthrough
-heading: First contact — plan then apply
-lab: labs/day-1/00-setup.md
----
 
-````md magic-move
-```console
-$ tofu init
-Initializing the backend...
-Initializing provider plugins...
-OpenTofu has been successfully initialized!
-```
+<span class="kw-kicker">Lab map</span>
 
-```console
-$ tofu plan
-OpenTofu will perform the following actions:
+# Badges and spoilers
 
-  # local_file.hello will be created
-  + resource "local_file" "hello" {
-      + content  = "hello, opentofu"
-      + filename = "./hello.txt"
-    }
+<div class="kw-cols-2 mt-4">
+  <KwCard heading="Read the environment badge" icon="🏷️">
+    <code>mock ✓ (no docker)</code> is tool-only. <code>localstack ✓</code>
+    needs a healthy local emulator. <code>real-aws (optional)</code> is never
+    required for the workshop path.
+  </KwCard>
+  <KwCard heading="Try, then reveal" icon="🔎">
+    Every task has a <code>Solution / expected output</code> spoiler. Attempt
+    the step first; open the spoiler to unblock yourself or compare observations.
+  </KwCard>
+</div>
 
-Plan: 1 to add, 0 to change, 0 to destroy.
-```
+<div v-click class="mt-5 kw-muted text-sm">
 
-```console
-$ tofu apply -auto-approve
-local_file.hello: Creating...
-local_file.hello: Creation complete after 0s
+Every lab also names its files, expected observations, and a safe
+**cleanup / panic reset**.
 
-Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
-```
-````
+</div>
 
 <!--
-Say: This is the core loop in three magic-move steps. init sets up the backend and
-downloads providers. plan shows what WILL happen — a local_file to be created —
-and changes nothing. apply -auto-approve makes it real. Hammer the mental model:
-plan is a preview, apply is the commit; nothing touches the world until you apply.
-We use local_file so the very first apply needs no cloud at all. (~3 min)
-Then: "Your turn — Lab 00 gets this running on your machine."
+Say: Teach the lab UI once so it never needs explaining again. Badges answer
+"what must be running?" before a command; spoilers make labs self-service
+without stealing the productive struggle. Land the reveal: every lab ends with
+observations and a panic reset, so experimentation is recoverable. (~3 min)
+Then: "Your turn — Lab 00 gets all of this running on your machine."
 -->
 
 ---
@@ -274,16 +288,16 @@ env: 'localstack ✓ · local ✓ (no docker)'
 
 # Lab 00 — set up & first apply
 
-Install the toolchain with `task setup`, run your first `local_file` apply, then
-bring up LocalStack and create your first `aws_s3_bucket` — proof the whole loop
-works before we go deep.
+Install the toolchain with `task setup`, run the `local_file` apply you just
+read, then bring up LocalStack and create your first `aws_s3_bucket` — proof the
+whole loop works before we go deep.
 
 <!--
-Say: Kick off the first lab and set the goal: install with task setup, do the
-local_file apply, then bring up LocalStack and create a real aws_s3_bucket against
-the :4566 emulator — proof the full loop works before we go deep. Circulate; the
-common snag is Docker not running. Panic reset is always task lab:down. (~20 min,
-matches the lab duration)
+Say: Kick off the first lab and set the goal: install with task setup, run the
+local_file apply from the walkthrough yourself, then bring up LocalStack and
+create a real aws_s3_bucket against the :4566 emulator — proof the full loop
+works before we go deep. Circulate; the common snag is Docker not running. Panic
+reset is always task lab:down. (~20 min, matches the lab duration)
 Then: regroup and recap what we've established.
 -->
 
@@ -301,9 +315,9 @@ next: 'Next: Infrastructure as Code — and why OpenTofu exists'
 
 <!--
 Say: Close the loop — they now have a working, cloud-free OpenTofu lab and have
-seen the whole plan/apply flow once. Recap the four anchors: the author-test-scale
-red line, tofu with shared HCL, LocalStack plus mock_provider so there's no bill,
-and the three commands they memorise. (~2 min)
+read the code behind the whole plan/apply flow once. Recap the four anchors: the
+author-test-scale red line, tofu with shared HCL, LocalStack plus mock_provider
+so there's no bill, and the three commands they memorise. (~2 min)
 Then: transition into Infrastructure as Code — and why OpenTofu exists — "now we
 learn what the code actually means."
 -->
