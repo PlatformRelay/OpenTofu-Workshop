@@ -41,8 +41,8 @@ script and run it **twice**:
 cat > /tmp/provision.sh <<'EOF'
 #!/usr/bin/env bash
 mkdir -p build
-echo "Hello from host-$RANDOM — provisioned imperatively." > build/greeting.txt
-cat build/greeting.txt
+printf 'service = service-manifest\nenvironment = host-%s\n' "$RANDOM" > build/manifest.txt
+cat build/manifest.txt
 EOF
 bash /tmp/provision.sh
 bash /tmp/provision.sh
@@ -57,9 +57,11 @@ rm -rf build          # tidy up the scratch dir before the declarative run
 
 ```console
 $ bash /tmp/provision.sh
-Hello from host-26898 — provisioned imperatively.
+service = service-manifest
+environment = host-26898
 $ bash /tmp/provision.sh
-Hello from host-10428 — provisioned imperatively.
+service = service-manifest
+environment = host-10428
 ```
 
 The number is different every run — the script is **not idempotent**. It describes
@@ -73,7 +75,7 @@ that someone changed the file afterwards. That's the gap declarative IaC closes.
 
 ### Step 2 — Read the declarative equivalent
 
-Here is the HCL S01 teaches — the same intent ("a greeting file exists"), expressed
+Here is the HCL S01 teaches — the same intent ("a service manifest file exists"), expressed
 as **desired state**. `cat` it so you read exactly what you're applying:
 
 <!-- source: labs/day-1/01-iac-fork/main.tf -->
@@ -88,32 +90,36 @@ terraform {
 
 # A stable, generated identity for this environment. The imperative script used
 # $RANDOM; here the value is declared once and tracked in state, so every run is
-# reproducible instead of different each time.
+# reproducible instead of different each time. AUXILIARY: it stands in for the
+# environment name until stage 4 introduces the real variable "environment".
 resource "random_pet" "env" {
   length = 2
 }
 
-# The declarative equivalent of `echo ... > greeting.txt`. OpenTofu owns this
-# file: it creates it, detects drift if it changes, and destroys it on teardown.
-resource "local_file" "greeting" {
-  filename        = "${path.module}/build/greeting.txt"
+# SPINE — the project starts here. local_file.manifest is the rendered service
+# manifest every later Day-1 stage still declares; it is never renamed. The
+# declarative equivalent of `printf ... > manifest.txt`: OpenTofu owns this file,
+# creates it, detects drift if it changes, and destroys it on teardown.
+resource "local_file" "manifest" {
+  filename        = "${path.module}/build/manifest.txt"
   file_permission = "0644"
-  content         = "Hello from ${random_pet.env.id} — provisioned declaratively.\n"
+  content         = "service = service-manifest\nenvironment = ${random_pet.env.id}\n"
 }
 
-output "greeting_path" {
-  description = "Where the declaratively managed file landed."
-  value       = local_file.greeting.filename
+# SPINE — the manifest's path, surfaced under the name every later stage reuses.
+output "manifest_path" {
+  description = "Where the declaratively managed manifest landed."
+  value       = local_file.manifest.filename
 }
 ```
 
-**Task:** Which block is the imperative `echo > file`, and which is the `$RANDOM`?
+**Task:** Which block is the imperative `printf > file`, and which is the `$RANDOM`?
 
 ---
 
 <details><summary>Solution</summary>
 
-- `local_file.greeting` replaces `echo ... > build/greeting.txt` — but OpenTofu now
+- `local_file.manifest` replaces `printf ... > build/manifest.txt` — but OpenTofu now
   *owns* the file: it will recreate it if it drifts and delete it on `destroy`.
 - `random_pet.env` replaces `$RANDOM` — but the value is generated **once**, stored
   in state, and reused on every apply. That is the difference between "random each
@@ -161,7 +167,7 @@ differ as the registry moves; the count of 2 is what matters.)
 
 ```bash
 tofu apply -auto-approve
-cat build/greeting.txt
+cat build/manifest.txt
 tofu apply -auto-approve      # run it a SECOND time
 ```
 
@@ -175,17 +181,18 @@ tofu apply -auto-approve      # run it a SECOND time
 $ tofu apply -auto-approve
 random_pet.env: Creating...
 random_pet.env: Creation complete after 0s [id=arriving-duck]
-local_file.greeting: Creating...
-local_file.greeting: Creation complete after 0s [id=64e02644296e272730dab28ba3cef35ab26aa71d]
+local_file.manifest: Creating...
+local_file.manifest: Creation complete after 0s [id=f6871a7f2900c1f64cd581acc5632f0b99b7fd24]
 
 Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
 
 Outputs:
 
-greeting_path = "./build/greeting.txt"
+manifest_path = "./build/manifest.txt"
 
-$ cat build/greeting.txt
-Hello from arriving-duck — provisioned declaratively.
+$ cat build/manifest.txt
+service = service-manifest
+environment = arriving-duck
 ```
 
 The **second** apply is a no-op — that's idempotency:
@@ -193,7 +200,7 @@ The **second** apply is a no-op — that's idempotency:
 ```console
 $ tofu apply -auto-approve
 random_pet.env: Refreshing state... [id=arriving-duck]
-local_file.greeting: Refreshing state... [id=64e02644296e272730dab28ba3cef35ab26aa71d]
+local_file.manifest: Refreshing state... [id=f6871a7f2900c1f64cd581acc5632f0b99b7fd24]
 
 No changes. Your infrastructure matches the configuration.
 
@@ -215,7 +222,7 @@ This is the payoff the shell script can never match. Tamper with the file OpenTo
 manages — simulate someone editing it by hand — then ask OpenTofu to look:
 
 ```bash
-echo "hand-edited — someone SSHed in and changed it" > build/greeting.txt
+echo "hand-edited — someone SSHed in and changed it" > build/manifest.txt
 tofu plan
 ```
 
@@ -225,7 +232,7 @@ Now **fix** it — reconcile reality back to your declared desired state:
 
 ```bash
 tofu apply -auto-approve
-cat build/greeting.txt
+cat build/manifest.txt
 ```
 
 ---
@@ -273,7 +280,7 @@ git status --short labs/day-1/01-iac-fork      # expect: no output
 ## Stretch (optional)
 
 - Add a second `local_file` that depends on the first (e.g. a `manifest.txt` listing
-  the greeting path) and watch `plan` order the two by dependency.
+  the manifest path) and watch `plan` order the two by dependency.
 - Change `random_pet`'s `length` from `2` to `3`, `plan`, and read how OpenTofu
   proposes to **replace** the pet and **update** the file that references it —
   a dependency graph doing its job.
@@ -283,7 +290,7 @@ git status --short labs/day-1/01-iac-fork      # expect: no output
 ```console
 $ tofu plan
 random_pet.env: Refreshing state... [id=arriving-duck]
-local_file.greeting: Refreshing state... [id=64e02644296e272730dab28ba3cef35ab26aa71d]
+local_file.manifest: Refreshing state... [id=f6871a7f2900c1f64cd581acc5632f0b99b7fd24]
 
 OpenTofu used the selected providers to generate the following execution
 plan. Resource actions are indicated with the following symbols:
@@ -291,10 +298,11 @@ plan. Resource actions are indicated with the following symbols:
 
 OpenTofu will perform the following actions:
 
-  # local_file.greeting will be created
-  + resource "local_file" "greeting" {
+  # local_file.manifest will be created
+  + resource "local_file" "manifest" {
       + content              = <<-EOT
-            Hello from arriving-duck — provisioned declaratively.
+            service = service-manifest
+            environment = arriving-duck
         EOT
       ...
     }
@@ -312,13 +320,14 @@ An imperative script has no memory of what it did, so it could never notice.
 
 ```console
 $ tofu apply -auto-approve
-local_file.greeting: Creating...
-local_file.greeting: Creation complete after 0s [id=64e02644296e272730dab28ba3cef35ab26aa71d]
+local_file.manifest: Creating...
+local_file.manifest: Creation complete after 0s [id=f6871a7f2900c1f64cd581acc5632f0b99b7fd24]
 
 Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
 
-$ cat build/greeting.txt
-Hello from arriving-duck — provisioned declaratively.
+$ cat build/manifest.txt
+service = service-manifest
+environment = arriving-duck
 ```
 
 The file is back to the declared content. **Config is the source of truth**;
@@ -344,8 +353,8 @@ CLI- and HCL-compatible, so migrating is low-friction.
 
 ```console
 $ tofu destroy -auto-approve
-local_file.greeting: Destroying... [id=64e02644296e272730dab28ba3cef35ab26aa71d]
-local_file.greeting: Destruction complete after 0s
+local_file.manifest: Destroying... [id=f6871a7f2900c1f64cd581acc5632f0b99b7fd24]
+local_file.manifest: Destruction complete after 0s
 random_pet.env: Destroying... [id=arriving-duck]
 random_pet.env: Destruction complete after 0s
 
@@ -405,8 +414,8 @@ git status --short labs/day-1/01-iac-fork      # expect: no output
 
 ```console
 $ tofu destroy -auto-approve
-local_file.greeting: Destroying... [id=64e02644296e272730dab28ba3cef35ab26aa71d]
-local_file.greeting: Destruction complete after 0s
+local_file.manifest: Destroying... [id=f6871a7f2900c1f64cd581acc5632f0b99b7fd24]
+local_file.manifest: Destruction complete after 0s
 random_pet.env: Destroying... [id=arriving-duck]
 random_pet.env: Destruction complete after 0s
 

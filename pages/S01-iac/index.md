@@ -112,7 +112,7 @@ steps. Declarative code says WHAT — the end state you want to exist. With
 declarative, the tool derives the how, which is exactly what buys you the preview
 (plan), the repeatability (idempotency), and the repair (drift reconcile). Keep it
 crisp — the next slide shows the same intent both ways. (~2 min)
-Then: "Here's the same job — write a greeting file — as a script, then as HCL."
+Then: "Here's the same job — write the project's manifest file — as a script, then as HCL."
 -->
 
 ---
@@ -125,10 +125,11 @@ heading: Same job, two paradigms
 #!/usr/bin/env bash
 # Imperative: the exact steps, every time.
 mkdir -p build
-echo "Hello from host-$RANDOM \
+echo "service = service-manifest, \
+  environment = host-$RANDOM \
   — provisioned imperatively." \
-  > build/greeting.txt
-cat build/greeting.txt
+  > build/manifest.txt
+cat build/manifest.txt
 # Run it twice → a DIFFERENT file.
 # No plan. No idempotency. No drift check.
 ```
@@ -139,9 +140,9 @@ resource "random_pet" "env" {
   length = 2
 }
 
-resource "local_file" "greeting" {
-  filename = "${path.module}/build/greeting.txt"
-  content  = "Hello from ${random_pet.env.id} — provisioned declaratively.\n"
+resource "local_file" "manifest" {
+  filename = "${path.module}/build/manifest.txt"
+  content  = "service = service-manifest, environment = ${random_pet.env.id}\n"
 }
 # tofu plan previews. apply is idempotent.
 # Edit the file by hand → tofu detects drift.
@@ -165,11 +166,12 @@ resource "local_file" "greeting" {
 </div>
 
 <!--
-Say: Same job — write a greeting file — expressed both ways via magic-move. The
+Say: Same job — write the project's manifest file — expressed both ways via magic-move. The
 bash version is imperative: mkdir, echo with $RANDOM, cat. Run it twice and you get
 a different file; there's no plan, no idempotency, no memory. Morph to the HCL: a
 random_pet generates a stable identity once and stores it in state, and a local_file
-declares the file's desired content. Now tofu plan previews before acting, apply is
+declares the manifest's desired content. That local_file.manifest is the SPINE of
+the whole of Day 1 — every later stage still declares it, under that exact name. Now tofu plan previews before acting, apply is
 idempotent, and if someone hand-edits the file tofu detects the drift and puts it
 back. This is the HCL you build in Lab 01 — the lab's tracked `main.tf` is the source of truth (the slide is illustrative). (~5 min)
 Then: "So why do we type 'tofu' and not 'terraform'? Here's the fork."
