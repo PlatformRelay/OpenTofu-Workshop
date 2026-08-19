@@ -166,7 +166,12 @@ if have git && [ -e "$REPO_ROOT/.git" ]; then
       FORMAT_FILES+=("$tf_file")
     done <"$GIT_TF_LIST"
   else
-    FMT_SCAN_ERR="$(tr -d '\r' <"$GIT_TF_ERR" | head -n 3 | tr '\n' ' ')"
+    # `head` must be the SOURCE of this pipeline, not its sink: as a sink it
+    # closes the pipe early and can SIGPIPE the upstream `tr`, which under
+    # `set -o pipefail` fails the substitution and `set -e` kills the script —
+    # inside the branch whose entire job is to REPORT a failure. Multi-line
+    # stderr (safe.directory dubious-ownership is ~5 lines) is the trigger.
+    FMT_SCAN_ERR="$(head -n 3 "$GIT_TF_ERR" | tr -d '\r' | tr '\n' ' ')"
   fi
   rm -f "$GIT_TF_LIST" "$GIT_TF_ERR"
 else
