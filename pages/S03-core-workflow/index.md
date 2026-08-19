@@ -178,19 +178,19 @@ heading: 'config → plan → shell'
 ````md magic-move
 ```hcl
 # The config: desired state.
-resource "random_pet" "release" {
+resource "random_pet" "env" {
   length = 2
 }
 
 resource "local_file" "manifest" {
   filename = "build/manifest.txt"
-  content  = "release = ${random_pet.release.id}\n"
+  content  = "environment = ${random_pet.env.id}\n"
 }
 ```
 
 ```console
 # tofu plan: the diff, as a preview.
-  + random_pet.release
+  + random_pet.env
       + id     = (known after apply)
       + length = 2
 
@@ -203,8 +203,8 @@ Plan: 2 to add, 0 to change, 0 to destroy.
 
 ```console
 # tofu apply: converge, in dependency order.
-random_pet.release:  Creating...
-random_pet.release:  Creation complete [id=firm-jackal]
+random_pet.env:      Creating...
+random_pet.env:      Creation complete [id=firm-jackal]
 local_file.manifest: Creating...
 local_file.manifest: Creation complete
 
@@ -276,18 +276,18 @@ Then: "State also encodes order — through the dependency graph."
 
 <div class="kw-cols-2 mt-4">
   <KwCard heading="Built from references" kind="resource" variant="ok">
-    <code>manifest</code> reads <code>random_pet.release.id</code>; <code>summary</code>
+    <code>manifest</code> reads <code>random_pet.env.id</code>; <code>summary</code>
     reads <code>manifest.content</code>. Each reference is an <strong>edge</strong>.
   </KwCard>
   <KwCard heading="Ordered, both ways" variant="ok">
-    <strong>Create:</strong> <code>release → manifest → summary</code>.
+    <strong>Create:</strong> <code>env → manifest → summary</code>.
     <strong>Destroy:</strong> the exact <strong>reverse</strong> — dependents first.
   </KwCard>
 </div>
 
 <div v-click class="mt-6 space-y-2">
   <div class="flex items-center gap-3">
-    <KwChip variant="ok">release</KwChip><span>→</span>
+    <KwChip variant="ok">env</KwChip><span>→</span>
     <KwChip variant="ok">manifest</KwChip><span>→</span>
     <KwChip variant="ok">summary</KwChip>
     <span class="kw-muted text-sm">— create order (file order is irrelevant)</span>
@@ -305,7 +305,7 @@ exactly this in the lab.
 <!--
 Say: OpenTofu never asks you to declare order — it derives it from references.
 manifest reads the pet's id, summary reads the manifest's content; each reference is
-an edge in a graph. Click: create runs release, then manifest, then summary, and the
+an edge in a graph. Click: create runs env, then manifest, then summary, and the
 order the blocks appear in the file is irrelevant — only the edges matter. destroy
 runs the exact reverse, dependents before dependencies, so nothing is deleted out
 from under something that needs it. Final click: if two resources reference each

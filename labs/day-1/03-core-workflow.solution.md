@@ -51,30 +51,34 @@ terraform {
 
 provider "local" {}
 
-# A stable, generated release name. Created once and stored in state, so every
-# apply reuses it — the anchor the rest of the graph depends on.
-resource "random_pet" "release" {
+# AUXILIARY, carried under the same address as stages 1-2: random_pet.env.
+# Created once and stored in state, so every apply reuses it — the anchor the
+# rest of the graph depends on.
+resource "random_pet" "env" {
   length = 2
 }
 
-# Depends on random_pet.release: the reference below makes OpenTofu create the
-# pet FIRST, then this file. That edge is one arc of the dependency graph plan
-# orders for you.
+# SPINE — local_file.manifest, carried forward from stage 2. Depends on
+# random_pet.env: the reference below makes OpenTofu create the pet FIRST, then
+# this file. That edge is one arc of the dependency graph plan orders for you.
 resource "local_file" "manifest" {
   filename = "${path.module}/build/manifest.txt"
-  content  = "release = ${random_pet.release.id}\n"
+  content  = "environment = ${random_pet.env.id}\n"
 }
 
-# Depends on local_file.manifest: it reads the manifest's content back, so this
-# file can only be written AFTER the manifest exists. Two edges, one clear order.
+# AUXILIARY — a second graph node, and nothing more. It depends on
+# local_file.manifest: it reads the manifest's content back, so this file can
+# only be written AFTER the manifest exists. Two edges, one clear order. Its
+# teaching job ends with this stage; stage 4 retires it.
 resource "local_file" "summary" {
   filename = "${path.module}/build/summary.txt"
   content  = "Deployed ${trimspace(local_file.manifest.content)} via the core workflow.\n"
 }
 
-output "release_name" {
-  description = "The generated release name recorded in the manifest."
-  value       = random_pet.release.id
+# SPINE — output manifest_path, carried forward from stage 2.
+output "manifest_path" {
+  description = "Where the rendered manifest landed."
+  value       = local_file.manifest.filename
 }
 ```
 
@@ -88,16 +92,16 @@ and which last — and *why*?
 The references define the graph:
 
 ```text
-random_pet.release  →  local_file.manifest  →  local_file.summary
+random_pet.env  →  local_file.manifest  →  local_file.summary
 ```
 
-- `local_file.manifest` reads `random_pet.release.id`, so the **pet must exist
+- `local_file.manifest` reads `random_pet.env.id`, so the **pet must exist
   first**.
 - `local_file.summary` reads `local_file.manifest.content`, so the **manifest
   must exist before the summary**.
 
 OpenTofu builds this graph from the references — **not** from the order the
-blocks appear in the file. Create order is `release` → `manifest` → `summary`;
+blocks appear in the file. Create order is `env` → `manifest` → `summary`;
 `destroy` runs it in **reverse**. You never declare the order yourself; the graph
 does.
 
@@ -210,8 +214,8 @@ OpenTofu will perform the following actions:
       ...
     }
 
-  # random_pet.release will be created
-  + resource "random_pet" "release" {
+  # random_pet.env will be created
+  + resource "random_pet" "env" {
       + id        = (known after apply)
       + length    = 2
       + separator = "-"
@@ -220,14 +224,16 @@ OpenTofu will perform the following actions:
 Plan: 3 to add, 0 to change, 0 to destroy.
 
 Changes to Outputs:
-  + release_name = (known after apply)
+  + manifest_path = "./build/manifest.txt"
 ```
 
 - **`+ create`** — each resource is new. The plan legend at the top names every
   symbol it will use.
 - **`(known after apply)`** — a value OpenTofu can't compute yet because it comes
   from a resource that doesn't exist. The pet's `id`, and everything that
-  references it (`manifest.content`, `release_name`), resolve only *after* apply.
+  references it (`manifest.content`, the summary's content), resolve only *after*
+  apply. Contrast `manifest_path`: it reads the manifest's `filename`, which is a
+  literal in the config, so the plan can already print its value.
 - **`Plan: 3 to add, 0 to change, 0 to destroy.`** — the one-line summary: the
   `random_pet` plus the two `local_file`s. Reading this line first, then scanning
   the symbols, is how you review any plan. (The plan is a **preview** — nothing on
@@ -260,31 +266,31 @@ $ tofu apply -auto-approve
 Plan: 3 to add, 0 to change, 0 to destroy.
 
 Changes to Outputs:
-  + release_name = (known after apply)
-random_pet.release: Creating...
-random_pet.release: Creation complete after 0s [id=firm-jackal]
+  + manifest_path = "./build/manifest.txt"
+random_pet.env: Creating...
+random_pet.env: Creation complete after 0s [id=firm-jackal]
 local_file.manifest: Creating...
-local_file.manifest: Creation complete after 0s [id=48211727af90c929fe3283609f0142c7af9ec0d8]
+local_file.manifest: Creation complete after 0s [id=0ac42dc11a96850f22e26aee50136aaa6d4865f0]
 local_file.summary: Creating...
-local_file.summary: Creation complete after 0s [id=1df579aafb092d49365dbaf1ec01c25f54dbc5dd]
+local_file.summary: Creation complete after 0s [id=06ab671c8f091a7a4aad2da0229b777664762b6d]
 
 Apply complete! Resources: 3 added, 0 changed, 0 destroyed.
 
 Outputs:
 
-release_name = "firm-jackal"
+manifest_path = "./build/manifest.txt"
 
 $ cat build/manifest.txt build/summary.txt
-release = firm-jackal
-Deployed release = firm-jackal via the core workflow.
+environment = firm-jackal
+Deployed environment = firm-jackal via the core workflow.
 ```
 
-Creation order is **`random_pet.release` → `local_file.manifest` →
+Creation order is **`random_pet.env` → `local_file.manifest` →
 `local_file.summary`** — exactly the graph from Step 1. OpenTofu created the pet
 first because the manifest references it, then the manifest before the summary.
 The generated pet name (`firm-jackal` here — **yours will differ**) flowed through
-every reference: into the manifest, into the summary, and out through the
-`release_name` output.
+every reference: into the manifest, and from there into the summary. The
+`manifest_path` output surfaces where the manifest landed.
 
 </details>
 
@@ -307,9 +313,9 @@ tofu apply -auto-approve
 
 ```console
 $ tofu apply -auto-approve
-random_pet.release: Refreshing state... [id=firm-jackal]
-local_file.manifest: Refreshing state... [id=48211727af90c929fe3283609f0142c7af9ec0d8]
-local_file.summary: Refreshing state... [id=1df579aafb092d49365dbaf1ec01c25f54dbc5dd]
+random_pet.env: Refreshing state... [id=firm-jackal]
+local_file.manifest: Refreshing state... [id=0ac42dc11a96850f22e26aee50136aaa6d4865f0]
+local_file.summary: Refreshing state... [id=06ab671c8f091a7a4aad2da0229b777664762b6d]
 
 No changes. Your infrastructure matches the configuration.
 
@@ -492,27 +498,27 @@ OpenTofu will perform the following actions:
   - resource "local_file" "summary" {
       ...
     }
-  # random_pet.release will be destroyed
-  - resource "random_pet" "release" {
+  # random_pet.env will be destroyed
+  - resource "random_pet" "env" {
       - id        = "firm-jackal" -> null
       ...
     }
 
 Plan: 0 to add, 0 to change, 3 to destroy.
 ...
-local_file.summary: Destroying... [id=1df579aafb092d49365dbaf1ec01c25f54dbc5dd]
+local_file.summary: Destroying... [id=06ab671c8f091a7a4aad2da0229b777664762b6d]
 local_file.summary: Destruction complete after 0s
-local_file.manifest: Destroying... [id=48211727af90c929fe3283609f0142c7af9ec0d8]
+local_file.manifest: Destroying... [id=0ac42dc11a96850f22e26aee50136aaa6d4865f0]
 local_file.manifest: Destruction complete after 0s
-random_pet.release: Destroying... [id=firm-jackal]
-random_pet.release: Destruction complete after 0s
+random_pet.env: Destroying... [id=firm-jackal]
+random_pet.env: Destruction complete after 0s
 
 Destroy complete! Resources: 3 destroyed.
 ```
 
 - **`- destroy`** — each resource is being removed (attributes shown going
   `-> null`).
-- Destruction order is **`summary` → `manifest` → `release`** — the **reverse** of
+- Destruction order is **`summary` → `manifest` → `env`** — the **reverse** of
   create order. OpenTofu tears down dependents before their dependencies, so it
   never deletes something another resource still needs. The graph orders both
   directions for you. (If you removed `broken.tf` before this step, the plan is
@@ -524,12 +530,12 @@ Destroy complete! Resources: 3 destroyed.
 
 ```console
 $ tofu destroy -auto-approve
-local_file.summary: Destroying... [id=1df579aafb092d49365dbaf1ec01c25f54dbc5dd]
+local_file.summary: Destroying... [id=06ab671c8f091a7a4aad2da0229b777664762b6d]
 local_file.summary: Destruction complete after 0s
-local_file.manifest: Destroying... [id=48211727af90c929fe3283609f0142c7af9ec0d8]
+local_file.manifest: Destroying... [id=0ac42dc11a96850f22e26aee50136aaa6d4865f0]
 local_file.manifest: Destruction complete after 0s
-random_pet.release: Destroying... [id=firm-jackal]
-random_pet.release: Destruction complete after 0s
+random_pet.env: Destroying... [id=firm-jackal]
+random_pet.env: Destruction complete after 0s
 
 Destroy complete! Resources: 3 destroyed.
 ```
@@ -591,12 +597,12 @@ git status --short .      # expect: no output
 
 ```console
 $ tofu destroy -auto-approve
-local_file.summary: Destroying... [id=1df579aafb092d49365dbaf1ec01c25f54dbc5dd]
+local_file.summary: Destroying... [id=06ab671c8f091a7a4aad2da0229b777664762b6d]
 local_file.summary: Destruction complete after 0s
-local_file.manifest: Destroying... [id=48211727af90c929fe3283609f0142c7af9ec0d8]
+local_file.manifest: Destroying... [id=0ac42dc11a96850f22e26aee50136aaa6d4865f0]
 local_file.manifest: Destruction complete after 0s
-random_pet.release: Destroying... [id=firm-jackal]
-random_pet.release: Destruction complete after 0s
+random_pet.env: Destroying... [id=firm-jackal]
+random_pet.env: Destruction complete after 0s
 
 Destroy complete! Resources: 3 destroyed.
 ```
