@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 export const sectionTimings = {
-  S00: [40, 20], S01: [40, 20], S02: [50, 20], S03: [60, 20], S04: [50, 20],
+  S00: [40, 20], S01: [50, 20], S02: [50, 20], S03: [60, 20], S04: [50, 20],
   S05: [60, 25], S06: [50, 25], S15: [50, 30], S07: [60, 35], S08: [65, 30],
   S09: [50, 30], S10: [45, 25], S11: [35, 20],
   S12: [20, 20], S13: [30, 30], S14: [35, 35], S16: [35, 35], S17: [30, 30],
@@ -19,8 +19,8 @@ const sectionDefinitions = [
   },
   {
     id: 'S01', slug: 'iac', title: 'Infrastructure as Code', tier: 'core', day: 1, canonical: true,
-    status: 'authored', fitAction: 'compress', compressedSlides: 20,
-    fitPlan: 'COMPRESS S01 40→20 (-20); fork timeline pre-read, retain why IaC + governance.',
+    status: 'authored', fitAction: 'compress', compressedSlides: 30,
+    fitPlan: 'COMPRESS S01 50→30 (-20); fork timeline pre-read, retain why IaC + design principles + alternatives + governance.',
   },
   {
     id: 'S02', slug: 'hcl-basics', title: 'HCL & building blocks', tier: 'core', day: 1, canonical: true,

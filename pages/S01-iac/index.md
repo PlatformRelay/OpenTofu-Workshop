@@ -92,6 +92,53 @@ but it's not idempotent, so re-running can double-create or die halfway. Declara
 IaC: you describe the desired STATE, the tool computes the diff and converges —
 idempotent, previewable, drift-aware. Stress that each step fixed a real pain of the
 one before it. (~3 min)
+Then: "And that last step changed more than the tooling — it changed who touches infrastructure."
+-->
+
+---
+
+<span class="kw-kicker">Where IaC sits</span>
+
+# Infrastructure joins the DevOps loop
+
+<div class="kw-cols-3 mt-6">
+  <KwCard heading="Same artefact" variant="ok">
+    Infrastructure becomes a <strong>file in a repo</strong> — branched, diffed,
+    and reviewed in a pull request like any other change.
+  </KwCard>
+  <div v-click>
+  <KwCard heading="Same pipeline" variant="ok">
+    <code>plan</code> on the pull request, <code>apply</code> on merge. The
+    <strong>DevOps</strong> build → review → deploy loop, with infrastructure as
+    the artefact.
+  </KwCard>
+  </div>
+  <div v-click>
+  <KwCard heading="Same feedback" variant="ok">
+    Drift detection is monitoring for configuration: intent is compared to
+    reality on <em>every</em> run, not at a quarterly audit.
+  </KwCard>
+  </div>
+</div>
+
+<div v-click class="mt-6 kw-muted text-sm">
+
+The payoff is organisational, not just technical: infrastructure stops being a
+**ticket queue** and becomes a **reviewable change** anyone on the team can
+propose. Everything after this slide is the mechanics of making that safe.
+
+</div>
+
+<!--
+Say: Place IaC in its DevOps context, revealed click by click. Same artefact —
+infrastructure becomes a file in the repo, so it branches, diffs, and gets reviewed
+in a PR like application code. Same pipeline — plan runs on the pull request, apply
+runs on merge; that is the build-review-deploy loop with infrastructure as the
+artefact. Same feedback — drift detection is monitoring for configuration: intent is
+compared to reality on every run, not at an audit. Final reveal: the payoff is
+organisational as much as technical — infrastructure stops being a ticket queue and
+becomes a change anyone can propose. Everything after this slide is the mechanics of
+making that safe. (~3 min)
 Then: "Let's pin down that word — declarative vs imperative — with real code."
 -->
 
@@ -174,6 +221,74 @@ declares the manifest's desired content. That local_file.manifest is the SPINE o
 the whole of Day 1 — every later stage still declares it, under that exact name. Now tofu plan previews before acting, apply is
 idempotent, and if someone hand-edits the file tofu detects the drift and puts it
 back. This is the HCL you build in Lab 01 — the lab's tracked `main.tf` is the source of truth (the slide is illustrative). (~5 min)
+Then: "None of that behaviour is accidental — it falls out of six design principles."
+-->
+
+---
+
+<span class="kw-kicker">Why it behaves that way</span>
+
+# The six design principles
+
+<div class="kw-cols-3 mt-4">
+  <KwCard heading="1 · Declarative config">
+    Configuration files describe the <strong>end state</strong>. You never write
+    the ordered steps — the tool derives them.
+  </KwCard>
+  <KwCard heading="2 · Execution plan">
+    Every run first describes what it <em>would</em> create, update, or destroy,
+    and waits for your approval.
+  </KwCard>
+  <KwCard heading="3 · Resource graph">
+    Dependencies are inferred into a graph; non-dependent resources are created
+    and modified <strong>in parallel</strong>.
+  </KwCard>
+</div>
+
+<div class="kw-cols-3 mt-3">
+  <KwCard heading="4 · State">
+    A state file records what is managed — the memory that makes drift
+    detectable and a second apply a no-op.
+  </KwCard>
+  <KwCard heading="5 · Immutability">
+    Where a change cannot be made in place, the resource is
+    <strong>replaced</strong> rather than patched into an unknown shape.
+  </KwCard>
+  <KwCard heading="6 · Modules">
+    Reusable configuration components, so a pattern is written once and consumed
+    with arguments.
+  </KwCard>
+</div>
+
+<div v-click class="mt-5 kw-muted text-sm">
+
+OpenTofu inherits **all six** from Terraform — the fork changed the licence and
+the governance, not the model. Day 1 walks them in roughly this order: 1 and 2
+today, 3 at the core workflow, 4 and 5 at state, 6 at modules.
+
+</div>
+
+<!--
+Say: Name the principles behind everything the previous slide just demonstrated.
+One, declarative configuration — files describe the end state, not the steps. Two,
+execution plans — every run previews what it would create, update, or destroy and
+waits for approval. Three, the resource graph — dependencies are inferred and
+non-dependent resources are handled in parallel, which is why applies are not
+serial. Four, state — the recorded memory of what is managed, which is exactly what
+makes drift detectable and a re-apply a no-op. Five, immutability — where a change
+cannot be made in place the resource is replaced rather than patched into an unknown
+shape. Six, modules — reusable components, so a pattern is written once. Then the
+reveal: OpenTofu inherits all six from Terraform, and Day 1 walks them in this
+order, so treat this slide as the map of the day.
+Sources, verified at authoring time — cite if challenged. OpenTofu's own overview,
+https://opentofu.org/docs/intro/ : declarative configuration files describing
+end-state infrastructure; "OpenTofu creates an execution plan"; "resource graph to
+determine resource dependencies and creates or modifies non-dependent resources in
+parallel"; the state file "acts as a source of truth for your environment"; an
+"immutable approach to infrastructure"; "reusable configuration components called
+modules". The same six are stated for Terraform at
+https://developer.hashicorp.com/terraform/intro , which is what makes "inherited,
+not invented" a fair claim rather than an assumption. (~3 min)
 Then: "So why do we type 'tofu' and not 'terraform'? Here's the fork."
 -->
 
@@ -248,6 +363,78 @@ is visible, but the additional-use-grant forbids using it to compete with the
 licensor until each release hits its change date, and it's controlled by a single
 vendor. For a team that wants genuinely open, community-governed tooling, OpenTofu
 is the answer — and it's compatible, so adopting it is low-friction. (~3 min)
+Then: "One honest caveat before the lab — OpenTofu is not the only tool in this space."
+-->
+
+---
+
+<span class="kw-kicker">The honest caveat</span>
+
+# Three practical alternatives — and when each fits
+
+<div class="kw-cols-3 mt-4">
+  <KwCard heading="Pulumi">
+    <strong>IaC in a general-purpose language.</strong> Its docs list TypeScript,
+    Python, Go, .NET, Java and YAML.
+    <br><br>
+    <em>Fits when</em> the team already thinks in one of those languages and the
+    config needs real control flow. <em>Costs</em> you reviewers who can read
+    that language — and a config that can do anything a program can.
+  </KwCard>
+  <KwCard heading="Crossplane">
+    <strong>A control-plane framework.</strong> It extends Kubernetes with custom
+    resources that reconcile infrastructure living outside the cluster.
+    <br><br>
+    <em>Fits when</em> you are building a self-service platform and already run
+    Kubernetes as your control plane. <em>Costs</em> you that cluster, plus the
+    expertise to operate it.
+  </KwCard>
+  <KwCard heading="Ansible">
+    <strong>Agentless automation.</strong> Configuration management and
+    deployment; a playbook changes nothing once the system already matches it.
+    <br><br>
+    <em>Fits</em> <strong>alongside</strong> OpenTofu rather than instead of it:
+    provision the machine here, configure what runs <em>inside</em> it there.
+  </KwCard>
+</div>
+
+<div v-click class="mt-5 kw-muted text-sm">
+
+Also in the room: **provider-native** tools — AWS **CloudFormation** and the
+**CDK**s, Azure Bicep. AWS scopes CloudFormation to *your AWS resources*, and
+that is the whole trade: the deepest single-cloud integration, none of the
+cross-provider reach. We teach OpenTofu because this workshop wants **one**
+declarative model that spans providers.
+
+</div>
+
+<!--
+Say: Be straight with the room — OpenTofu is a choice, not the only option. Pulumi
+does IaC in a general-purpose programming language; it fits a team that already
+thinks in TypeScript or Python and needs real control flow, and the price is that
+the config can now do anything a program can, so reviewers must read that language.
+Crossplane is a control-plane framework that extends Kubernetes with custom
+resources reconciling infrastructure outside the cluster; it fits platform teams
+building self-service on a cluster they already run, and the price is that cluster
+and the expertise to operate it. Ansible is agentless configuration management — a
+playbook changes nothing once the system already matches it — and it sits ALONGSIDE
+OpenTofu: provision the box here, configure what runs inside it there. Click for the
+provider-native family — CloudFormation, the CDKs, Bicep: deepest single-cloud
+integration, no cross-provider reach.
+Honesty note for the facilitator. The "what it is" sentence on each card is that
+project's own self-description: Pulumi https://www.pulumi.com/docs/iac/concepts/
+("modern infrastructure as code platform … leverages existing programming
+languages"); Crossplane https://docs.crossplane.io/latest/whats-crossplane/ ("a
+control plane framework for platform engineering" that "extends Kubernetes");
+Ansible https://docs.ansible.com/ansible/latest/getting_started/introduction.html
+(agentless; "when the system is in the state your playbook describes, Ansible does
+not change anything, even if the playbook runs multiple times"); AWS
+https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/Welcome.html ("model
+and set up your AWS resources"). The "fits when / costs you" lines are this
+workshop's judgement, not a vendor claim — say so if someone pushes back. There are
+deliberately no version numbers, licence names, or foundation-status claims on this
+slide: those age badly and none is needed to make the point. If the room wants
+managed platforms compared, that is S11's landscape, not this beat. (~4 min)
 Then: "Now go do it yourself — Lab 01."
 -->
 
@@ -288,8 +475,10 @@ next: 'Next: HCL & building blocks'
 - Doing infra by hand fails three ways: **not repeatable**, **no preview**, **no drift detection**.
 - The evolution: **click-ops → scripts → declarative IaC**, each fixing the last one's pain.
 - **Imperative** says *how*; **declarative** says *what* — and the tool previews, repeats, and repairs.
+- Six **design principles**: declarative config, execution plan, resource graph, state, immutability, modules.
 - The **fork**: BUSL relicense (2023-08-10) → OpenTofu fork (2023-08-25) → 1.6 GA (2024-01-10).
 - **MPL 2.0** (open, Linux Foundation) vs **BUSL 1.1** (source-available, single vendor) — why we run `tofu`.
+- **Alternatives are real**: Pulumi, Crossplane and Ansible each fit a different job — know which one you have.
 
 <!--
 Say: Pull the five threads together. Doing infra by hand fails three ways — not
@@ -298,6 +487,9 @@ to declarative IaC, each step fixing the prior pain. The core distinction:
 imperative says how, declarative says what, and the tool previews, repeats, and
 repairs. The fork timeline: BUSL relicense, community fork, 1.6 GA. And the licence
 difference — MPL 2.0 open and Linux-Foundation-governed versus BUSL 1.1
-source-available and single-vendor — is why we teach the tofu CLI. (~2 min)
+source-available and single-vendor — is why we teach the tofu CLI. Then the two
+orientation threads: the six design principles that explain the behaviour, and the
+alternatives — Pulumi, Crossplane, Ansible — so nobody leaves the room thinking
+OpenTofu is the only option. (~2 min)
 Then: transition into S02 — HCL & building blocks.
 -->

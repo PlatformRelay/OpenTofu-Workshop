@@ -128,49 +128,52 @@ Slides **and** labs for the canonical three-day cut, computed from
 planning estimates** derived from section frontmatter, never rehearsal timings,
 and the facilitator budget is 390 min/day:
 
-- **Day 1 slides+labs: 770 min (planned)** — 525 slides + 245 labs, **+380 over** budget.
+- **Day 1 slides+labs: 780 min (planned)** — 535 slides + 245 labs, **+390 over** budget.
 - **Day 2 slides+labs: 360 min (planned)** — 180 slides + 180 labs, 30 under budget.
 - **Day 3 slides+labs: 400 min (planned)** — 200 slides + 200 labs, **+10 over** budget.
 
 Two of the three days do not fit: plan the overflow rather than discovering it
 mid-morning. The [fit plan](#day-1-fit-plan) below brings Day-1 **slide** time
-down to 390 — a separate, slides-only deck-runtime figure. The 245 minutes of
+down to 400 — a separate, slides-only deck-runtime figure. The 245 minutes of
 Day-1 lab time sit on top of it and the fit plan does not touch them.
 
 ### Day 1 fit plan
 
-This plan compresses **slide time only**. It starts at **655 minutes** of slide
+This plan compresses **slide time only**. It starts at **665 minutes** of slide
 time across all thirteen Day-1 sections (`dayOneSupersetSlidesTotal()`) and ends
-at **390** (`dayOneFitTotal()`). Day-1 lab time — 245 minutes — is untouched, so
-a fit-plan delivery still runs **635 minutes** of slides+labs against a 390
+at **400** (`dayOneFitTotal()`). Day-1 lab time — 245 minutes — is untouched, so
+a fit-plan delivery still runs **645 minutes** of slides+labs against a 390
 budget: the plan makes the *deck* fit the day, not the *day* fit the budget.
 Apply the rows in order. The first three remove optional/recommended material;
 the remaining rows shorten core delivery while preserving each section's outcome.
-The arithmetic is explicit: **655 → 620 → 575 → 525**, then
-**525 → 510 → 490 → 475 → 460 → 445 → 430 → 415 → 400 → 390**.
+The arithmetic is explicit: **665 → 630 → 585 → 535**, then
+**535 → 520 → 500 → 485 → 470 → 455 → 440 → 425 → 410 → 400**.
 
 | Order | Action | Minutes | Running total | Pedagogical cost |
 | ---: | --- | ---: | ---: | --- |
-| 1 | Skip S11 (optional); its `hide: true` toggle is already set | −35 | 620 | Defer the TACO vendor-selection landscape |
-| 2 | Skip S10 (recommended) at its `DAY1-FIT` marker; keep `hide: false` | −45 | 575 | Defer the differentiator survey; S05 still demonstrates encryption |
-| 3 | Skip S09 (recommended) at its `DAY1-FIT` marker; keep `hide: false` | −50 | 525 | Defer the `count` vs `for_each` lesson and `moved`-based refactoring to follow-up study |
-| 4 | Compress S00 from 40→25 at its marker | −15 | 510 | Move installation checks before class; retain orientation and first apply |
-| 5 | Compress S01 from 40→20 at its marker | −20 | 490 | Make the detailed fork timeline pre-reading; retain why IaC and governance |
-| 6 | Compress S02 from 50→35 at its marker | −15 | 475 | Demo fewer block variants; retain syntax, references, and the break→fix |
-| 7 | Compress S03 from 60→45 at its marker | −15 | 460 | Use one lifecycle run; retain plan reading and destroy |
-| 8 | Compress S06 from 50→35 at its marker | −15 | 445 | Teach typed objects and validation; assign precedence variants as follow-up |
-| 9 | Compress S15 from 50→35 at its marker | −15 | 430 | Teach one blocking condition plus `check`; assign the full assertion matrix |
-| 10 | Compress S04 from 50→35 at its marker | −15 | 415 | Demonstrate state inspection live; assign backend migration as follow-up |
-| 11 | Compress S05 from 60→45 at its marker | −15 | 400 | Demonstrate encryption; assign key rotation as follow-up |
-| 12 | Compress S07 from 60→50 at its marker | −10 | **390** | Keep local module composition; demo registry/OCI lookup instead of running it |
+| 1 | Skip S11 (optional); its `hide: true` toggle is already set | −35 | 630 | Defer the TACO vendor-selection landscape |
+| 2 | Skip S10 (recommended) at its `DAY1-FIT` marker; keep `hide: false` | −45 | 585 | Defer the differentiator survey; S05 still demonstrates encryption |
+| 3 | Skip S09 (recommended) at its `DAY1-FIT` marker; keep `hide: false` | −50 | 535 | Defer the `count` vs `for_each` lesson and `moved`-based refactoring to follow-up study |
+| 4 | Compress S00 from 40→25 at its marker | −15 | 520 | Move installation checks before class; retain orientation and first apply |
+| 5 | Compress S01 from 50→30 at its marker | −20 | 500 | Make the detailed fork timeline pre-reading; retain why IaC, the design principles, the alternatives, and governance |
+| 6 | Compress S02 from 50→35 at its marker | −15 | 485 | Demo fewer block variants; retain syntax, references, and the break→fix |
+| 7 | Compress S03 from 60→45 at its marker | −15 | 470 | Use one lifecycle run; retain plan reading and destroy |
+| 8 | Compress S06 from 50→35 at its marker | −15 | 455 | Teach typed objects and validation; assign precedence variants as follow-up |
+| 9 | Compress S15 from 50→35 at its marker | −15 | 440 | Teach one blocking condition plus `check`; assign the full assertion matrix |
+| 10 | Compress S04 from 50→35 at its marker | −15 | 425 | Demonstrate state inspection live; assign backend migration as follow-up |
+| 11 | Compress S05 from 60→45 at its marker | −15 | 410 | Demonstrate encryption; assign key rotation as follow-up |
+| 12 | Compress S07 from 60→50 at its marker | −10 | **400** | Keep local module composition; demo registry/OCI lookup instead of running it |
 
 `hide: true` remains reserved for optional sections, so S09/S10 and every core
 section stay `hide: false`. Their comments in
 [the three-day deck](slides-3day.md) are delivery markers, not tier changes.
 
 The Day-1 resequencing (S06 and S15 moved ahead of S04 and S05) changed no
-section's length, so the 770 planning total and every row above are unchanged by
-the reorder — only the order of rows 4–12 moved.
+section's length, so it left the Day-1 planning total and every row above
+untouched — only the order of rows 4–12 moved. The total moved later, and for a
+different reason: S01 grew from 40 to 50 minutes when the design-principles and
+alternatives beats were added, taking the planning total to 780 and the fit-plan
+target to 400.
 
 Skipping S09 and S10 carries a known, accepted cost: a learner on the canonical
 cut **never sees `for_each` taught** — neither S09's `count` vs `for_each`

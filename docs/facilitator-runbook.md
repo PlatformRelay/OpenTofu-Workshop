@@ -115,20 +115,20 @@ the
 
 | Day | Slides | Labs | Slides+labs (planned) | Against the 390 budget |
 | --- | ---: | ---: | ---: | --- |
-| 1 | 525 | 245 | **770** | **+380 over** |
+| 1 | 535 | 245 | **780** | **+390 over** |
 | 2 | 180 | 180 | 360 | 30 under |
 | 3 | 200 | 200 | **400** | **+10 over** |
 
 **Day 1 and Day 3 do not fit.** Say so when you plan the delivery: the honest
-statement is "Day 1 is 380 over a one-day budget", not "Day 1 fits once you apply
+statement is "Day 1 is 390 over a one-day budget", not "Day 1 fits once you apply
 the fit plan". These are **unrehearsed planning estimates** from section
 frontmatter and lab headers — no rehearsal has timed them, so treat them as a
 budget, not a stopwatch.
 
-The README fit plan's **390 is a different figure**: it is Day-1 **slide**
-runtime only (`dayOneFitTotal()`), compressed from 655. Day-1 lab time (245) is
-untouched by it, so a fit-plan Day 1 still runs **635** of slides+labs. Use 390
-to check the deck against the day; use 770 to plan the day itself.
+The README fit plan's **400 is a different figure**: it is Day-1 **slide**
+runtime only (`dayOneFitTotal()`), compressed from 665. Day-1 lab time (245) is
+untouched by it, so a fit-plan Day 1 still runs **645** of slides+labs. Use 400
+to check the deck against the day; use 780 to plan the day itself.
 
 ### Day 1 (author → guard → package)
 
@@ -140,15 +140,18 @@ to check the deck against the day; use 770 to plan the day itself.
 | --- | --- | --- |
 | 1 | Skip **S11** (optional; already `hide: true`) | README fit plan row 1 (−35) |
 | 2 | Skip **S10**, then **S09** at their `DAY1-FIT` markers | README rows 2–3 (−45, −50) |
-| 3 | Compress S00–S03, S06, S15, S04, S05, S07 at markers until slide time is ≤390 | README rows 4–12 |
+| 3 | Compress S00–S03, S06, S15, S04, S05, S07 at markers until slide time is ≤400 | README rows 4–12 |
 | Keep | **S08** at 65 min — flagship synthesis | `slides-3day.md` marker |
 
 Cut optional → recommended → compress core. Never drop S08 or S15's blocking
 `precondition` + `check` beat when compressing.
 
 **The Day-1 resequencing was timing-neutral.** Moving S06 and S15 ahead of S04
-and S05 changed no section's length, so the 770 planning total and every fit-plan
-row are exactly what they were before the reorder — only the order changed.
+and S05 changed no section's length, so it left the planning total and every
+fit-plan row exactly as they were before the reorder — only the order changed.
+What did move the total was S01 growing 40→50 minutes to carry the
+design-principles and alternatives beats: Day 1 is now **780** planned, and the
+fit-plan slide target is **400**.
 
 **Accepted cost of the canonical cut: `for_each` is never taught.** S09 and S10
 are both skipped, which removes S09's `count` vs `for_each` lesson (and
@@ -245,7 +248,7 @@ share of the day. **3-day cut** = compress / skip from the fit plan or `hide:` i
 | ID | Topic | Tier | Full (fit plan) | Lab | 3-day cut | Checkpoint (ask before moving on) | Watch-outs |
 | --- | --- | --- | ---: | ---: | --- | --- | --- |
 | S00 | Welcome & setup | core | 40 → **25** | 20 | Compress | Can everyone `tofu apply` local + reach LocalStack health? | First LocalStack boot; Docker not running |
-| S01 | Infrastructure as Code | core | 40 → **20** | 20 | Compress | Declarative vs imperative — what does the plan give you that a script doesn’t? | Fork timeline is pre-reading when compressed |
+| S01 | Infrastructure as Code | core | 50 → **30** | 20 | Compress | Declarative vs imperative — what does the plan give you that a script doesn’t? | Fork timeline is pre-reading when compressed; keep the six design principles and the alternatives beat |
 | S02 | HCL & building blocks | core | 50 → **35** | 20 | Compress | Name the six block types; which one alone mutates the world? | Reference wiring; `.tofu` vs `.tf` aside |
 | S03 | Core workflow | core | 60 → **45** | 20 | Compress | Read a plan line: `+` / `~` / `-` and “known after apply”? | One lifecycle run when compressed |
 | S06 | Variables & types | core | 50 → **35** | 25 | Compress | Break a validation on purpose — which phase fails? | Precedence variants follow-up when compressed |
