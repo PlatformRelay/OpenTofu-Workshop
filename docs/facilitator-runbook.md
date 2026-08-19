@@ -26,6 +26,64 @@ See [AGENT.md](../AGENT.md) · facilitator launcher.
 
 ---
 
+## The evolving project: `service-manifest`
+
+Every hands-on stage grows **one** project — `service-manifest` — so a learner
+who asks "why are we doing this?" can be answered with "you are extending what
+you built last session". The name is the child module in the tree at
+`labs/day-1/07-modules/modules/service-manifest/`; `svc-manifest` is informal
+shorthand for the same thing. Full rationale: [syllabus](syllabus.md).
+
+Stage numbers below are the **target** teaching sequence. Section IDs never
+change, and the live delivery order is still the cut-order below — the two
+converge when the Day-1 resequencing lands. Use this table to answer, at the top
+of any section, *what the learner is carrying in*.
+
+**Where each concept is introduced:** `resource` → stage 0 · `variable` →
+stage 4 · `output` → stage 1 · `plan` → stage 0 (read line by line at stage 3) ·
+`apply` → stage 0 (full lifecycle at stage 3) · state → stage 6 · modules →
+stage 8 · testing → stage 10 · CI → stage 14.
+
+| Stage | Section | Workdir | Introduces |
+| --- | --- | --- | --- |
+| 0 | S00 · Welcome & setup | `labs/day-1/00-setup/` | **`resource`**, `init`, the first **`plan`** and **`apply`** |
+| 0b | S00 · stretch | `labs/day-1/00-setup/` | the first cloud-shaped resource (S3 on LocalStack) |
+| 1 | S01 · Infrastructure as Code | `labs/day-1/01-iac-fork/` | declarative vs imperative; **`output`** |
+| 2 | S02 · HCL & building blocks | `labs/day-1/02-hcl-blocks/` | block taxonomy, `locals`, `data`, references |
+| 3 | S03 · The core workflow | `labs/day-1/03-core-workflow/` | the four-command loop — **plan diffs**, the graph, `destroy` |
+| 4 | S06 · Variables, validation & types | `labs/day-1/06-variables/` | **`variable`** — typed, validated, sensitive |
+| 5 | S15 · Validation, preconditions & checks | `labs/day-1/15-conditions-checks/` | `precondition`, `postcondition`, `check` |
+| 6 | S04 · State | `labs/day-1/04-state/` | **state**, drift, backends |
+| 7 | S05 · State encryption | `labs/day-1/05-state-encryption/` | encrypted state and encrypted plan |
+| 8 | S07 · Modules | `labs/day-1/07-modules/` | **`module`** — `./modules/service-manifest` consumed twice |
+| 9 | S08 · Naming & labelling | `examples/naming-labels-demo/` | one naming + labelling taxonomy |
+| 10 | S12, S13 | `labs/day-2/12-testing-pyramid/`, `13-static-analysis/` | **testing** — the pyramid, `fmt`, TFLint, pre-commit |
+| 11 | S14 · Security & policy scanners | `labs/day-2/14-security-scanners/` | policy + security scanning (planted insecure fixture — deliberately *not* the learner's project) |
+| 12 | S16, S17 | `labs/day-2/16-tofu-test/`, `17-mocking/` | native `tofu test`, `mock_provider` |
+| 13 | S18 · Integration, e2e & cost | `labs/day-2/18-terratest-cost/` | integration + cost (optional tier) |
+| 14 | S19 · Testing in CI/CD | `labs/day-2/19-testing-cicd/` | **CI** — the whole ladder as pipeline jobs |
+| 15 | S20–S26 | `labs/day-3/**`, `examples/capstone/` | stacks → codegen → ordering → filtering → capstone |
+
+**What carries forward.** Labs do not share one mutating directory — each runs
+standalone from its own tracked workdir (`task lab:validate DIR=…`), and the
+drift gate byte-compares a slide block against a **whole** file, so there is no
+snapshot for a mutating directory to cite. Continuity is carried by addresses:
+
+- **Project spine — never renamed, never silently dropped:**
+  `local_file.manifest`, `variable "service"`, `variable "environment"`,
+  `output "manifest_path"`.
+- **Auxiliary demo resources** (e.g. `local_file.summary`) may retire, but the
+  lab preamble says so. If a learner asks where something went, the preamble has
+  the answer — if it does not, that is a defect worth filing.
+
+**Do not tell the room "each lab is the last one plus more".** It is not true of
+the tree: five transitions drop material (3→4, 4→5, 5→6, 6→7, 7→8), and S04/S05
+teach deliberately against a small config. Say instead: the spine carries
+forward, and anything retired is named. Details in the
+[syllabus](syllabus.md).
+
+---
+
 ## Live cut-order
 
 Budget is **6.5 h/day** (~50/50 explain-then-run). Full section minutes for Day 1
