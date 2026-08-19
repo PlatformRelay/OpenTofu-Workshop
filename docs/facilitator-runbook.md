@@ -177,8 +177,10 @@ Canonical visible order: `S12 → S13 → S14 → S16 → S17 → S19`.
 #### The tooling ladder — reached by cross-reference, not by promotion
 
 Four tools sit off the canonical Day-2 path: `terraform-docs` and Gitleaks in
-[S28 · Ecosystem tooling](../pages/S28-ecosystem-tooling/index.md) (optional,
-Day 3), Infracost in S18 (optional, Day 2). Rather than promote either section,
+[S28 · Ecosystem tooling](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/pages/S28-ecosystem-tooling/index.md)
+(optional, Day 3), Infracost in
+[S18 · Integration, e2e & cost](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/pages/S18-integration-cost/index.md)
+(optional, Day 2). Rather than promote either section,
 the canonical sections point at them, so the ladder reads as one progression at
 no cost to the day:
 
