@@ -25,6 +25,34 @@ verified. The config lives in this repo at `labs/day-1/06-variables/`:
 - `terraform.tfvars` — auto-loaded values (`environment = "staging"`, the
   `service` object). The `.tfvars` tier of the precedence stack.
 
+### Continuity — stage 4 of the `service-manifest` project
+
+**Carried forward from stage 3** (`labs/day-1/03-core-workflow/`): the spine
+`local_file.manifest` and `output "manifest_path"`.
+
+**The spine is complete here.** `variable "service"` and `variable "environment"`
+are the project's own inputs, and they are the last two of the four spine
+addresses. From this stage on, every Day-1 stage declares all four:
+`variable "service"`, `variable "environment"`, `local_file.manifest`,
+`output "manifest_path"` (see [`docs/syllabus.md`](../../docs/syllabus.md) ·
+*The evolving project*). Stage 2's `variable "owner"` was never one of them — it
+was a demonstration of the block type and retired at stage 3.
+
+**Deliberately retired here — two auxiliary blocks from stage 3, whose teaching
+job is done:**
+
+- `random_pet.env` — from stage 1 it stood in for values the config could not yet
+  ask for. This stage's whole beat is that **every field of the manifest now comes
+  from a typed variable**, so no generated identity is needed here. It comes back
+  at stage 5 (`labs/day-1/15-conditions-checks/`), where a postcondition needs a
+  value that is *unknown at plan time* — something no variable can be.
+- `local_file.summary` — it existed only to give S03's dependency-graph beat a
+  second node. The graph is taught; the extra file is noise here.
+
+**Introduced here, and auxiliary:** `variable "api_token"` (it feeds stage 6's
+plaintext-in-state beat), `random_password.session`, and the two extra outputs
+`effective_environment` and `api_token`.
+
 ## Prerequisites
 
 - `tofu` ≥ 1.9 (`task setup` installs it). Cross-variable validation needs 1.9+.
