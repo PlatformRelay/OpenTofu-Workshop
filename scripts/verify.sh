@@ -151,6 +151,15 @@ done
 # the repo — labs/day-2/13-static-analysis/messy, whose `default = "payments"`
 # for a list(string) even fails `init` — is Day-2 and has no *.tftest.hcl, so it
 # stays out of this loop exactly as before.
+#
+# ASYMMETRY WITH §2, ON PURPOSE: the fmt scan is scoped to the git INDEX so a
+# sibling worktree or untracked file cannot red a clean tree. This scan is a
+# filesystem sweep, because `tofu validate` reads whatever .tf sits in the
+# directory — index-scoping the DISCOVERY would change nothing, tofu would still
+# read the scratch file. So a learner mid-lab with the gitignored break→fix
+# `broken.tf` in place WILL red this gate locally; the failure branch below says
+# so by name. Accepted rather than excluded: a directory holding an ignored file
+# is not a reason to stop validating it. CI checkouts have no ignored scratch.
 declare -A LAB_DIR_SEEN=()
 shopt -s globstar
 for base in labs/day-1 labs/day-3; do
@@ -307,6 +316,28 @@ else
       else
         fail "$d: validate"
         tofu -chdir="$d" validate -no-color 2>&1 | sed 's/^/    /' || true
+        # A learner part-way through a lab may have SCRATCH .tf in the workdir —
+        # every day-1 lab .gitignore lists the break→fix `broken.tf`, which is
+        # deliberately invalid (lab 03's is a dependency cycle). §2's fmt scan is
+        # scoped to the git index and never sees such files; `tofu validate`
+        # reads every .tf in the directory and reds on them. Name them, so the
+        # failure explains itself instead of reading as repo rot. Deliberately
+        # NOT an exclusion: skipping a directory because it holds an ignored file
+        # would reopen the exact hole this check closes (US-C-GATE). CI checkouts
+        # carry no ignored scratch, so this only ever fires locally.
+        if have git && [ -e "$REPO_ROOT/.git" ]; then
+          shopt -s nullglob
+          scratch_tf=()
+          for cand in "$d"/*.tf; do
+            if git check-ignore -q "$cand" 2>/dev/null; then
+              scratch_tf+=("$cand")
+            fi
+          done
+          shopt -u nullglob
+          if [ "${#scratch_tf[@]}" -gt 0 ]; then
+            info "$d: git-ignored scratch .tf present — remove before re-running: ${scratch_tf[*]}"
+          fi
+        fi
       fi
     else
       fail "$d: init failed (cannot validate)"

@@ -292,7 +292,7 @@ tasks:
         msg: "tofu is required. Install: brew install opentofu"
 
   lab:test:
-    desc: "Lab: run 'tofu test' across every modules/* and examples/* with tests"
+    desc: "Lab: validate every modules/*, examples/* and labs/day-1|2|3 workdir; 'tofu test' where suites exist"
     cmds:
       - bash scripts/verify.sh
     preconditions:
