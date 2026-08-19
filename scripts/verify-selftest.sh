@@ -195,6 +195,42 @@ build_root() {
   done
 }
 
+# Dump everything a failing case produced.
+#
+# WHY THE WHOLE THING: this used to be
+#   printf '%s' "$out" | grep -E 'drift|annotated|pin drift|Formatting'
+# — a filter tuned to the drift cases. When verify.sh failed for any OTHER
+# reason (or died early under `set -euo pipefail`, printing nothing that
+# matched), a failing case reported its verdict with ZERO evidence. That
+# blindness has a measured cost: a CI-only self-test failure on 2026-08-19 was
+# diagnosed from the case LABEL alone, called deterministic on two attempts that
+# had in fact failed on two DIFFERENT cases, and the lane was reverted without
+# anyone seeing why. A self-test that can fail without saying why is not a gate,
+# it is a coin flip with a log line.
+#
+# Bounded so a runaway verify.sh cannot flood a CI log: full output up to
+# DUMP_MAX_LINES, otherwise head+tail around an explicit elision marker (the
+# summary at the tail and the section headings at the head are both load-bearing).
+DUMP_MAX_LINES=400
+DUMP_HEAD_LINES=120
+DUMP_TAIL_LINES=280
+
+dump_case_output() {
+  local out="$1" n
+  n="$(printf '%s\n' "$out" | wc -l | tr -d ' ')"
+  printf '        ---- verify.sh output (%s line(s)) ----\n' "$n"
+  if [ -z "$out" ]; then
+    printf '        | (no output at all — verify.sh produced nothing on stdout or stderr)\n'
+  elif [ "$n" -le "$DUMP_MAX_LINES" ]; then
+    printf '%s\n' "$out" | sed 's/^/        | /'
+  else
+    printf '%s\n' "$out" | head -n "$DUMP_HEAD_LINES" | sed 's/^/        | /'
+    printf '        | ... %s line(s) elided ...\n' "$((n - DUMP_HEAD_LINES - DUMP_TAIL_LINES))"
+    printf '%s\n' "$out" | tail -n "$DUMP_TAIL_LINES" | sed 's/^/        | /'
+  fi
+  printf '        ---- end of verify.sh output ----\n'
+}
+
 # run_case <label> <expect: pass|fail> <needle> <mutator-fn> [also-needle]
 #
 # `also-needle` is an OPTIONAL second literal that must ALSO appear in the output.
@@ -223,14 +259,14 @@ run_case() {
       ok "$label — exit 0 and enforcement armed ('$needle')"
     else
       bad "$label — expected exit 0 + '$needle'${also:+ + '$also'}; got exit $rc"
-      printf '%s' "$out" | grep -E 'drift|annotated|pin drift|Formatting' | sed 's/^/        /' || true
+      dump_case_output "$out"
     fi
   else
     if [ "$rc" -ne 0 ] && [ "$also_ok" -eq 1 ] && printf '%s' "$out" | grep -qF "$needle"; then
       ok "$label — exit $rc (non-zero) and drift named ('$needle')"
     else
       bad "$label — expected non-zero + '$needle'${also:+ + '$also'}; got exit $rc"
-      printf '%s' "$out" | grep -E 'drift|annotated|pin drift|Formatting' | sed 's/^/        /' || true
+      dump_case_output "$out"
     fi
   fi
   trap - RETURN
