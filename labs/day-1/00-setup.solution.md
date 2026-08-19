@@ -38,8 +38,34 @@ Your version and platform may be newer or different. If `task` is missing, run
 ### Step 2 — First plan and apply (no Docker, no cloud)
 
 The files are already tracked—read them before running them.
-[`versions.tf`](./00-setup/versions.tf) is boilerplate you set once: it requires
-OpenTofu ≥ 1.8 and pins the `aws`, `local`, and `random` providers.
+[`versions.tf`](./00-setup/versions.tf) is boilerplate you set once—it pins the
+OpenTofu version and every provider this lab can reach for:
+
+<!-- source: labs/day-1/00-setup/versions.tf -->
+```hcl
+terraform {
+  required_version = ">= 1.8"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.0"
+    }
+    local = {
+      source  = "hashicorp/local"
+      version = "~> 2.5"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.7"
+    }
+  }
+}
+```
+
+Read it top to bottom once: `required_version` is the floor for the CLI itself,
+and each `required_providers` entry is a source address plus a version
+constraint. You will not need to touch this file again in this lab.
 
 `hello.tf` is your first resource, and it is the whole file—one block, no
 variables, no conditionals:

@@ -146,8 +146,9 @@ Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
 Say: Start on the code, because the plan is only meaningful as a diff of code you
 have read. This is the whole of hello.tf: one resource block, a type, a name, two
 arguments. Then the loop in three magic-move steps. init sets up the backend and
-downloads providers. plan shows what WILL happen — the local_file you just read,
-to be created — and changes nothing. apply -auto-approve makes it real. Hammer the
+downloads the providers that versions.tf pins in its terraform /
+required_providers block. plan shows what WILL happen — the local_file you
+just read, to be created — and changes nothing. apply -auto-approve makes it real. Hammer the
 mental model: plan is a preview, apply is the commit; nothing touches the world
 until you apply. We use local_file so the very first apply needs no cloud at all.
 If anyone spots that the filename morphs from ${path.module}/hello.txt to
