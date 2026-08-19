@@ -42,10 +42,10 @@ Fill this in per run:
 | S01 | Infrastructure as Code | 40 | 20 | | | | | |
 | S02 | HCL & building blocks | 50 | 20 | | | | | |
 | S03 | The core workflow | 60 | 20 | | | | | |
-| S04 | State | 50 | 20 | | | | | |
-| S05 | State encryption | 60 | 25 | | | | | |
 | S06 | Variables, validation & types | 50 | 25 | | | | | |
 | S15 | Validation, preconditions & checks | 50 | 30 | | | | | |
+| S04 | State | 50 | 20 | | | | | |
+| S05 | State encryption | 60 | 25 | | | | | |
 | S07 | Modules | 60 | 35 | | | | | |
 | S08 | Naming & labelling module | 65 | 30 | | | | | |
 | S09 | Best practices | 50 | 30 | | | | | |

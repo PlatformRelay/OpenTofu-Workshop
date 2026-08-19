@@ -53,10 +53,10 @@ Two more things to keep straight before you start:
 | [ ] | S01 | core | [01-iac-fork](../labs/day-1/01-iac-fork.md) | none | fork choice / wrong mental model | [ ] |
 | [ ] | S02 | core | [02-hcl-blocks](../labs/day-1/02-hcl-blocks.md) | none | invalid block / type error | [ ] |
 | [ ] | S03 | core | [03-core-workflow](../labs/day-1/03-core-workflow.md) | none | plan surprise / wrong target | [ ] |
-| [ ] | S04 | core | [04-state](../labs/day-1/04-state.md) | none | state drift / wrong backend assumption | [ ] |
-| [ ] | S05 | core | [05-state-encryption](../labs/day-1/05-state-encryption.md) | none | encryption mis-config | [ ] |
 | [ ] | S06 | core | [06-variables](../labs/day-1/06-variables.md) | none | validation failure / wrong type | [ ] |
 | [ ] | S15 | core | [15-conditions-checks](../labs/day-1/15-conditions-checks.md) | none | precondition / check block | [ ] |
+| [ ] | S04 | core | [04-state](../labs/day-1/04-state.md) | none | state drift / wrong backend assumption | [ ] |
+| [ ] | S05 | core | [05-state-encryption](../labs/day-1/05-state-encryption.md) | none | encryption mis-config | [ ] |
 | [ ] | S07 | core | [07-modules](../labs/day-1/07-modules.md) | none | module input/output mismatch | [ ] |
 | [ ] | S08 | core | [08-naming-labels](../labs/day-1/08-naming-labels.md) | LocalStack for Step 4 | naming rule violation | [ ] |
 | [ ] | S09 | recommended | [09-best-practices](../labs/day-1/09-best-practices.md) | none | anti-pattern in config | [ ] |
