@@ -57,6 +57,30 @@
 # defects the verify.sh change introduced into its own error paths.
 set -euo pipefail
 
+# TF_CLI_ARGS / TF_CLI_ARGS_fmt TURN `tofu fmt -check` INTO A MUTATOR, so they
+# are cleared before any tofu invocation below. OpenTofu splices these env args
+# in BEFORE user argv, and a positional in them terminates flag parsing:
+#
+#   TF_CLI_ARGS_fmt="-recursive ." tofu fmt -check <path>
+#
+# becomes `tofu fmt -recursive . -check <path>` — the `.` is formatted
+# RECURSIVELY, `-check` is demoted from a flag to a path, and only then does tofu
+# error on it (rc=2). Reproduced: that one line took the S13 fixture from
+# 13f0af5a66fd to d0b767a2f3a9, and this script then reported "formatted 87
+# tracked .tf file(s); left the S13 messy fixture untouched" — destroyed it and
+# said otherwise.
+#
+# This falsifies TWO assumptions this script was built on: that `fmt -check` is
+# read-only, and that passing explicit paths bounds the blast radius. Neither
+# holds. No repo edit and no maintainer error is required — an exported shell
+# var, a direnv .envrc, or a CI env is enough, which is the 2026-08-19 incident
+# shape arriving through a new door.
+#
+# Scoped deliberately to these two names. Clearing all TF_* would also wipe
+# TF_LOG, TF_DATA_DIR and provider credentials that callers legitimately set,
+# trading one surprise for another.
+unset TF_CLI_ARGS TF_CLI_ARGS_fmt
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
@@ -70,6 +94,85 @@ command -v tofu >/dev/null 2>&1 || {
   echo "lab:fmt: tofu is required. Install: brew install opentofu" >&2
   exit 1
 }
+
+# ---------------------------------------------------------------------------
+# FIXTURE POST-CONDITION — the outermost safety net, on an EXIT trap.
+#
+# Everything else in this script reasons about WHICH PATHS are handed to tofu.
+# That reasoning has now been wrong twice in ways nothing here could see: a
+# tracked symlink wrote through to the fixture under a different path, and
+# TF_CLI_ARGS_fmt made a read-only `-check` reformat the whole tree regardless of
+# argv. Both destroyed the fixture while this script printed "left the S13 messy
+# fixture untouched". So the final claim is no longer INFERRED from the path
+# list — it is OBSERVED against the file itself, immediately before exiting.
+#
+# Three properties this depends on, each learned the hard way:
+#
+#   * ON A TRAP, NOT A LINE BEFORE THE FINAL echo. A Taskfile's `deps:` and
+#     `preconditions:` both run BEFORE `cmds:`, so damage can already be done by
+#     the time this script starts; and the script has four exit paths (two
+#     refusals, the nothing-to-do branch, and normal completion). A trap observes
+#     all of them. A check placed before the summary would be evasion number 12.
+#
+#   * CONTENT-BASED, NEVER AGAINST THE INDEX BLOB. Comparing the worktree file to
+#     its staged blob greens forever the moment someone runs `git add -A` after a
+#     destructive run — the index then holds the destroyed copy and agrees with
+#     it. The assertion is that the fixture is still NON-CANONICAL, which is the
+#     property that actually makes it a teaching fixture.
+#
+#   * IT NEEDS THE unset ABOVE. The probe is itself `tofu fmt -check`, so without
+#     clearing TF_CLI_ARGS_fmt the post-condition would be the thing that
+#     destroys the fixture — precisely how the self-test's startup guard failed.
+#
+# Skipped when the fixture is absent or is itself a symlink: this script must
+# keep working in a checkout without that lab, and a missing file is not a
+# regression.
+#
+# NOTE THE POLARITY. The trap does NOT ask "did THIS SCRIPT change it?" — it asks
+# "is it canonical NOW?". Those differ, and the difference is the whole point: a
+# Taskfile's `deps:` and `preconditions:` run BEFORE `cmds:`, so by the time this
+# script starts the fixture can already be destroyed. Gating on "it was
+# unformatted when we started" would make every such attack invisible — this
+# script would shrug and report success over an already-ruined fixture. Being
+# canonical is never correct for this file: unformatted IS what it is for. So
+# canonical at exit is a failure regardless of who did it, and the message
+# distinguishes the two cases to point at the right culprit.
+S13_ALREADY_DESTROYED=0
+S13_WATCHED=0
+if [ -f "$REPO_ROOT/$S13_MESSY_FIXTURE" ] && [ ! -L "$REPO_ROOT/$S13_MESSY_FIXTURE" ]; then
+  S13_WATCHED=1
+  if tofu fmt -check "$REPO_ROOT/$S13_MESSY_FIXTURE" >/dev/null 2>&1; then
+    S13_ALREADY_DESTROYED=1
+  fi
+fi
+
+_lab_fmt_on_exit() {
+  rc=$?
+  rm -f "${GIT_TF_LIST:-}" "${GIT_TF_ERR:-}" 2>/dev/null || true
+  if [ "$S13_WATCHED" -eq 1 ] &&
+    [ -f "$REPO_ROOT/$S13_MESSY_FIXTURE" ] &&
+    tofu fmt -check "$REPO_ROOT/$S13_MESSY_FIXTURE" >/dev/null 2>&1; then
+    echo "" >&2
+    echo "lab:fmt: FIXTURE DESTROYED — $S13_MESSY_FIXTURE is canonically formatted." >&2
+    echo "         It is the Day-2 static-analysis exercise; being unformatted IS its" >&2
+    echo "         purpose, so canonical means broken." >&2
+    if [ "$S13_ALREADY_DESTROYED" -eq 1 ]; then
+      echo "         It was ALREADY destroyed before this script started, so the cause" >&2
+      echo "         is upstream of it: a Taskfile 'deps:' or 'preconditions:' entry" >&2
+      echo "         (both run before 'cmds:'), a pre-commit terraform_fmt hook, or an" >&2
+      echo "         earlier command in the same shell." >&2
+    else
+      echo "         It was intact when this script started, so this invocation did it:" >&2
+      echo "         look for TF_CLI_ARGS/TF_CLI_ARGS_fmt in the environment or a" >&2
+      echo "         tracked symlink pointing at the fixture." >&2
+    fi
+    echo "         Restore it with:  git checkout -- $S13_MESSY_FIXTURE" >&2
+    exit 1
+  fi
+  exit "$rc"
+}
+trap _lab_fmt_on_exit EXIT
+# ---------------------------------------------------------------------------
 
 # A .git ENTRY at the root is the discriminator — a directory in a normal clone,
 # a FILE in a linked worktree. Same test verify.sh uses, and deliberately not a
@@ -91,7 +194,8 @@ fi
 
 GIT_TF_LIST="$(mktemp)"
 GIT_TF_ERR="$(mktemp)"
-trap 'rm -f "$GIT_TF_LIST" "$GIT_TF_ERR"' EXIT
+# Cleanup is handled by _lab_fmt_on_exit above. A second `trap ... EXIT` here
+# would REPLACE that handler and silently uninstall the fixture post-condition.
 
 SCAN_OK=1
 # Routed through a temp file rather than `< <(git ls-files …)`: process
@@ -172,7 +276,13 @@ fi
 # whole list goes in one invocation.
 tofu fmt "${FORMAT_FILES[@]}"
 
-SUMMARY="lab:fmt: formatted ${#FORMAT_FILES[@]} tracked .tf file(s); left the S13 messy fixture untouched"
+# The summary states what this script DID — the scope it worked on. It no longer
+# asserts the fixture's OUTCOME ("left it untouched"), because that claim was
+# false twice: under a tracked symlink and under TF_CLI_ARGS_fmt it printed
+# "untouched" over a destroyed file. Outcome is now the EXIT TRAP's job, which
+# observes the file rather than inferring from the path list. One claim, one
+# owner, and the reassuring sentence can no longer contradict reality.
+SUMMARY="lab:fmt: formatted ${#FORMAT_FILES[@]} tracked .tf file(s); the S13 messy fixture was excluded from the file list"
 [ "$SKIPPED" -gt 0 ] && SUMMARY="$SUMMARY (${SKIPPED} tracked path(s) absent from the worktree — see above)"
 [ "$SKIPPED_LINKS" -gt 0 ] && SUMMARY="$SUMMARY (${SKIPPED_LINKS} tracked symlink(s) skipped — see above)"
 echo "$SUMMARY"

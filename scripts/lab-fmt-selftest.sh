@@ -71,6 +71,14 @@
 #     of this header said "nothing here sorts", which stopped being true.
 set -euo pipefail
 
+# See scripts/lab-fmt.sh for the mechanism. It matters HERE too, and worse: this
+# script's own startup guard runs `tofu fmt -check "$REAL_S13"` against the REAL
+# repo to prove the fixture is still unformatted. Under TF_CLI_ARGS_fmt that
+# read-only probe formats the tree, so the line whose entire job is to DETECT
+# destruction of the fixture was the thing destroying it — in the developer's own
+# worktree. Reproduced before this unset existed: 13f0af5a66fd -> d0b767a2f3a9.
+unset TF_CLI_ARGS TF_CLI_ARGS_fmt
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SUT="$ROOT/scripts/lab-fmt.sh"
 S13_REL='labs/day-2/13-static-analysis/messy/main.tf'
@@ -669,6 +677,106 @@ if grep -q 'symlink(s) skipped' "$TMP/out11"; then
   ok "the summary line accounts for the skipped symlink"
 else
   bad "the summary does not mention the skipped symlink — it overstates what was checked"
+fi
+
+# ---------------------------------------------------------------------------
+# 12. TF_CLI_ARGS_fmt — `tofu fmt -check` IS NOT READ-ONLY, and explicit paths do
+#     NOT bound the blast radius. Both were load-bearing assumptions of this
+#     script's design and both are false.
+#
+#     OpenTofu splices TF_CLI_ARGS / TF_CLI_ARGS_<cmd> in BEFORE user argv, and a
+#     positional among them terminates flag parsing:
+#         TF_CLI_ARGS_fmt="-recursive ." tofu fmt -check <path>
+#     runs as `tofu fmt -recursive . -check <path>` — `.` is formatted
+#     recursively, `-check` is demoted to a path, and tofu errors on it (rc=2)
+#     only afterwards. Measured on the real repo: the fixture went 13f0af5a66fd
+#     -> d0b767a2f3a9 from that single line, and lab-fmt.sh then reported "left
+#     the S13 messy fixture untouched".
+#
+#     No repo edit and no maintainer error is needed — an exported shell var, a
+#     direnv .envrc or a CI env is enough. This is the 2026-08-19 incident shape
+#     through a new door.
+# ---------------------------------------------------------------------------
+case_ "12. TF_CLI_ARGS_fmt in the environment cannot destroy the fixture"
+R12="$(make_repo full 12)"
+if (cd "$R12" && TF_CLI_ARGS_fmt="-recursive ." bash scripts/lab-fmt.sh >"$TMP/out12" 2>&1); then
+  ok "lab-fmt.sh completes with TF_CLI_ARGS_fmt set"
+else
+  ok "lab-fmt.sh exits non-zero with TF_CLI_ARGS_fmt set (refusing is also acceptable)"
+fi
+if cmp -s "$REAL_S13" "$R12/$S13_REL"; then
+  ok "the fixture is byte-identical despite TF_CLI_ARGS_fmt"
+else
+  bad "TF_CLI_ARGS_fmt destroyed the fixture — 'tofu fmt -check' is a mutator and the unset is missing"
+fi
+# The same var must not defeat the plain -recursive case either.
+R12B="$(make_repo full 12b)"
+(cd "$R12B" && TF_CLI_ARGS="-recursive ." bash scripts/lab-fmt.sh >/dev/null 2>&1) || true
+if cmp -s "$REAL_S13" "$R12B/$S13_REL"; then
+  ok "the fixture is byte-identical despite the generic TF_CLI_ARGS"
+else
+  bad "TF_CLI_ARGS (generic) destroyed the fixture — the unset must cover both names"
+fi
+# Guard the guard: clearing all TF_* would break callers who legitimately set
+# TF_LOG or provider credentials, so the unset must stay narrow.
+if grep -q '^unset TF_CLI_ARGS TF_CLI_ARGS_fmt$' "$SUT"; then
+  ok "the unset is scoped to the two TF_CLI_ARGS names, not all TF_*"
+else
+  bad "scripts/lab-fmt.sh's TF_CLI_ARGS unset is missing or has been re-scoped"
+fi
+
+# ---------------------------------------------------------------------------
+# 13. THE EXIT-TRAP POST-CONDITION. Every other guard reasons about WHICH PATHS
+#     reach tofu. That reasoning has been wrong twice in ways nothing local could
+#     see (a tracked symlink; TF_CLI_ARGS_fmt). So the outcome is OBSERVED
+#     against the file at exit rather than inferred.
+#
+#     The case that matters most is damage done BEFORE the script runs: a
+#     Taskfile's `deps:` and `preconditions:` both execute ahead of `cmds:`, so
+#     the fixture can already be ruined by the time lab-fmt.sh starts. A
+#     post-condition that only asked "did I change it?" would shrug and report
+#     success over a ruined fixture — so it asks "is it canonical NOW?", which is
+#     never correct for this file whoever did it.
+#
+#     Also asserted: it fires on the NOTHING-TO-DO exit path. A trap covers every
+#     exit; a line before the final echo would not, and that would be the next
+#     evasion.
+# ---------------------------------------------------------------------------
+case_ "13. the exit trap catches a fixture destroyed before lab-fmt.sh even runs"
+R13="$(make_repo full 13)"
+# Stand in for a Taskfile deps:/preconditions: entry having already run.
+(cd "$R13" && tofu fmt "$S13_REL" >/dev/null 2>&1) || true
+if (cd "$R13" && bash scripts/lab-fmt.sh >"$TMP/out13" 2>&1); then
+  bad "lab-fmt.sh reported SUCCESS over an already-destroyed fixture — the post-condition is not observing it"
+else
+  ok "lab-fmt.sh exits non-zero when the fixture is already destroyed"
+fi
+if grep -q 'FIXTURE DESTROYED' "$TMP/out13"; then
+  ok "the post-condition names the failure unmistakably"
+else
+  bad "no FIXTURE DESTROYED diagnostic: $(cat "$TMP/out13")"
+fi
+if grep -qi 'ALREADY destroyed' "$TMP/out13"; then
+  ok "it distinguishes pre-existing damage and points upstream at deps/preconditions"
+else
+  bad "it does not attribute pre-existing damage, so the operator hunts in the wrong place"
+fi
+# The summary must not simultaneously reassure. It used to claim "left the S13
+# messy fixture untouched" while the fixture was destroyed; outcome is now the
+# trap's claim alone.
+if grep -q 'left the S13 messy fixture untouched' "$TMP/out13"; then
+  bad "the summary still asserts the fixture is untouched while the trap reports it destroyed"
+else
+  ok "the summary makes no outcome claim that could contradict the trap"
+fi
+# Nothing-to-do path: a repo whose only tracked .tf is the fixture never formats
+# anything, and must still be covered.
+R13B="$(make_repo s13 13b)"
+(cd "$R13B" && tofu fmt "$S13_REL" >/dev/null 2>&1) || true
+if (cd "$R13B" && bash scripts/lab-fmt.sh >"$TMP/out13b" 2>&1); then
+  bad "the nothing-to-do exit path bypasses the post-condition"
+else
+  ok "the post-condition also fires on the nothing-to-do exit path"
 fi
 
 # ---------------------------------------------------------------------------
