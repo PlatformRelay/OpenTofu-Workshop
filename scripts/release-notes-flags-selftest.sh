@@ -8,6 +8,36 @@ SCRIPT="$ROOT/scripts/release-notes-flags.sh"
 BETA_LIMITATIONS="$ROOT/docs/beta-limitations.md"
 WF="$ROOT/.github/workflows/release.yml"
 
+# --- temp lifetime (US-F-GATEHYG) ---------------------------------------------
+#
+# One temp file for the whole run, owned by the exit path.
+#
+# What was actually wrong, measured rather than assumed: run_flags took its own
+# `mktemp` per call and removed it inline. That inline `rm -f` is reached on
+# every path bash actually walks here — including a FAILING
+# release-notes-flags.sh — because `set -e` is NOT inherited by the `$( )`
+# command-substitution subshells run_flags is always invoked from (probed on GNU
+# bash 5.3.15: a `false` mid-function does not stop the function and the
+# assignment still succeeds). So a green run and an ordinary red run both leak
+# nothing, and the "leaks one file per invocation" reading of this code is
+# wrong.
+#
+# The window that IS real is a signal. There was no trap, so a SIGTERM between
+# the mktemp and the rm strands the file — measured at exactly one leaked file
+# per interrupted run. CI matters here because scripts/*-selftest.sh is now
+# glob-discovered by the workflow, so this script runs standalone AND nested
+# inside verify-selftest.sh, doubling every leak it does have.
+#
+# Hoisting to a single file plus a trap closes the signal window and deletes the
+# per-call bookkeeping outright. EXIT also covers a `set -e` death at top level,
+# where errexit IS in force.
+GITHUB_OUTPUT_FILE="$(mktemp)"
+notes_cleanup() { rm -f "$GITHUB_OUTPUT_FILE"; return 0; }
+notes_rc=0
+trap 'notes_rc=$?; notes_cleanup; exit "$notes_rc"' EXIT
+trap 'notes_cleanup; trap - INT;  kill -INT  $$' INT
+trap 'notes_cleanup; trap - TERM; kill -TERM $$' TERM
+
 pass=0
 fail=0
 
@@ -39,12 +69,12 @@ assert_status() {
 
 run_flags() {
   local tag="$1"
-  local out_file
-  out_file="$(mktemp)"
-  export GITHUB_OUTPUT="$out_file"
+  # Truncate rather than mint a new file: identical isolation between calls
+  # (they are strictly sequential), one thing for the exit path to own.
+  : >"$GITHUB_OUTPUT_FILE"
+  export GITHUB_OUTPUT="$GITHUB_OUTPUT_FILE"
   bash "$SCRIPT" "$tag"
-  cat "$out_file"
-  rm -f "$out_file"
+  cat "$GITHUB_OUTPUT_FILE"
 }
 
 grep_field() {
