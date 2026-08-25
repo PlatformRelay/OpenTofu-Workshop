@@ -61,8 +61,14 @@
 #     that lab-fmt.sh relies on was verified on the CI pin (1.10.3) as well as
 #     1.12.5, and case 2 re-proves it at runtime on whatever version is present:
 #     a tofu that processed only argv[1] reds the late-sorting assertion.
-#   * No ordering or locale dependency. Nothing here sorts, and every pattern is
-#     ASCII, so LC_ALL=C discovery order is irrelevant.
+#   * Locale: every pattern is ASCII and no case depends on file discovery order.
+#     There is exactly ONE `sort` in the suite — case 10 assertion 2 sorts
+#     lab:fmt's key names to compare them against a fixed literal — so that is
+#     the only place collation could matter. All three keys are lowercase ASCII
+#     words, which collate identically everywhere; verified green under
+#     LC_ALL=C, LC_ALL=en_US.UTF-8 and the author's de_DE.UTF-8 default. Naming
+#     the one dependency rather than claiming there are none: an earlier version
+#     of this header said "nothing here sorts", which stopped being true.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
