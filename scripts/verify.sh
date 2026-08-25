@@ -172,6 +172,19 @@ acquire_verify_lock() {
     write_verify_lock_metadata
     return 0
   fi
+  # `mkdir` failing does NOT prove contention. It also fails on a read-only or
+  # full filesystem, on a permissions problem, and — the one seen in practice —
+  # when something left a regular FILE called .verify.lock in the way. Blaming a
+  # concurrent run for those would send the reader hunting a process that does
+  # not exist, which is the same class of misdiagnosis this whole guard exists
+  # to end. Only treat it as contention once the lock is actually a directory.
+  if [ ! -d "$VERIFY_LOCK_DIR" ]; then
+    bad "cannot create $VERIFY_LOCK_NAME — the single-run guard cannot be established"
+    info "this is NOT a concurrent run: something other than a lock directory is in"
+    info "the way, or $REPO_ROOT is not writable."
+    info "check: ls -ld $VERIFY_LOCK_NAME  (a stray regular file? remove it)"
+    exit 2
+  fi
   pid="$(cat "$VERIFY_LOCK_DIR/pid" 2>/dev/null || true)"
   host="$(cat "$VERIFY_LOCK_DIR/host" 2>/dev/null || true)"
   when="$(cat "$VERIFY_LOCK_DIR/started" 2>/dev/null || true)"

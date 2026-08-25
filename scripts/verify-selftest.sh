@@ -114,6 +114,9 @@
 #        that would otherwise reopen the corruption it just refused)
 #    46. a STALE lock (recorded pid provably dead) is named, broken, and the
 #        run completes — a wedge is worse than the bug being fixed
+#    46b. an UNUSABLE lock path (a stray regular file where the directory
+#        belongs) is diagnosed as itself — `mkdir` fails with EEXIST there too,
+#        so without the guard it would be reported as a phantom concurrent run
 #    47. the lock is genuinely TAKEN during a run (without this, every
 #        "released" assertion below passes vacuously against no guard at all)
 #    48. a SIGTERMed run releases its lock — no wedge
@@ -1238,8 +1241,32 @@ STUB
   rm -rf "$tmp"
 }
 
+# A stray regular file where the lock directory belongs. `mkdir` fails with
+# EEXIST exactly as it does under contention, so without the `[ ! -d ]` guard
+# the run would blame a concurrent process that does not exist and print a pid
+# of "unknown" — sending the reader hunting nothing. Deterministic and
+# root-proof, unlike chmod-based unwritability, which root bypasses.
+check_lock_reports_unusable_lock_path() {
+  local tmp out rc
+  tmp="$(new_lock_sandbox)"
+  printf 'not a lock directory\n' >"$tmp/.verify.lock"
+  set +e
+  out="$(PATH="$tmp/test-bin:$PATH" bash "$tmp/scripts/verify.sh" 2>&1)"
+  rc=$?
+  set -e
+  if [ "$rc" -ne 0 ] && has_text "$out" "cannot create .verify.lock" \
+     && has_text "$out" "this is NOT a concurrent run"; then
+    ok "single-run guard — an unusable lock path is diagnosed as itself, not as a phantom concurrent run"
+  else
+    bad "single-run guard — expected a non-zero 'cannot create .verify.lock' refusal; got exit $rc"
+    dump_case_output "$out"
+  fi
+  rm -rf "$tmp"
+}
+
 check_lock_refuses_concurrent_run
 check_lock_breaks_stale_lock
+check_lock_reports_unusable_lock_path
 check_lock_released_after_kill
 
 run_case "clean fixture"        pass "no drift: labs/fixtures/drift-demo/main.tf matches" m_clean
