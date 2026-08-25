@@ -208,10 +208,16 @@ jobs:
           set -euo pipefail
           # Fixed collation so discovery order is identical on every runner.
           export LC_ALL=C
-          # nullglob: an unmatched glob otherwise expands to the LITERAL pattern
-          # and `bash 'scripts/*-selftest.sh'` would be the only thing that ever
-          # ran. With nullglob the array is simply empty — and an empty array is
-          # a hard failure below, never a silent green.
+          # nullglob: an unmatched glob otherwise expands to the LITERAL
+          # pattern, and the loop below would run `bash 'scripts/*-selftest.sh'`.
+          # Measured, that is NOT a silent green — it exits 127 and GHA's
+          # `bash -e {0}` reds the step. What it does not do is say WHY: the log
+          # reads `bash: scripts/*-selftest.sh: No such file or directory`,
+          # which looks like a deleted script rather than "discovery matched
+          # nothing", and it only reds at all because the loop body happens to
+          # be a command that fails on a missing file. With nullglob the array
+          # is simply empty, and the check below turns that into a named
+          # ::error:: that does not depend on what the loop body is.
           shopt -s nullglob
           selftests=(scripts/*-selftest.sh)
           shopt -u nullglob
@@ -228,6 +234,113 @@ jobs:
             echo "::endgroup::"
           done
           bash scripts/verify.sh
+
+  fixture-integrity:
+    name: Fixture integrity (pre-commit must not rewrite the S13 fixture)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      # PINNED (US-P-PINS): tofu_version must match versions.env — verify.sh §10 drift-checks.
+      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1
+        with:
+          tofu_version: "1.10.3"
+      - name: Install pre-commit
+        run: pipx install "pre-commit==4.6.2"
+      - name: S13 fixture survives the mutating hooks
+        # WHY THIS JOB EXISTS: labs/day-2/13-static-analysis/messy/main.tf is
+        # deliberately unformatted — that IS the S13 lesson — and it has already
+        # been destroyed once in the wild. `.pre-commit-config.yaml` excludes it
+        # from the two mutating hooks, but an exclude is a CLAIM, and this repo
+        # has documented cases of a gate certifying something other than what it
+        # appears to. So assert it, by mutation.
+        #
+        # The mutation is the RE-ADMISSION path, not the plain path: the
+        # upstream pre-commit-terraform hooks batch by DIRECTORY, so a sibling
+        # `.tf` in messy/ re-admits the directory and `tofu fmt` rewrites
+        # main.tf even when main.tf itself is excluded. This job plants exactly
+        # that sibling. Measured: with a file-exact exclude it fails
+        # (13f0af5a… -> d0b767a2…); with the directory-wide one shipped in
+        # .pre-commit-config.yaml it passes.
+        #
+        # Both hooks carry a POSITIVE CONTROL outside the fixture. Without one,
+        # an exclude that accidentally matched everything — or a pre-commit that
+        # never ran at all — would sail through green.
+        #
+        # This lives in CI rather than in a local `repo: local` pre-commit hook
+        # on purpose: lab 13 Step 1 has learners run `tofu fmt main.tf` on the
+        # fixture deliberately, so a local hook asserting cleanliness would
+        # false-red them mid-lab.
+        env:
+          FIXTURE: labs/day-2/13-static-analysis/messy/main.tf
+          SIBLING: labs/day-2/13-static-analysis/messy/zz-integrity-probe.tf
+          CONTROL_DIR: .fixture-integrity-control
+        run: |
+          set -euo pipefail
+          PCT_TFPATH="$(command -v tofu)"
+          export PCT_TFPATH
+
+          fail() { echo "::error::fixture-integrity: $*"; exit 1; }
+
+          # Clean up on EVERY exit, including the failing ones — a gate that
+          # leaves a rewritten fixture and stray probes behind hands the next
+          # step a second, unrelated failure to debug.
+          cleanup() {
+            rm -f "$SIBLING" "labs/day-2/13-static-analysis/messy/README.md"
+            rm -rf "$CONTROL_DIR"
+            git checkout -- "$FIXTURE" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          before="$(sha256sum "$FIXTURE" | cut -d" " -f1)"
+
+          # Re-admission probe: an unformatted sibling inside the fixture dir.
+          printf 'variable "probe" {\n type = string\n  default = "x"\n}\n' >"$SIBLING"
+          # Positive control: an identical file OUTSIDE the fixture dir.
+          mkdir -p "$CONTROL_DIR"
+          printf 'variable "probe" {\n type = string\n  default = "x"\n}\n' >"$CONTROL_DIR/main.tf"
+
+          # --- terraform_fmt -------------------------------------------------
+          # `|| true`: the hook legitimately exits non-zero when it rewrites the
+          # CONTROL file. The verdict is the bytes below, never the exit code.
+          pre-commit run terraform_fmt --files "$FIXTURE" "$SIBLING" "$CONTROL_DIR/main.tf" || true
+
+          after="$(sha256sum "$FIXTURE" | cut -d" " -f1)"
+          [ "$before" = "$after" ] || fail "terraform_fmt REWROTE the S13 fixture ($before -> $after). A sibling .tf re-admitted labs/day-2/13-static-analysis/messy/ — the exclude in .pre-commit-config.yaml must stay DIRECTORY-wide."
+
+          # Positive control: the hook must still repair a file elsewhere.
+          # If this passes, the exclude is not a repo-wide no-op.
+          tofu fmt -check "$CONTROL_DIR/main.tf" >/dev/null 2>&1 \
+            || fail "positive control FAILED: terraform_fmt left $CONTROL_DIR/main.tf unformatted, so the hook never really ran and the green above proves nothing"
+
+          # --- terraform_docs ------------------------------------------------
+          # This hook WRITES README.md into any directory holding a .tf
+          # (--create-file-if-not-exist=true). Assert the fixture directory never
+          # reaches it. Deliberately asserting the INPUT FILTER, not the side
+          # effect: on --all-files this hook aborts early under labs/day-1/**,
+          # which would MASK the write and fake a green.
+          docs_fixture="$(pre-commit run terraform_docs --files "$FIXTURE" "$SIBLING" 2>&1 || true)"
+          echo "$docs_fixture"
+          case "$docs_fixture" in
+            *"no files to check"*) : ;;
+            *) fail "terraform_docs was handed the S13 fixture directory; it must be filtered out entirely" ;;
+          esac
+          [ ! -e "labs/day-2/13-static-analysis/messy/README.md" ] \
+            || fail "terraform_docs created a README.md inside the S13 fixture directory"
+
+          # Positive control: the same hook must NOT be filtered out elsewhere.
+          docs_control="$(pre-commit run terraform_docs --files "$CONTROL_DIR/main.tf" 2>&1 || true)"
+          echo "$docs_control"
+          case "$docs_control" in
+            *"no files to check"*) fail "positive control FAILED: terraform_docs skipped $CONTROL_DIR/main.tf too, so the exclude matches everything and the green above proves nothing" ;;
+            *) : ;;
+          esac
+
+          # --- cleanup --------------------------------------------------------
+          rm -f "$SIBLING"
+          rm -rf "$CONTROL_DIR"
+          leftover="$(git status --porcelain -- labs/day-2/13-static-analysis/)"
+          [ -z "$leftover" ] || fail "this job left the S13 fixture directory dirty: $leftover"
+          echo "fixture-integrity: S13 fixture byte-identical ($before); both hooks armed elsewhere."
 
   verify-integration:
     name: Verify integration (tofu test — LocalStack apply)

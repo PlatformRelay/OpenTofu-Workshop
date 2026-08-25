@@ -21,18 +21,39 @@ minimum_pre_commit_version: "3.5.0"
 # silently destroys the exercise.
 #
 # `exclude:` is a Python `re` pattern matched against repo-relative paths — not
-# a shell glob, hence the escaped dot and the anchors. Keep it FILE-exact: a
-# directory-wide `.../messy/` pattern would also exempt a future
-# `messy/adjacent.tf`, which scripts/verify-selftest.sh explicitly requires to
-# stay gated. Same path as S13_MESSY_FIXTURE in scripts/verify.sh — if you
-# change one, change all of them together.
+# a shell glob, hence the escaped dots and the `^` anchor.
+#
+# The pattern is DIRECTORY-wide, not file-exact, because the upstream
+# pre-commit-terraform hooks BATCH BY DIRECTORY: they map the surviving file
+# list to the set of directories containing those files and hand tofu the
+# DIRECTORY. A file-exact `.../messy/main\.tf$` therefore protects the fixture
+# only as long as `messy/` holds nothing else — add any sibling `.tf` and the
+# directory is re-admitted and `tofu fmt` rewrites `main.tf` anyway. Measured
+# on this repo, with the file-exact pattern in place:
+#
+#   messy/ = main.tf only        -> 13f0af5a … 13f0af5a   (safe)
+#   messy/ = main.tf + sibling   -> 13f0af5a … d0b767a2   (DESTROYED)
+#
+# Nothing is lost by widening it. pre-commit's `exclude:` and scripts/verify.sh
+# are INDEPENDENT scans: verify.sh walks git-tracked `.tf` itself and skips
+# only S13_MESSY_FIXTURE (verify.sh:211), so a future `messy/adjacent.tf` stays
+# gated THERE — that is what scripts/verify-selftest.sh:958,969 assert, against
+# verify.sh, not against this file. Widening here cannot un-gate it.
+#
+# The directory path is a prefix of S13_MESSY_FIXTURE in scripts/verify.sh — if
+# the fixture ever moves, change both together.
 #
 # The pattern is repeated per hook rather than shared via a YAML anchor: an
 # anchor needs a top-level key, and pre-commit prints
 # "[WARNING] Unexpected key(s) present at root" for anything it does not know —
 # on every run, in a repo learners run this in.
 #
-#   S13 fixture exclude:  ^labs/day-2/13-static-analysis/messy/main\.tf$
+#   S13 fixture exclude:  ^labs/day-2/13-static-analysis/messy/
+#
+# ENFORCED, not merely documented: the `fixture-integrity` job in
+# .github/workflows/ci.yml re-adds a sibling `.tf` to `messy/` and fails unless
+# `main.tf` comes back byte-identical — with positive controls proving the
+# hooks are still armed everywhere else.
 
 repos:
   # --- OpenTofu / Terraform hooks -------------------------------------------
@@ -44,8 +65,9 @@ repos:
         # Honors PCT_TFPATH → runs `tofu fmt`. See header note.
         files: \.tf$
         # MUTATOR: `tofu fmt` rewrites in place. Without this it reformats the
-        # S13 fixture on every `pre-commit run --all-files`.
-        exclude: ^labs/day-2/13-static-analysis/messy/main\.tf$
+        # S13 fixture on every `pre-commit run --all-files`. Directory-wide —
+        # see the header: a file-exact pattern is re-admitted by any sibling.
+        exclude: ^labs/day-2/13-static-analysis/messy/
 
       - id: terraform_tflint
         name: tflint
@@ -55,12 +77,19 @@ repos:
       - id: terraform_docs
         name: terraform-docs (module READMEs)
         # MUTATOR: `--create-file-if-not-exist=true` makes this hook WRITE a
-        # README.md into every directory holding a .tf file. Verified: without
-        # this exclude it creates labs/day-2/13-static-analysis/messy/README.md,
-        # leaving the fixture dirty in `git status` — which lab 13's cleanup
-        # step and lab 28 both rely on being empty. Excluding the fixture's only
-        # .tf removes the directory from the hook's input entirely.
-        exclude: ^labs/day-2/13-static-analysis/messy/main\.tf$
+        # README.md into every directory holding a .tf file. Verified without
+        # this exclude via `pre-commit run terraform_docs --files <fixture>`:
+        # it creates labs/day-2/13-static-analysis/messy/README.md, leaving the
+        # fixture dirty in `git status` — which lab 13's cleanup step and lab 28
+        # both rely on being empty.
+        #
+        # `pre-commit run --all-files` happens NOT to reach that write today,
+        # because terraform_docs aborts earlier on "Invalid provider reference"
+        # under labs/day-1/**. That abort MASKS the write rather than preventing
+        # it: fix the day-1 modules and the fixture starts getting a README.
+        # The exclude is more justified than the full-run evidence suggests, not
+        # less. Directory-wide for the same batching reason as terraform_fmt.
+        exclude: ^labs/day-2/13-static-analysis/messy/
         args:
           - "--hook-config=--path-to-file=README.md"
           - "--hook-config=--add-to-existing-file=true"
