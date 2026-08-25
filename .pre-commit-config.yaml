@@ -14,6 +14,26 @@
 # the supported OpenTofu switch. `default_language_version` below documents it.)
 minimum_pre_commit_version: "3.5.0"
 
+# The S13 static-analysis fixture is DELIBERATELY non-canonical — being
+# unformatted IS its lesson (labs/day-2/13-static-analysis.md), and it is the
+# only non-canonical tracked .tf in the repo. Every REWRITING hook must skip it,
+# or `pre-commit run --all-files` (documented above as the way to run this file)
+# silently destroys the exercise.
+#
+# `exclude:` is a Python `re` pattern matched against repo-relative paths — not
+# a shell glob, hence the escaped dot and the anchors. Keep it FILE-exact: a
+# directory-wide `.../messy/` pattern would also exempt a future
+# `messy/adjacent.tf`, which scripts/verify-selftest.sh explicitly requires to
+# stay gated. Same path as S13_MESSY_FIXTURE in scripts/verify.sh — if you
+# change one, change all of them together.
+#
+# The pattern is repeated per hook rather than shared via a YAML anchor: an
+# anchor needs a top-level key, and pre-commit prints
+# "[WARNING] Unexpected key(s) present at root" for anything it does not know —
+# on every run, in a repo learners run this in.
+#
+#   S13 fixture exclude:  ^labs/day-2/13-static-analysis/messy/main\.tf$
+
 repos:
   # --- OpenTofu / Terraform hooks -------------------------------------------
   - repo: https://github.com/antonbabenko/pre-commit-terraform
@@ -23,6 +43,9 @@ repos:
         name: tofu fmt
         # Honors PCT_TFPATH → runs `tofu fmt`. See header note.
         files: \.tf$
+        # MUTATOR: `tofu fmt` rewrites in place. Without this it reformats the
+        # S13 fixture on every `pre-commit run --all-files`.
+        exclude: ^labs/day-2/13-static-analysis/messy/main\.tf$
 
       - id: terraform_tflint
         name: tflint
@@ -31,6 +54,13 @@ repos:
 
       - id: terraform_docs
         name: terraform-docs (module READMEs)
+        # MUTATOR: `--create-file-if-not-exist=true` makes this hook WRITE a
+        # README.md into every directory holding a .tf file. Verified: without
+        # this exclude it creates labs/day-2/13-static-analysis/messy/README.md,
+        # leaving the fixture dirty in `git status` — which lab 13's cleanup
+        # step and lab 28 both rely on being empty. Excluding the fixture's only
+        # .tf removes the directory from the hook's input entirely.
+        exclude: ^labs/day-2/13-static-analysis/messy/main\.tf$
         args:
           - "--hook-config=--path-to-file=README.md"
           - "--hook-config=--add-to-existing-file=true"
