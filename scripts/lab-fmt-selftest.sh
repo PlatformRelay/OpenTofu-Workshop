@@ -38,17 +38,24 @@
 # PASSED. See case 10's header. Anything added here that writes outside $TMP
 # makes this sentence a lie again.
 #
-# CI CONTRACT. AS OF THIS COMMIT THIS SCRIPT DOES NOT RUN IN CI.
-# .github/workflows/ci.yml's `verify-unit` job hand-enumerates its self-tests at
-# lines 194-196 and does not list this one — which is exactly what the comment on
-# `task verify` in Taskfile.yaml says, and both statements must stay in agreement.
-# An earlier version of this header claimed glob discovery was already in place;
-# it is not, it lives on the unmerged lane/us-f-ciparity, and asserting otherwise
-# put two files in one diff contradicting each other about a third.
+# CI CONTRACT. THIS SCRIPT WILL RUN IN CI THE MOMENT THIS LANE LANDS.
+# US-F-CIPARITY has landed on main: .github/workflows/ci.yml's `verify-unit` job
+# discovers self-tests by glob — `selftests=(scripts/*-selftest.sh)` — so nothing
+# needs to list this script by name and nobody has to remember to.
 #
-# The contract below is written for WHEN that lands, because at that point a
-# failure here reds verify-unit for everyone. Meeting it now costs nothing and
-# means the merge does not need a second pass:
+# THIS HEADER HAS NOW BEEN WRONG IN BOTH DIRECTIONS, which is worth more than
+# either correction. It first claimed glob discovery was already in place when it
+# was not; a later round OVER-CORRECTED that against a stale base and asserted it
+# did not exist after it had landed. The same mechanism — asserting something
+# about a file this script does not own, from a checkout that had moved on — is
+# what seeded several rounds of this story. Before editing this paragraph, read
+# `git show origin/main:.github/workflows/ci.yml` rather than trusting either the
+# previous sentence or a local checkout.
+#
+# THE COROLLARY IS THE POINT: because discovery is a glob, a failure here reds
+# verify-unit for EVERYONE, on every push, from the moment this lane merges. And
+# this suite has still never been executed on Linux. The contract below is
+# therefore load-bearing rather than aspirational:
 #   * No network, no Docker, no package manager. External binaries used are
 #     git, tofu, awk, sed, grep, cmp, mktemp, cp, mkdir, rm, chmod — all present
 #     on a bare ubuntu-latest runner.
@@ -552,17 +559,30 @@ fi
 #     stopped matching. That is the useful property, and it is a property of the
 #     TEXT, not of go-task's semantics.
 #
+#     RESOLUTION is bounded too, but by assertions 0a/0b and by the FILESYSTEM —
+#     not by asking go-task. A shadowing taskfile and a differently-spelled
+#     duplicate were both live evasions; both are now closed by "exactly one
+#     taskfile-shaped file" and "the name occurs exactly once". What that does
+#     NOT cover is a go-task version whose discovery reaches OUTSIDE the repo
+#     root, or a `TASKFILE`/`--taskfile` override in the caller's environment.
+#     Neither is asserted here.
+#
 #     What it does NOT bound:
-#       * anything outside the block — a top-level `env:`, another task, a
-#         different Taskfile. E5 exploited exactly this with the block left
-#         byte-identical; it is covered by the `unset` in scripts/lab-fmt.sh and
-#         by that script's EXIT-trap post-condition, not by this case.
+#       * anything outside the block — a top-level `env:`, another task. E5
+#         exploited exactly this with the block left byte-identical; it is
+#         covered by the `unset` in scripts/lab-fmt.sh and by that script's
+#         EXIT-trap post-condition, not by this case.
 #       * what `scripts/lab-fmt.sh` itself does. Cases 1-9 and 11 cover that.
 #       * `includes:` pulling `lab:fmt` in from another file. This one happens to
 #         fail closed in both directions — go-task errors "Found multiple tasks
-#         (lab:fmt) included by lab", and with the local task removed assertion 1
-#         counts 0 and reds — but that is go-task's doing, not this case's, and
-#         it should not be relied on as if it were designed.
+#         (lab:fmt) included by lab", and with the local task removed assertion
+#         0b counts 0 and reds — but that is go-task's doing, not this case's,
+#         and it should not be relied on as if it were designed.
+#       * THE `tofu` BINARY ITSELF. A trust boundary, not an oversight: the EXIT
+#         trap's probe in scripts/lab-fmt.sh is `tofu fmt -check`, the same binary
+#         as the mutation vector, so a `tofu` wrapper earlier on PATH defeats
+#         mutation AND detection with one artifact. Nothing in this suite can
+#         close that from inside; anyone who controls PATH controls the outcome.
 #
 #     THE LAYERS ARE COMPLEMENTARY, and none is sufficient alone. This case
 #     catches a Taskfile that drops `bash scripts/lab-fmt.sh` from cmds entirely,
@@ -584,21 +604,85 @@ fi
 case_ "10. task lab:fmt is exactly the task it is supposed to be (allowlist)"
 TASKFILE="$ROOT/Taskfile.yaml"
 
-# 1. EXACTLY ONE DECLARATION. go-task silently last-wins on a duplicate task
-#    name, so a second `lab:fmt:` anywhere in the file overrides the first while
-#    every other check happily inspects whichever one it finds. Counted on the
-#    RAW file: a duplicate is the thing being detected, so it must not be
-#    normalised away first.
-LABFMT_DECLS="$(grep -c '^  lab:fmt:[[:space:]]*$' "$TASKFILE" || true)"
-if [ "${LABFMT_DECLS:-0}" -eq 1 ]; then
-  ok "lab:fmt is declared exactly once in Taskfile.yaml"
+# ---------------------------------------------------------------------------
+# 0. RESOLUTION. Which file, and which declaration, does go-task actually use?
+#
+#    Assertions 1-5 audit a text region and ASSUME go-task will execute it. That
+#    assumption failed twice, and both failures left the reviewed block pristine
+#    while an unreviewed one ran:
+#
+#      * A SHADOWING TASKFILE. go-task's discovery prefers `Taskfile.yml` over
+#        `Taskfile.yaml`. Dropping a `Taskfile.yml` containing a destructive
+#        `lab:fmt` scored 46/46 here — this script greps `Taskfile.yaml`
+#        forever — while `task lab:fmt` destroyed the fixture. Measured: go-task
+#        resolved lab:fmt to Taskfile.yml. The shadow need not be committed, so
+#        `git status` shows a reviewer nothing.
+#
+#      * A DUPLICATE DECLARATION IN A DIFFERENT SPELLING. The old count anchored
+#        on `^  lab:fmt:[[:space:]]*$`, so `lab:fmt: # merged from <branch>` was
+#        not counted — while go-task took it, last-wins. Measured: count=1,
+#        `task --list-all` showing the OVERRIDE's desc, fixture destroyed. That
+#        is a merge-conflict resolution, not an exploit; .pre-commit-config.yaml
+#        enables check-merge-conflict precisely because they happen here.
+#
+#    NEITHER IS FIXED BY WIDENING A REGEX to enumerate spellings — that is this
+#    case's own forty-line argument against denylists, one level up, and `? >-`
+#    or a flow mapping would be waiting. Both are closed by asking bounded
+#    questions instead:
+#
+#      F2 -> is `Taskfile.yaml` the ONLY taskfile-shaped file in the root?
+#      F1 -> does the NAME `lab:fmt` occur exactly once, in any spelling?
+#
+#    Deliberately NOT via `task --list-all --json`, which would answer the
+#    resolution question directly and is safe (unlike `--dry`, it does not run
+#    preconditions — re-confirmed). Nothing in .github/workflows/ installs
+#    go-task, verified against origin/main. Redding when `task` is absent would
+#    red verify-unit for everyone; skipping when absent is the local-only guard
+#    this suite exists to avoid being. Both arms below are pure filesystem and
+#    text, so they run identically everywhere.
+# ---------------------------------------------------------------------------
+
+# 0a. NO SHADOWING TASKFILE. Not an enumerated list of the names go-task happens
+#     to prefer today — the assertion is that exactly one taskfile-shaped file
+#     exists and it is the reviewed one. A future go-task adding a name to its
+#     discovery order cannot open a hole. The scan is CASE-INSENSITIVE because
+#     the Linux runner's shadow set is strictly larger than macOS's: here
+#     `taskfile.yml` IS `Taskfile.yml`, on the runner they are two files.
+#     A glob rather than `ls | grep`: it survives filenames with spaces and
+#     newlines, which this suite already proves elsewhere it must.
+shopt -s nocaseglob nullglob
+TASKFILE_FOUND=()
+for _tf in "$ROOT"/taskfile*.yml "$ROOT"/taskfile*.yaml; do
+  TASKFILE_FOUND+=("$(basename "$_tf")")
+done
+shopt -u nocaseglob nullglob
+TASKFILE_COUNT="${#TASKFILE_FOUND[@]}"
+TASKFILE_CANDIDATES="$(printf '%s ' "${TASKFILE_FOUND[@]+"${TASKFILE_FOUND[@]}"}")"
+if [ "$TASKFILE_COUNT" = "1" ] && [ "${TASKFILE_FOUND[0]}" = "Taskfile.yaml" ]; then
+  ok "Taskfile.yaml is the only taskfile-shaped file in the repo root"
 else
-  bad "lab:fmt is declared ${LABFMT_DECLS} times — go-task last-wins, so the effective task is not the one reviewed"
+  bad "repo root holds ${TASKFILE_COUNT} taskfile-shaped file(s) [${TASKFILE_CANDIDATES}] — go-task prefers Taskfile.yml over Taskfile.yaml, so the task it runs may not be the one audited below"
 fi
 
-# Comments stripped first so none can terminate a range; the block ends at the
-# next real column-2 key, or at a column-0 key.
+# 0b. THE NAME OCCURS EXACTLY ONCE. Counting the NAME rather than matching a key
+#     SHAPE is what makes this spelling-independent: `lab:fmt:` with a trailing
+#     comment, `"lab:fmt":`, `'lab:fmt':`, a `? lab:fmt` explicit key and a flow
+#     mapping all contain the name and all push the count past one. Whole-line
+#     comments are stripped first, since a comment mentioning the task does not
+#     execute; a TRAILING comment survives on its key line, which is exactly the
+#     spelling that got through before.
+#
+#     Exotic spellings that this count somehow missed would still not slip by:
+#     they break the block extraction below, and assertions 2-5 then red on an
+#     empty block. Fail-closed either way.
 TASKFILE_NOCOMMENT="$(grep -v '^[[:space:]]*#' "$TASKFILE")"
+LABFMT_NAME_COUNT="$(printf '%s\n' "$TASKFILE_NOCOMMENT" | grep -c 'lab:fmt' || true)"
+if [ "${LABFMT_NAME_COUNT:-0}" -eq 1 ]; then
+  ok "the name 'lab:fmt' occurs exactly once in Taskfile.yaml, in any spelling"
+else
+  bad "the name 'lab:fmt' occurs ${LABFMT_NAME_COUNT} times — go-task last-wins on duplicates, so the task it runs may not be the block audited below"
+fi
+
 LABFMT_BLOCK="$(printf '%s\n' "$TASKFILE_NOCOMMENT" | awk '
   /^  lab:fmt:[[:space:]]*$/ { inblock = 1; next }
   inblock && /^[^[:space:]]/  { exit }
