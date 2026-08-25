@@ -59,6 +59,23 @@ const slots = useSlots()
 .kw-cw-code {
   min-width: 0;
   min-height: 0;
+}
+
+/*
+  Containment belongs to the RAILED shape only. With a rail the code shares the
+  row and has to stay inside its column; without one, `main`'s behaviour is the
+  correct behaviour — a block taller than the body overflows VISIBLY into the
+  slide padding rather than being silently cut. Putting `overflow: auto` on
+  `.kw-cw-code` unconditionally clipped 55px and 77px off the plan/apply steps of
+  S00's magic-move (verified by swapping `main`'s layout back in), and a clipped
+  element never crosses the slide edge, so neither a gate nor a bottom-edge frame
+  diff can see it.
+
+  `overflow-x: auto; overflow-y: visible` is NOT an alternative: per spec
+  `visible` computes to `auto` when the other axis is not visible, so it would
+  quietly keep clipping both ways.
+*/
+.kw-cw-body--railed .kw-cw-code {
   max-height: 100%;
   overflow: auto;
 }

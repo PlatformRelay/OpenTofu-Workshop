@@ -100,7 +100,13 @@ describe('theme layouts declare the slots the decks fill', () => {
     // that interval. RAISING IT REQUIRES RE-MEASURING THE SAME WAY: export a
     // railed slide with `slidev export --with-clicks` (no --per-slide) and read
     // the real column width off the frame. Do not guess it upward.
-    // Width only: nothing in this repo gates slide HEIGHT.
+    // Width only: nothing in this repo gates slide HEIGHT, and height is the
+    // tighter of the two. Measured off the dev server at this geometry, a railed
+    // code column fits roughly 19-23 fence lines depending on whether the
+    // slide's H1 wraps (the intro shares the code column - see F9). S26's
+    // capstone tour was 35 lines and silently lost 15 of them to
+    // `.kw-cw-code { overflow: auto }`; it is now 19. No gate catches that, so
+    // re-render a railed slide after adding lines to one.
     const MAX_RAILED_CODE_COLUMNS = 88
     const wide = []
     for (const { abs, slides } of readPageSlides(root)) {
