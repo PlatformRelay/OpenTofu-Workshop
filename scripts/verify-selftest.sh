@@ -135,6 +135,18 @@
 #        unfixed code by stubbing `cat` to return the STALE pid and only then
 #        hold the pipe open — the delay has to come after the read, or the
 #        guard sees the new pid and the case passes for the wrong reason.
+#    46f. TWO BREAKERS racing on the same stale lock: exactly one break, exactly
+#        one refusal, exactly one run past the guard (review F1). This is the
+#        ONLY coverage of the `mv` arbitration — 46e exits at the step-1
+#        re-read and never reaches it, and the suite was 71/71 green with the
+#        `mv` reverted to `rm -rf; mkdir`. Includes a hard "window armed on
+#        both racers" assertion: the sleep counter must be keyed on an env var,
+#        because command substitution forks a fresh subshell per read and a
+#        $PPID-keyed counter silently never arms.
+#    46g. a holder this user cannot SIGNAL (pid 1, EPERM) counts as alive and
+#        its lock is refused intact (review F2). Reports itself not-applicable,
+#        never green, where the EPERM asymmetry does not exist (root, or a
+#        container whose pid 1 belongs to this uid).
 #    47. the lock is genuinely TAKEN during a run (without this, every
 #        "released" assertion below passes vacuously against no guard at all)
 #    48. a SIGTERMed run releases its lock — no wedge
@@ -1511,7 +1523,167 @@ check_lock_refuses_concurrent_run
 check_lock_refuses_foreign_host_lock
 check_lock_refuses_malformed_pid
 check_lock_breaks_stale_lock
+# F1 — TWO BREAKERS on the SAME stale lock. This is the case that covers the
+# `mv`, and without it the arbitration had ZERO coverage: an independent
+# reviewer reverted steps 2-3 to `rm -rf; mkdir` while KEEPING the step-1
+# re-read, and the whole suite stayed 71/71 green with two verify.sh runs past
+# the guard simultaneously. Reproduced here before writing this: with `mv`
+# removed the suite was green, and the same mutant reds this case.
+#
+# Why check_lock_break_is_not_a_race does not cover it: there, racer B ACQUIRES
+# the lock, so racer A's step-1 re-read sees a different pid and refuses. A
+# never reaches the `mv`. That case also passes with step 1 deleted, so neither
+# layer was distinguishable. Past step 1, the `mv` is the ONLY thing preventing
+# two holders — this is not defence in depth.
+#
+# THE DISARMING TRAP, which caught the reviewer's first draft and is the third
+# instance this session of a test being green against the very defect it
+# targets: the counter that decides which `cat` invocation sleeps must live in
+# an ENV VAR, not be keyed on $PPID. Command substitution forks a fresh subshell
+# per read, so a $PPID-keyed counter never reaches 2, nobody sleeps, the racers
+# never overlap, and the case passes without ever opening the window. Hence the
+# hard "window armed on BOTH racers" assertion below: if either racer failed to
+# sleep, this case proves nothing and says so.
+#
+# ARMING DEPENDS ON STEP 1 EXISTING, and that is deliberate rather than
+# accidental coupling: the window is opened on the SECOND read of the pid file,
+# which is step 1's re-read. Delete step 1 and this case reports itself DISARMED
+# ("the window opened on only 1/2 racers") instead of passing vacuously —
+# verified by mutation. If step 1 is ever legitimately refactored away, re-key
+# the counter on whichever read still precedes the `mv`; do not simply lower the
+# threshold to make the red go away.
+#
+# Step 1 itself is a courtesy, not a safety property, and the suite says so:
+# with step 1 removed, 46e still passes, because step 3 catches the same
+# situation after the fact. Only the `mv` prevents two holders.
+#
+# Assertions are LOG-based, deliberately. Sampling liveness with `ps` at a wall
+# clock offset — the obvious way to count "runs past the guard" — reports an
+# exited-but-unreaped child as alive, and that flaked 1 run in 3 against correct
+# code while writing this. What each racer DID is recorded in its own log and is
+# not timing-sensitive after the fact.
+check_lock_two_breakers_single_winner() {
+  local tmp dead real_cat b c b_rc c_rc refusals breaks armed
+  tmp="$(new_lock_sandbox)"
+  ( exit 0 ) &
+  dead=$!
+  wait "$dead" 2>/dev/null || true
+  plant_verify_lock "$tmp" "$dead"
+  real_cat="$(command -v cat)"
+  # Sleep on the SECOND read of the pid file — that is the step-1 re-read inside
+  # break_stale_lock_and_acquire — so both racers are held there and arrive at
+  # the `mv` together, each still holding the same dead pid.
+  cat >"$tmp/test-bin/cat" <<STUB
+#!/bin/sh
+case "\$1" in
+  */.verify.lock/pid)
+    n_file="\${CATCOUNT:-$tmp/catcount.default}"
+    n=0
+    [ -f "\$n_file" ] && n="\$("$real_cat" "\$n_file")"
+    n=\$((n + 1))
+    printf '%s' "\$n" >"\$n_file"
+    "$real_cat" "\$@"
+    if [ "\$n" -eq 2 ]; then
+      : >"\${n_file}.armed"
+      sleep 3
+    fi
+    exit 0
+    ;;
+esac
+exec "$real_cat" "\$@"
+STUB
+  chmod +x "$tmp/test-bin/cat"
+
+  CATCOUNT="$tmp/cnt.b" PATH="$tmp/test-bin:$PATH" \
+    bash "$tmp/scripts/verify.sh" >"$tmp/b.log" 2>&1 &
+  b=$!
+  CATCOUNT="$tmp/cnt.c" PATH="$tmp/test-bin:$PATH" \
+    bash "$tmp/scripts/verify.sh" >"$tmp/c.log" 2>&1 &
+  c=$!
+  set +e
+  wait "$b"; b_rc=$?
+  wait "$c"; c_rc=$?
+  set -e
+
+  armed=0
+  [ -f "$tmp/cnt.b.armed" ] && armed=$((armed + 1))
+  [ -f "$tmp/cnt.c.armed" ] && armed=$((armed + 1))
+  refusals=0
+  grep -q 'refusing to start' "$tmp/b.log" && refusals=$((refusals + 1))
+  grep -q 'refusing to start' "$tmp/c.log" && refusals=$((refusals + 1))
+  breaks=0
+  grep -q 'breaking it' "$tmp/b.log" && breaks=$((breaks + 1))
+  grep -q 'breaking it' "$tmp/c.log" && breaks=$((breaks + 1))
+
+  if [ "$armed" -eq 2 ]; then
+    ok "two-breaker race — the window opened on BOTH racers (the case is armed)"
+  else
+    bad "two-breaker race — the window opened on only $armed/2 racers; this case is DISARMED and proves nothing"
+  fi
+  # Exactly one racer may move the lock aside, so exactly one may announce a
+  # break. Two breaks means two runs decided the lock was theirs to destroy.
+  if [ "$breaks" -eq 1 ]; then
+    ok "two-breaker race — exactly one racer broke the stale lock"
+  else
+    bad "two-breaker race — $breaks racers broke the SAME stale lock; the arbitration is not single-winner"
+  fi
+  if [ "$refusals" -eq 1 ]; then
+    ok "two-breaker race — exactly one racer was refused"
+  else
+    bad "two-breaker race — $refusals refusals (expected exactly 1); rc were $b_rc/$c_rc"
+    dump_case_output "$("$real_cat" "$tmp/b.log" "$tmp/c.log" 2>/dev/null || true)"
+  fi
+  # Exit 2 is "declined to run"; exactly one racer must have been turned away
+  # and exactly one must have proceeded.
+  if { [ "$b_rc" -eq 2 ] && [ "$c_rc" -ne 2 ]; } || { [ "$c_rc" -eq 2 ] && [ "$b_rc" -ne 2 ]; }; then
+    ok "two-breaker race — exactly one racer got past the guard (rc $b_rc / $c_rc)"
+  else
+    bad "two-breaker race — both racers got past the guard or both were refused (rc $b_rc / $c_rc)"
+  fi
+  if [ ! -d "$tmp/.verify.lock" ]; then
+    ok "two-breaker race — the winner released the lock on exit, no wedge"
+  else
+    bad "two-breaker race — a lock survived both racers; the next run in that checkout is WEDGED"
+  fi
+  rm -rf "$tmp"
+}
+
+# F2 — `holder_is_alive` must not read EPERM as "dead". `kill -0` cannot tell
+# "no such process" from "alive, but not yours to signal", so a lock held by a
+# root-owned run (`sudo bash scripts/verify.sh`, a CI runner that switches user)
+# would be broken while its owner was still working in the labs. `ps -p` asks
+# the question actually being asked.
+#
+# pid 1 is the portable EPERM holder: alive on every unix, owned by root,
+# unsignalable by an ordinary user. The precondition is ASSERTED rather than
+# assumed — as root, or in a container whose pid 1 belongs to this uid, the
+# asymmetry does not exist and the case would pass vacuously against either
+# implementation, so it reports itself as not applicable instead of green.
+check_lock_treats_eperm_holder_as_alive() {
+  local tmp out rc
+  if kill -0 1 2>/dev/null || ! ps -p 1 >/dev/null 2>&1; then
+    note "EPERM holder case not applicable here (uid $(id -u): pid 1 is signalable, or absent) — skipped, not passed"
+    return 0
+  fi
+  tmp="$(new_lock_sandbox)"
+  plant_verify_lock "$tmp" 1
+  set +e
+  out="$(PATH="$tmp/test-bin:$PATH" bash "$tmp/scripts/verify.sh" 2>&1)"
+  rc=$?
+  set -e
+  if [ "$rc" -ne 0 ] && has_text "$out" "$LOCK_REFUSAL_NEEDLE" \
+     && ! has_text "$out" "breaking it" && [ -d "$tmp/.verify.lock" ]; then
+    ok "concurrency guard — a holder this user cannot signal (EPERM) counts as ALIVE, so its lock is refused intact"
+  else
+    bad "concurrency guard — an unsignalable but LIVE holder was treated as dead; got exit $rc"
+    dump_case_output "$out"
+  fi
+  rm -rf "$tmp"
+}
+
 check_lock_break_is_not_a_race
+check_lock_two_breakers_single_winner
+check_lock_treats_eperm_holder_as_alive
 check_lock_reports_unusable_lock_path
 check_lock_released_after_kill
 

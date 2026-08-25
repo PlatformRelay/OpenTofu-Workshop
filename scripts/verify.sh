@@ -192,6 +192,25 @@ write_verify_lock_metadata() {
   date                          >"$VERIFY_LOCK_DIR/started" 2>/dev/null || true
 }
 
+# Refuse, naming whoever holds the lock RIGHT NOW rather than whatever this
+# process happened to read earlier (review F5). Falls back to the caller's
+# values when the lock has since vanished, so the message degrades to stale
+# information rather than to no information. Without this, the refusal after a
+# lost `mv` race printed the DEAD pid we had just decided to break, announced as
+# "already running" — a message that is precisely, confidently wrong, in a lane
+# whose thesis is that gate messages must not lie.
+refuse_with_current_holder() {
+  local fb_pid="$1" fb_host="$2" fb_when="$3"
+  local pid host when
+  pid="$(cat "$VERIFY_LOCK_DIR/pid" 2>/dev/null || true)"
+  host="$(cat "$VERIFY_LOCK_DIR/host" 2>/dev/null || true)"
+  when="$(cat "$VERIFY_LOCK_DIR/started" 2>/dev/null || true)"
+  [ -n "$pid" ]  || pid="$fb_pid"
+  [ -n "$host" ] || host="$fb_host"
+  [ -n "$when" ] || when="$fb_when"
+  refuse_concurrent_run "$pid" "$host" "$when"
+}
+
 refuse_concurrent_run() {
   local pid="$1" host="$2" when="$3"
   bad "another verify.sh is already running in this checkout — refusing to start"
@@ -211,8 +230,47 @@ refuse_concurrent_run() {
   exit 2
 }
 
-# Break a lock whose recorded holder is gone, and take it — or refuse. Never
-# return without doing one of those two things.
+# Undo a `mv` that turned out to have moved somebody's LIVE lock aside.
+#
+# NOT `mv "$stale_dir" "$VERIFY_LOCK_DIR"` (review F3). When the destination
+# already exists as a directory, mv(1) does not fail and does not replace — it
+# moves the source INSIDE the destination, returning 0. Verified:
+#
+#     mv src dst   →  rc 0,  dst/pid  dst/src/pid
+#
+# So the old `|| rm -rf "$stale_dir"` fallback was unreachable in exactly the
+# case it existed to handle, the new holder's lock silently gained a nested
+# `.verify.lock.stale.NNN`, and the victim — still believing it holds the lock —
+# would delete the NEW holder's directory on its way out.
+#
+# `mkdir` is the atomic test-and-set that mv(1) is not: it succeeds only if
+# nothing is there. So restore = claim the empty slot, then repopulate it with
+# the metadata we moved. If someone else has already taken the slot, we restore
+# NOTHING and drop the copy, which is the correct outcome — their lock is live
+# and ours is a stale snapshot.
+#
+# RESIDUAL, stated rather than called "best effort": between the `mv` and this
+# `mkdir` the victim's lock does not exist, so a third racer can acquire in that
+# gap. Then the victim holds VERIFY_LOCK_HELD=1 while a different process owns
+# the directory, and the victim's exit will `rm -rf` a lock it no longer owns.
+# Reaching that needs three racers AND a hand-deleted lock AND microsecond
+# timing; it is not covered by a self-test, and it is the known limit of this
+# design rather than something the code silently handles.
+restore_moved_lock() {
+  local stale_dir="$1"
+  if mkdir "$VERIFY_LOCK_DIR" 2>/dev/null; then
+    # `.`-glob free: copy the metadata files we know we wrote.
+    local f
+    for f in pid host started; do
+      [ -f "$stale_dir/$f" ] && cp "$stale_dir/$f" "$VERIFY_LOCK_DIR/$f" 2>/dev/null
+    done
+  fi
+  rm -rf "$stale_dir"
+  return 0
+}
+
+# Break a lock whose holder is gone, and take it — or refuse. Never return
+# without doing one of those two things.
 #
 # THE BUG THIS EXISTS TO CLOSE (review G1). The obvious form is
 #
@@ -248,26 +306,26 @@ break_stale_lock_and_acquire() {
   local stale_dir="$VERIFY_LOCK_DIR.stale.$$" moved_pid
   # 1. Re-read first, cheaply and with no side effects. If the holder changed
   #    between the read above and now, someone re-acquired and there is nothing
-  #    stale here — leave their lock strictly alone.
+  #    stale here — leave their lock strictly alone. This is a courtesy, NOT the
+  #    safety property: step 2 is what actually prevents two holders, and the
+  #    two-breaker self-test drives step 2 with this step already satisfied.
   if [ "$(cat "$VERIFY_LOCK_DIR/pid" 2>/dev/null || true)" != "$pid" ]; then
-    refuse_concurrent_run \
-      "$(cat "$VERIFY_LOCK_DIR/pid" 2>/dev/null || true)" \
-      "$(cat "$VERIFY_LOCK_DIR/host" 2>/dev/null || true)" \
-      "$(cat "$VERIFY_LOCK_DIR/started" 2>/dev/null || true)"
+    refuse_with_current_holder "$pid" "$host" "$when"
   fi
-  # 2. Claim the break by moving the lock aside. Exactly one racer wins.
+  # 2. Claim the break by moving the lock aside. THIS is the arbitration: of any
+  #    number of racers that got past step 1 holding the same dead pid, exactly
+  #    one `rename(2)` can succeed, and the losers find their source gone.
   if ! mv "$VERIFY_LOCK_DIR" "$stale_dir" 2>/dev/null; then
-    refuse_concurrent_run "$pid" "$host" "$when"
+    refuse_with_current_holder "$pid" "$host" "$when"
   fi
-  # 3. Confirm what was actually moved. Step 1 can still be beaten by a very
-  #    narrow interleaving (a lock removed by hand, then re-acquired, between
-  #    the re-read and the `mv`), and this is the last chance to notice before
-  #    the contents are gone. Put it back if so — best effort, because by then
-  #    the correct owner is someone else's business, not this run's.
+  # 3. Confirm what was actually moved. Step 1 can still be beaten by a narrow
+  #    interleaving — a lock removed by hand and re-acquired between the re-read
+  #    and the `mv` — and this is the last chance to notice before the contents
+  #    are gone.
   moved_pid="$(cat "$stale_dir/pid" 2>/dev/null || true)"
   if [ "$moved_pid" != "$pid" ]; then
-    mv "$stale_dir" "$VERIFY_LOCK_DIR" 2>/dev/null || rm -rf "$stale_dir"
-    refuse_concurrent_run "$moved_pid" "$host" "$when"
+    restore_moved_lock "$stale_dir"
+    refuse_with_current_holder "$moved_pid" "$host" "$when"
   fi
   warn "stale $VERIFY_LOCK_DIR left by pid $pid (no longer running) — breaking it"
   rm -rf "$stale_dir"
@@ -278,10 +336,7 @@ break_stale_lock_and_acquire() {
   fi
   # Someone acquired in the instant after the break. Correct and expected —
   # breaking is not acquiring.
-  refuse_concurrent_run \
-    "$(cat "$VERIFY_LOCK_DIR/pid" 2>/dev/null || true)" \
-    "$(cat "$VERIFY_LOCK_DIR/host" 2>/dev/null || true)" \
-    "$(cat "$VERIFY_LOCK_DIR/started" 2>/dev/null || true)"
+  refuse_with_current_holder "$pid" "$host" "$when"
 }
 
 acquire_verify_lock() {
