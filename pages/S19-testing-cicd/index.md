@@ -17,7 +17,7 @@ Then: Start with the stages a trustworthy IaC pipeline must light up.
 
 ---
 layout: topology
-clicks: 4
+clicks: 5
 ---
 
 <span class="kw-kicker">S19 · pipeline stages</span>

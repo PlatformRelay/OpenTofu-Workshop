@@ -54,7 +54,7 @@ clicks: 3
   </KwCard>
 </div>
 
-<p v-click class="mt-8 text-center text-sm opacity-75">
+<p class="mt-8 text-center text-sm opacity-75">
 Shipped artifact: <code>examples/capstone/</code> — base path is plain OpenTofu.
 </p>
 

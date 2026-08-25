@@ -206,7 +206,7 @@ Then: "Those dotted names are the wiring — let's make references explicit."
 -->
 
 ---
-clicks: 4
+clicks: 5
 ---
 
 <span class="kw-kicker">The wiring</span>

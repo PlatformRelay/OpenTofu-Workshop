@@ -81,7 +81,7 @@ Then: Show where it sits relative to tofu.
 
 ---
 layout: topology
-clicks: 4
+clicks: 5
 ---
 
 <span class="kw-kicker">S20 · layering</span>

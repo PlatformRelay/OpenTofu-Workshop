@@ -53,7 +53,7 @@ clicks: 3
   </KwCard>
 </div>
 
-<p v-click class="mt-8 text-center text-sm opacity-75">
+<p class="mt-8 text-center text-sm opacity-75">
 Paper fixture under <code>labs/day-3/25-terramate-ci-cloud/</code> — no Actions runner required.
 </p>
 
