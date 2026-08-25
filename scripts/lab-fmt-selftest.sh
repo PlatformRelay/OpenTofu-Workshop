@@ -31,12 +31,24 @@
 # defect this lane criticises in ci.yml, reintroduced by the fix itself.
 #
 # Every case runs against a throwaway git repo in a temp dir. Nothing here
-# touches the real worktree except cases 7 and 10, which only READ tracked files.
+# touches the real worktree: cases 7 and 10 only READ tracked files, and they are
+# the only cases that look at it at all. That sentence was FALSE at the previous
+# commit — case 10 ran `task lab:fmt --dry -v` in the real repo, and `--dry` runs
+# `preconditions:`, so the self-test could destroy the fixture and still report
+# PASSED. See case 10's header. Anything added here that writes outside $TMP
+# makes this sentence a lie again.
 #
-# CI CONTRACT. .github/workflows/ci.yml discovers scripts/*-selftest.sh by glob
-# (US-F-CIPARITY), so this script runs on every push and a failure here reds
-# verify-unit for everyone. It must therefore never fail for environmental
-# reasons:
+# CI CONTRACT. AS OF THIS COMMIT THIS SCRIPT DOES NOT RUN IN CI.
+# .github/workflows/ci.yml's `verify-unit` job hand-enumerates its self-tests at
+# lines 194-196 and does not list this one — which is exactly what the comment on
+# `task verify` in Taskfile.yaml says, and both statements must stay in agreement.
+# An earlier version of this header claimed glob discovery was already in place;
+# it is not, it lives on the unmerged lane/us-f-ciparity, and asserting otherwise
+# put two files in one diff contradicting each other about a third.
+#
+# The contract below is written for WHEN that lands, because at that point a
+# failure here reds verify-unit for everyone. Meeting it now costs nothing and
+# means the merge does not need a second pass:
 #   * No network, no Docker, no package manager. External binaries used are
 #     git, tofu, awk, sed, grep, cmp, mktemp, cp, mkdir, rm, chmod — all present
 #     on a bare ubuntu-latest runner.
@@ -374,15 +386,27 @@ PC_EXCLUDE=""
 PC_WHERE=""
 if [ -f "$PRECOMMIT" ]; then
   # Per-hook exclude, bounded to the terraform_fmt hook.
+  # Buffer the WHOLE hook mapping and inspect it, rather than scanning forward
+  # from the `id:` line. YAML mapping keys are unordered, so an `exclude:`
+  # written ABOVE `id:` in the same item is valid, is honoured by pre-commit, and
+  # was invisible to a forward scan — the repo-level fallback then found nothing
+  # and the check reported the benign "no exclude yet" green, silently disarmed
+  # forever after. Buffering is the only way to be order-independent.
   PC_EXCLUDE="$(awk '
-    /^[[:space:]]*-[[:space:]]*id:[[:space:]]*terraform_fmt[[:space:]]*$/ { inhook = 1; next }
-    inhook && /^[[:space:]]*-[[:space:]]*id:[[:space:]]*/ { exit }
-    inhook && /^[[:space:]]*exclude:[[:space:]]*/ { print; exit }
-  ' "$PRECOMMIT")"
+    /^[[:space:]]*-[[:space:]]*id:[[:space:]]*/ || /^[[:space:]]*-[[:space:]]*[a-z_]+:[[:space:]]*/ {
+      if (buf != "" ) { if (isfmt) { print buf; buf = ""; isfmt = 0; exit } }
+      buf = $0 "\n"; isfmt = ($0 ~ /id:[[:space:]]*terraform_fmt[[:space:]]*$/); next
+    }
+    buf != "" {
+      buf = buf $0 "\n"
+      if ($0 ~ /id:[[:space:]]*terraform_fmt[[:space:]]*$/) { isfmt = 1 }
+    }
+    END { if (isfmt) print buf }
+  ' "$PRECOMMIT" | grep -m1 -E '^[[:space:]]*-?[[:space:]]*exclude:' || true)"
   PC_WHERE="the terraform_fmt hook"
   if [ -z "$PC_EXCLUDE" ]; then
     # Repo-level top-level exclude (column 0), which applies to every hook.
-    PC_EXCLUDE="$(grep -m1 '^exclude:[[:space:]]*' "$PRECOMMIT" || true)"
+    PC_EXCLUDE="$(grep -m1 -E '^exclude:' "$PRECOMMIT" || true)"
     PC_WHERE="the repo-level exclude"
   fi
 fi
