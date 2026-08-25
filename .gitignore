@@ -62,6 +62,14 @@ references/
 # tree — including its copy of the deliberately-unformatted S13 fixture.
 /.worktrees/
 
+# scripts/verify.sh's concurrency-guard lock directory (owner: scripts/verify.sh,
+# US-F-GATEHYG). Created for the duration of a run and removed on exit, so the
+# working tree would otherwise read as DIRTY for as long as any verify.sh runs —
+# and several gates in this repo, including this lane's own positive control,
+# use an empty `git status --porcelain` as evidence. A lock is never committable,
+# so this line is inert if that guard is never landed.
+/.verify.lock
+
 # Keep deck docs even if ignored globally
 !AGENTS.md
 
