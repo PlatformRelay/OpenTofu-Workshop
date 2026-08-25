@@ -79,7 +79,8 @@ const slots = useSlots()
   line these slides carry is 86 columns (S18's captured `infracost` table) and
   it must not be clipped — an invisible right-hand column is the same defect
   this layout's notes slot exists to fix. `scripts/slide-slots.test.mjs` gates
-  that budget at 90 columns.
+  that budget at 88 columns, calibrated by measuring an exported frame; changing
+  the geometry below means re-measuring it, not guessing.
 
   Code size MUST be set through --slidev-code-font-size: Slidev's own
   `.slidev-code { font-size: var(--slidev-code-font-size) !important }`

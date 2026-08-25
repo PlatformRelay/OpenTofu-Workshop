@@ -94,10 +94,14 @@ describe('theme layouts declare the slots the decks fill', () => {
     // Filling ::notes:: turns code-walkthrough into code + rail, which costs the
     // code roughly a third of its width. The column overflows with `overflow:
     // auto`, so anything past the budget is clipped — invisible content again,
-    // the very defect the notes slot was added to fix. Measured capacity at the
-    // layout's --slidev-code-font-size is ~91 columns; gate 90 to keep a margin.
+    // the very defect the notes slot was added to fix. Capacity at the layout's
+    // --slidev-code-font-size measured ~91 columns off an exported frame, which
+    // is worth roughly +/- 2 columns, so the budget sits below the bottom of
+    // that interval. RAISING IT REQUIRES RE-MEASURING THE SAME WAY: export a
+    // railed slide with `slidev export --with-clicks` (no --per-slide) and read
+    // the real column width off the frame. Do not guess it upward.
     // Width only: nothing in this repo gates slide HEIGHT.
-    const MAX_RAILED_CODE_COLUMNS = 90
+    const MAX_RAILED_CODE_COLUMNS = 88
     const wide = []
     for (const { abs, slides } of readPageSlides(root)) {
       const rel = relative(root, abs)
