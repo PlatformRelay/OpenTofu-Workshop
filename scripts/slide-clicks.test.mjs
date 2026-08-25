@@ -120,8 +120,12 @@ export function requiredClicks(body, where = '<slide>') {
     if (fence) {
       const marker = fence[1]
       let end = lines.length
+      // Match the close on the trimmed line: Slidev keeps the opener's
+      // indentation in its marker, which would miss the close of an indented
+      // fence and silently skip every click token after it. (No page uses an
+      // indented fence today; this keeps the scanner honest if one appears.)
       for (let j = i + 1; j < lines.length; j++) {
-        if (lines[j].startsWith(marker)) { end = j; break }
+        if (lines[j].trimStart().startsWith(marker)) { end = j; break }
       }
       relative_(fenceDelta(fence[2].trim(), lines.slice(i + 1, end)))
       i = end
@@ -203,6 +207,10 @@ describe('click accounting model', () => {
 
   it('counts magic-move blocks as blocks - 1', () => {
     assert.equal(requiredClicks('````md magic-move\n```hcl\na\n```\n```hcl\nb\n```\n```hcl\nc\n```\n````'), 2)
+  })
+
+  it('finds the close of an indented fence, so later clicks are not skipped', () => {
+    assert.equal(requiredClicks('<div>\n  ```hcl\n  a\n  ```\n</div>\n<p v-click>after</p>'), 1)
   })
 
   it('counts v-clicks list children, HTML and markdown alike', () => {

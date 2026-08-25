@@ -73,18 +73,35 @@ const slots = useSlots()
   line-height: 1.5;
 }
 
-/* With a ::notes:: rail the code shares the row instead of the column. */
+/*
+  With a ::notes:: rail the code shares the row instead of the column, so the
+  split is deliberately code-heavy and the type steps down to match. The widest
+  line these slides carry is 86 columns (S18's captured `infracost` table) and
+  it must not be clipped — an invisible right-hand column is the same defect
+  this layout's notes slot exists to fix. `scripts/slide-slots.test.mjs` gates
+  that budget at 90 columns.
+
+  Code size MUST be set through --slidev-code-font-size: Slidev's own
+  `.slidev-code { font-size: var(--slidev-code-font-size) !important }`
+  (@slidev/client/styles/code.css:40) beats any `font-size` a layout declares.
+*/
 .kw-cw-body--railed {
   display: grid;
-  grid-template-columns: 1.5fr 1fr;
-  gap: 1.2rem;
+  grid-template-columns: 2.2fr 1fr;
+  gap: 1rem;
   align-items: stretch;
   overflow: hidden;
+  --slidev-code-font-size: 10.4px;
+  --slidev-code-line-height: 1.45;
 }
 
-.kw-cw-body--railed :deep(pre.slidev-code) {
-  font-size: 0.78em;
-  line-height: 1.42;
+.kw-cw-body--railed .kw-cw-rail :deep(.kw-code-note) {
+  padding: 0.5rem 0.7rem;
+}
+
+.kw-cw-body--railed .kw-cw-rail :deep(.kw-code-note-body) {
+  font-size: 0.74rem;
+  line-height: 1.4;
 }
 
 .kw-cw-rail {

@@ -90,6 +90,39 @@ describe('theme layouts declare the slots the decks fill', () => {
     )
   })
 
+  it('code-walkthrough slides with a ::notes:: rail keep their code inside the narrowed column', () => {
+    // Filling ::notes:: turns code-walkthrough into code + rail, which costs the
+    // code roughly a third of its width. The column overflows with `overflow:
+    // auto`, so anything past the budget is clipped — invisible content again,
+    // the very defect the notes slot was added to fix. Measured capacity at the
+    // layout's --slidev-code-font-size is ~91 columns; gate 90 to keep a margin.
+    // Width only: nothing in this repo gates slide HEIGHT.
+    const MAX_RAILED_CODE_COLUMNS = 90
+    const wide = []
+    for (const { abs, slides } of readPageSlides(root)) {
+      const rel = relative(root, abs)
+      for (const slide of slides) {
+        if (slide.frontmatter.layout !== 'code-walkthrough') continue
+        const body = stripHtmlComments(slide.body)
+        if (!/^::notes::\s*$/m.test(body)) continue
+        for (const fence of body.matchAll(/```[\w-]*[^\n]*\n([\s\S]*?)```/g)) {
+          for (const [i, line] of fence[1].split('\n').entries()) {
+            if (line.length > MAX_RAILED_CODE_COLUMNS) {
+              wide.push(`${rel}:${slide.startLine} (fence line ${i + 1}) is ${line.length} columns: ${line}`)
+            }
+          }
+        }
+      }
+    }
+    assert.deepEqual(
+      wide,
+      [],
+      wide.length
+        ? `the ::notes:: rail narrows the code column; these lines would be clipped out of sight:\n${wide.join('\n')}`
+        : undefined,
+    )
+  })
+
   it('two-column layouts move the slide intro to the header when ::left:: is used', () => {
     // With an explicit ::left:: the default slot holds the kicker + H1. Without
     // the guard those render inside the left panel instead of the header.
