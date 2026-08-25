@@ -12,7 +12,7 @@ through **S26** are shipped; optional sections stay skippable via cut-order /
 
 | Day | Serve | Preflight |
 | --- | --- | --- |
-| Any | `task setup` then `task dev:3day` | `tofu version` ≥1.8; Docker (or k8s path) for LocalStack labs |
+| Any | `task setup` then `task dev:3day` | `tofu version` ≥1.9; Docker (or k8s path) for LocalStack labs |
 | 1–2 LocalStack labs | `task lab:up` before the first `localstack ✓` step | Health: <http://localhost:4566/_localstack/health> |
 | 2 scanners | TFLint, Trivy, Checkov, Conftest on `PATH` | `task setup` optional Day-2 tools |
 | 3 Terramate | Terramate on `PATH` (spoilers pinned ~0.17.x) | No Docker required for S20–S25 path |

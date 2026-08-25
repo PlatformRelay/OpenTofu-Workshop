@@ -215,7 +215,7 @@ Then: "To get there on your own machine, you need four things installed."
 # Required toolchain
 
 <div class="kw-cols-2 mt-4">
-  <KwCard heading="tofu ≥ 1.8" icon="🧊">
+  <KwCard heading="tofu ≥ 1.9" icon="🧊">
     The OpenTofu CLI. Everything runs through <code>tofu init / plan / apply</code>.
   </KwCard>
   <KwCard heading="Docker + LocalStack" icon="🐳">

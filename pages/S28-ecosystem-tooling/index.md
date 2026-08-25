@@ -83,9 +83,9 @@ tofu version   # ← the pinned engine
 ```
 
 - **tenv** — successor to `tfenv`/`tofuenv`; one binary manages **OpenTofu,
-  Terraform, Terragrunt, Atmos**.
+  Terraform, Terragrunt, Terramate, Atmos**.
 - Resolves versions per project (args, env, or an `.opentofu-version` file).
-- **Not** part of `task setup` here — any `tofu ≥ 1.8` runs the labs. Adopt
+- **Not** part of `task setup` here — `tofu ≥ 1.8` runs most labs (Labs 06 and 10 need ≥ 1.9). Adopt
   it at work.
 
 <!--
@@ -93,11 +93,12 @@ Say: Left side is what the repository already does: versions.env is the single
 source of truth for every reproducibility-critical tool version, and the
 verify script fails the build when any consumer drifts from it. Right side is
 the laptop half of the same idea: tenv, the actively maintained successor to
-tfenv and tofuenv, is one binary that manages OpenTofu, Terraform, Terragrunt,
+tfenv and tofuenv, is one binary that manages OpenTofu, Terraform, Terragrunt, Terramate,
 and Atmos, and resolves the wanted version per project — from arguments or a
 version file like dot-opentofu-version. Be explicit about the boundary: this
 workshop deliberately does not require tenv — any tofu one-point-eight or newer
-works — so the takeaway is a pattern to carry to work, not a new setup step.
+runs most labs, and Labs 06 and 10 need one-point-nine — so the takeaway is a
+pattern to carry to work, not a new setup step.
 (~4 min)
 Then: "Second friction — module docs that lie."
 -->

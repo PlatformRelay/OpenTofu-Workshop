@@ -84,7 +84,7 @@ CI, and the bootstrap all read it, and `scripts/verify.sh` fails on skew.
 
 **tenv** is the version-manager half of the story: the actively maintained
 successor to `tfenv`/`tofuenv`, one binary that manages **OpenTofu, Terraform,
-Terragrunt, and Atmos**. With it installed you would mirror the repo pin
+Terragrunt, Terramate, and Atmos**. With it installed you would mirror the repo pin
 locally:
 
 ```bash

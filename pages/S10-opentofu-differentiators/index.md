@@ -62,7 +62,8 @@ clicks: 6
 
 <div v-click="6" class="mt-6 kw-muted text-sm">
 
-Current baseline: **OpenTofu 1.12.x** (supported to 2027-02-01). We'll dig into
+Current baseline: **OpenTofu 1.12.x** (supported to 2027-02-01) — the workshop
+toolchain pins **1.10.3** (`versions.env`) for reproducibility. We'll dig into
 the **1.9** pair — provider `for_each` and `-exclude` — in the lab.
 
 </div>

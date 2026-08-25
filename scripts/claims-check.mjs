@@ -1,11 +1,20 @@
 #!/usr/bin/env node
 // Verify every correction row in docs/claims-verification.md still points at real text.
 //
-// US-C-FACTS ships a correction list that a later lane applies literally and
-// blind. Its value is entirely in the pointers: file, line, and the exact
-// `Current` string. Those rot the moment anything above them shifts — and a
+// US-C-FACTS phase 1 shipped a correction list that phase 2 applied literally and
+// blind. Its value was entirely in the pointers: file, line, and the exact
+// quoted string. Those rot the moment anything above them shifts — and a
 // stale pointer sends an editor to the wrong line with a plausible-looking
 // quote, which is worse than no pointer at all.
+//
+// PHASE 2 FLIPPED WHAT THIS PROVES, WITHOUT CHANGING A LINE OF THIS SCRIPT.
+// The checked column used to hold the PRE-correction text, so a green run meant
+// "the corrections still point at real text". It now holds the APPLIED text, so
+// a green run means "the corrections are still in place" — this is the
+// regression guard against someone reverting or overwriting one of the 31.
+// The column was renamed `Current` -> `Now reads` in the document; this script
+// reads it positionally (4th cell) and so needed no change. Say that out loud
+// rather than leaving a reader to infer it from a header that moved.
 //
 // This script re-derives the assertion FROM THE DOCUMENT rather than from a
 // parallel hand-maintained list. That distinction is the whole point: an
@@ -14,10 +23,12 @@
 // apart. Parsing the table means the check cannot disagree with what ships.
 //
 // Contract per row:
-//   | L<n> | `path` | <line-or-range> | <Current cell> | <Corrected> | <src> |
-// Every code span in the Current cell must appear verbatim within the named
+//   | L<n> | `path` | <line-or-range> | <Now-reads cell> | <Before> | <src> |
+// Every code span in the 4th cell must appear verbatim within the named
 // line range, widened by WRAP_SLACK lines so a quote that wraps across two
-// source lines still resolves.
+// source lines still resolves. Multi-line edits are quoted as one span per
+// source line: the search window is joined with newlines, so a single span
+// straddling a line break can never match.
 //
 // Two failure modes this check learned the hard way, both now fatal:
 //

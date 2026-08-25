@@ -65,7 +65,7 @@ missing. It is safe to rerun and never installs without confirmation.
 
 | Scope | Tools |
 | --- | --- |
-| Decks and Day 1 | OpenTofu ≥1.8, Node.js ≥20, pnpm, Task, Docker |
+| Decks and Day 1 | OpenTofu ≥1.9, Node.js ≥20, pnpm, Task, Docker |
 | Day 2 static analysis | TFLint |
 | Day 2 security and policy | Trivy, Checkov, Conftest |
 | Day 3 scale labs | Terramate |

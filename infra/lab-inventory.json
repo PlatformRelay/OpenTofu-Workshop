@@ -178,7 +178,7 @@
       "day": 1,
       "environment": "`localstack ✓`",
       "tools": "Docker + LocalStack",
-      "pinned": "OpenTofu ≥1.8; `:4566`",
+      "pinned": "OpenTofu ≥1.9; `:4566`",
       "validationState": "unrun",
       "estimatedDurationMin": 25,
       "automationTier": "localstack",

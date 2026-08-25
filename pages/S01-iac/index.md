@@ -349,7 +349,7 @@ rightBadge: 'BUSL 1.1'
 
 - **Open source** — OSI-approved, no field-of-use limit
 - Use, modify, and build a **commercial** product on it freely
-- Governed by the **Linux Foundation** (neutral, community)
+- Governed by the **Linux Foundation**; a **CNCF Sandbox** project since 2025-04-23 (neutral, community)
 - HCL- and CLI-**compatible** — low-friction to adopt
 
 ::right::

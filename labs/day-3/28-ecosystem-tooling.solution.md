@@ -23,8 +23,8 @@ $ grep -n "TOFU_VERSION" versions.env
 `versions.env` is the toolchain pin's single source of truth — Taskfile,
 docker compose, CI, and the bootstrap consume it, and `scripts/verify.sh`
 fails on consumer skew. **tenv** — the actively maintained successor to
-`tfenv`/`tofuenv`, one binary for OpenTofu, Terraform, Terragrunt, and
-Atmos — is how a laptop mirrors that pin per project:
+`tfenv`/`tofuenv`, one binary for OpenTofu, Terraform, Terragrunt, Terramate,
+and Atmos — is how a laptop mirrors that pin per project:
 
 ```bash
 tenv tofu install 1.10.3
@@ -32,9 +32,10 @@ tenv tofu use 1.10.3
 tofu version
 ```
 
-The workshop keeps tenv **out of `task setup`** on purpose: any `tofu ≥ 1.8`
-runs the labs. tenv earns its place at work, where different projects pin
-different engine versions (e.g. via `.opentofu-version` files).
+The workshop keeps tenv **out of `task setup`** on purpose: `tofu ≥ 1.8` runs
+most labs, and Labs 06 and 10 need ≥ 1.9. tenv earns its place at work, where
+different projects pin different engine versions (e.g. via `.opentofu-version`
+files).
 
 </details>
 

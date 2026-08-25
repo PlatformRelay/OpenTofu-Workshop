@@ -41,7 +41,7 @@ Then: Walk the 2026 field on those axes.
 # Head-to-head — and one strike-through
 
 <div class="kw-stamp">
-Facts verified 2026-07 — re-check maintenance status before you ship a standard.
+Facts verified 2026-08-25 — re-check maintenance status before you ship a standard.
 </div>
 
 <table class="kw-scanner-table mt-3">
@@ -132,7 +132,7 @@ Facts verified 2026-07 — re-check maintenance status before you ship a standar
 
 <!--
 Say: Click through the rows. Trivy config is the successor to tfsec — teach
-`trivy config`, not a dead binary. Checkov remains a strong broad ruleset.
+`trivy config`, not the superseded binary. Checkov remains a strong broad ruleset.
 Terrascan is the cautionary tale: archived 2025-11-20 — strike it through out
 loud so nobody standardises on a read-only repo. KICS and Snyk IaC stay in the
 comparison set. (~4 min)
@@ -143,7 +143,7 @@ Then: Separate scanning from organization policy.
 layout: comparison
 ---
 
-<span class="kw-kicker">dead tools · don't adopt ghosts</span>
+<span class="kw-kicker">superseded &amp; archived · don't adopt either</span>
 
 # Two load-bearing facts
 
@@ -153,7 +153,7 @@ layout: comparison
 
 - Aqua merged **tfsec** into Trivy (2023)
 - Command today: **`trivy config`**
-- New material should not teach `tfsec`
+- Still published (v1.28.14, 2025-05-02) but superseded — new material should not teach `tfsec`
 
 ::right::
 
@@ -166,7 +166,7 @@ layout: comparison
 <p v-click class="mt-5 text-sm opacity-75">Maintenance status beats a long feature checklist.</p>
 
 <!--
-Say: Say these two facts slowly — they are the workshop's "don't teach the dead
+Say: Say these two facts slowly — they are the workshop's "don't teach the superseded or archived
 tool" pair. If someone still has tfsec in a pipeline, the migration path is
 Trivy config. If someone proposes Terrascan in 2026, the answer is no. (~2 min)
 Then: Policy engines sit beside scanners, not inside every one of them.
@@ -192,9 +192,9 @@ layout: comparison
 
 ### Sentinel
 
-- **TFC / HCP Terraform only**
+- **HashiCorp products only** — HCP Terraform / Terraform Enterprise, Vault, Nomad
 - Proprietary policy language
-- Fine inside that product — not a portable default
+- Fine inside those products — not a portable default
 
 <p v-click class="mt-5 text-sm opacity-75">Generic misconfig ≠ cost_center must be present.</p>
 
@@ -202,7 +202,7 @@ layout: comparison
 Say: Built-in scanner rules encode common cloud hygiene. Organization policy —
 required tags, approved module sources, region allow-lists — belongs in Rego
 via Conftest/OPA when you want portability. Sentinel is real and useful, but it
-is tied to HashiCorp's cloud product; do not present it as the OpenTofu-first
+is tied to HashiCorp's own products; do not present it as the OpenTofu-first
 default. (~3 min)
 Then: Land the 2026 recommendation in one sentence.
 -->
@@ -239,7 +239,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = "~> 6.0"
     }
   }
 }
@@ -415,10 +415,10 @@ next: 'S16 · Native tofu test'
 # Scan with Trivy; encode org policy in Rego
 
 - Compare scanners on **coverage / speed / policy / ecosystem / maintenance**.
-- **tfsec → Trivy**; **Terrascan → archived** — do not teach ghosts.
+- **tfsec → Trivy** (superseded); **Terrascan → archived** — teach neither.
 - **Checkov** is a strong peer, not the automatic hero.
 - **2026 lean default:** Trivy for scanning + Conftest/OPA for org policy.
-- Sentinel stays TFC-only; portable policy prefers OPA.
+- Sentinel stays inside HashiCorp's products; portable policy prefers OPA.
 
 <p v-click class="mt-8 text-xl font-semibold">Misconfig scanners ≠ your organization's rules.</p>
 

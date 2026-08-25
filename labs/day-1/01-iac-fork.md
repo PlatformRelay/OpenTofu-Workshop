@@ -335,9 +335,10 @@ called `terraform {}`?
 - **2024-01-10** — **OpenTofu 1.6** shipped as a stable, drop-in-compatible GA,
   now governed by the **Linux Foundation**.
 
-So OpenTofu stays **MPL 2.0** (truly open source, Linux-Foundation-governed) and
-keeps HCL compatibility — which is why the block is still `terraform {}` but the
-CLI you run, and everything this workshop teaches, is `tofu`.
+So OpenTofu stays **MPL 2.0** (truly open source, Linux-Foundation-governed,
+CNCF Sandbox since 2025-04-23) and keeps HCL compatibility — which is why the
+block is still `terraform {}` but the CLI you run, and everything this workshop
+teaches, is `tofu`.
 
 <details><summary>Question: what does the MPL-2.0-vs-BUSL-1.1 difference mean for you?</summary>
 

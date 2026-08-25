@@ -26,7 +26,7 @@ Two more things to keep straight before you start:
 
 ## How to use this checklist
 
-1. On a fresh machine (or fresh user account): `task setup`, confirm `tofu version` ≥1.8.
+1. On a fresh machine (or fresh user account): `task setup`, confirm `tofu version` ≥1.9.
 2. Before the first `localstack ✓` step: `task lab:up` and confirm
    <http://localhost:4566/_localstack/health>.
 3. Work top to bottom. For each section: run slides in one window, do the lab in another,
@@ -39,7 +39,7 @@ Two more things to keep straight before you start:
 
 ## Pre-flight (once, before Section S00)
 
-- [ ] OpenTofu ≥1.8 on `PATH` (`task setup`).
+- [ ] OpenTofu ≥1.9 on `PATH` (`task setup`).
 - [ ] Docker running (or k8s LocalStack route documented in `setup/localstack.md`).
 - [ ] For Day 2: TFLint, Trivy, Checkov, Conftest on `PATH` when rehearsing S13–S14.
 - [ ] For Day 3: Terramate CLI (`terramate version`) when rehearsing S20–S25.

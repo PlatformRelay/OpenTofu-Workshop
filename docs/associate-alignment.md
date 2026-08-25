@@ -66,7 +66,7 @@ facilitator never has to guess whether a gap is accidental.
 | Theme | Why out of scope |
 | --- | --- |
 | Hands-on **HCP Terraform** (remote backend/`cloud` block, VCS-triggered runs, run UI, projects/workspaces as a daily driver) | OpenTofu-first workshop; HCP Terraform runs Terraform only. S11 explains the filter; S19 teaches portable CI, not HCP operations. |
-| **Sentinel** policy authoring | TFC/HCP-only. S14 contrasts it with portable OPA/Conftest and does not teach Sentinel. |
+| **Sentinel** policy authoring | HashiCorp products only (HCP Terraform / Terraform Enterprise, Vault, Nomad). S14 contrasts it with portable OPA/Conftest and does not teach Sentinel. |
 | **Vault**-centric secret injection as a required lab path | Sensitive-value hygiene and passphrase-out-of-band patterns appear (S04–S06, S05); a full Vault integration track does not. |
 | **Provisioners** (`local-exec` / `remote-exec`) as a primary pattern | Taught as anti-pattern / last resort if mentioned; not a lab outcome. |
 | Deep **workspace** CLI workflows (`tofu workspace` as environment strategy) | Prefer separate roots / stacks (and Terramate on Day 3) over workspace multiplexing. |
