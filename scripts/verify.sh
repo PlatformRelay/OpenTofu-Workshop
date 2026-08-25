@@ -25,6 +25,40 @@
 # Exit non-zero on any failure. Prints a clear pass/fail summary.
 set -euo pipefail
 
+# THE DETECTOR MUST NOT BE A MUTATOR.
+#
+# `tofu fmt -check` is read-only only while TF_CLI_ARGS and TF_CLI_ARGS_fmt are
+# unset. OpenTofu splices those in BEFORE user argv, so a value containing a
+# POSITIONAL argument — `-recursive .` is the natural one for someone who wants
+# recursive formatting by default — lands ahead of this script's `-check`. The
+# positional terminates flag parsing, `-check` is demoted to a path, and tofu
+# recursively REWRITES `.`, which after the `cd` below is the entire checkout.
+# The error about the unparseable path arrives afterwards, once the files are
+# already gone.
+#
+# Reproduced on this host against labs/day-2/13-static-analysis/messy/main.tf,
+# the one file in the repo that is unformatted ON PURPOSE and that this very
+# gate allowlists:
+#
+#   plain:                      rc=3, sha 13f0af5a…  (unchanged, read-only)
+#   TF_CLI_ARGS_fmt='-recursive .': rc=2, sha d0b767a2…  (REWRITTEN)
+#   TF_CLI_ARGS='-recursive .':     rc=2, sha d0b767a2…  (REWRITTEN)
+#
+# So the read-only half of this gate's design destroys the teaching fixture it
+# exists to protect, and nothing in the repo has to be wrong for it to happen —
+# an exported shell variable, a direnv .envrc, or a CI `env:` block is enough.
+# This is the shape of the 2026-08-19 fixture destruction arriving by a new
+# route, which is why it is neutralised here in verify.sh rather than in `task
+# verify`: CI's verify-unit runs `bash scripts/verify.sh` directly, and so does
+# every lane's gate matrix.
+#
+# Scoped to these two variables ONLY. A blanket `TF_*` purge would break the
+# repo's legitimate uses — TF_VAR_state_passphrase in the capstone lab, TF_LOG
+# when someone is debugging — and swapping a destructive bug for a mystifying
+# one is not a fix. Self-tested: "fmt detector — TF_CLI_ARGS/TF_CLI_ARGS_fmt
+# cannot turn 'tofu fmt -check' into a rewrite of the tree".
+unset TF_CLI_ARGS TF_CLI_ARGS_fmt
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"

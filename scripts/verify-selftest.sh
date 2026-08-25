@@ -107,6 +107,14 @@
 #        is a red, not a silent behaviour change.
 #    43. whole-run sweep: no case left a .verify.lock behind (pass AND fail
 #        exits) — a run that does not release wedges every later run
+#   the fmt DETECTOR must stay read-only (US-F-GATEHYG round 2):
+#    43b. verify.sh run with TF_CLI_ARGS/TF_CLI_ARGS_fmt="-recursive ." leaves
+#         the S13 messy fixture BYTE-IDENTICAL, still unformatted, and still
+#         exits 0. OpenTofu splices those vars in before user argv, so the
+#         positional demotes `-check` to a path and `tofu fmt` rewrites the
+#         whole checkout. Asserted against a pristine copy, never against the
+#         git index — after a destructive run plus `git add -A` the index holds
+#         the destroyed copy and an index check passes forever.
 #   verify.sh single-run guard (US-F-GATEHYG, verify.sh section 0):
 #    44. a second run against the same checkout → exit 2 AND a refusal naming
 #        the holder, not silent provider-cache corruption
@@ -1159,6 +1167,9 @@ check_case_tmp_cleaned "fail path — the wiring probe's deliberately failing ca
 #     (without the "taken" half, every "released" assertion would pass
 #     vacuously against a verify.sh that never locked at all)
 LOCK_REFUSAL_NEEDLE='another verify.sh is already running in this checkout'
+# Mirrors S13_MESSY_FIXTURE in verify.sh — the one file in the repo that is
+# unformatted on purpose, and therefore the canary for a destructive fmt run.
+S13_MESSY_FIXTURE_REL='labs/day-2/13-static-analysis/messy/main.tf'
 
 # Plant a lock directory by hand, exactly as verify.sh writes one.
 plant_verify_lock() {
@@ -1431,6 +1442,71 @@ check_lock_refuses_malformed_pid() {
   rm -rf "$tmp"
 }
 
+# --- the fmt DETECTOR must not be a mutator (US-F-GATEHYG, round 2) ----------
+#
+# `tofu fmt -check` is read-only only as long as nobody has set TF_CLI_ARGS or
+# TF_CLI_ARGS_fmt. OpenTofu splices those in BEFORE user argv, so a value like
+# `-recursive .` puts a POSITIONAL argument ahead of `-check`; the positional
+# terminates flag parsing, `-check` is demoted to a path, and tofu recursively
+# REWRITES `.` — which, since verify.sh cds to REPO_ROOT, is the whole checkout.
+# It reports an error about the bogus path only afterwards, once the damage is
+# done.
+#
+# Reproduced directly before this case was written (sha 13f0af5a -> d0b767a2 on
+# the S13 fixture, identically for both the qualified and unqualified var). No
+# repo edit and no maintainer error is needed: an exported shell variable, a
+# direnv .envrc, or a CI env block is enough. That makes the detector — the
+# read-only half of this gate's entire design — a destroyer of the S13 teaching
+# fixture it exists to allowlist.
+#
+# The assertion is deliberately NOT "the file matches the git index". After a
+# destructive run plus any `git add -A`, the index holds the DESTROYED copy and
+# such a check would go green forever. This compares against a pristine copy
+# taken before the run, and independently re-checks that the file is still
+# non-canonical — the property that makes it a teaching fixture at all.
+check_fmt_scan_survives_tf_cli_args() {
+  local tmp out rc pristine fixture fmt_rc
+  tmp="$(new_lock_sandbox)"
+  fixture="$tmp/$S13_MESSY_FIXTURE_REL"
+  pristine="$tmp.pristine"
+  cp "$fixture" "$pristine"
+  set +e
+  out="$(TF_CLI_ARGS_fmt="-recursive ." TF_CLI_ARGS="-recursive ." \
+         PATH="$tmp/test-bin:$PATH" bash "$tmp/scripts/verify.sh" 2>&1)"
+  rc=$?
+  set -e
+  # Is the fixture still exactly what it was? cmp, not a hash, so no dependency
+  # on shasum/md5 differing between darwin and the CI runner.
+  if cmp -s "$pristine" "$fixture"; then
+    ok "fmt detector — TF_CLI_ARGS/TF_CLI_ARGS_fmt cannot turn 'tofu fmt -check' into a rewrite of the tree"
+  else
+    bad "fmt detector — running verify.sh under TF_CLI_ARGS_fmt REWROTE $S13_MESSY_FIXTURE_REL; the read-only gate is a mutator"
+    dump_case_output "$out"
+  fi
+  # Independent of the byte comparison: the fixture must still be UNFORMATTED.
+  # If it were silently canonicalised this returns 0 and the case fails, even
+  # were the comparison above ever weakened to something index-based.
+  set +e
+  env -u TF_CLI_ARGS -u TF_CLI_ARGS_fmt tofu fmt -check "$fixture" >/dev/null 2>&1
+  fmt_rc=$?
+  set -e
+  if [ "$fmt_rc" -ne 0 ]; then
+    ok "fmt detector — the S13 teaching fixture is still deliberately unformatted after the run"
+  else
+    bad "fmt detector — the S13 teaching fixture is now canonically formatted; the lab's break->fix step is gone"
+  fi
+  # And the gate itself must still have reported honestly.
+  if [ "$rc" -eq 0 ]; then
+    ok "fmt detector — verify.sh still passes with those variables set (they are neutralised, not obeyed)"
+  else
+    bad "fmt detector — verify.sh exited $rc under TF_CLI_ARGS_fmt; expected the variables to be neutralised"
+    dump_case_output "$out"
+  fi
+  rm -f "$pristine"
+  rm -rf "$tmp"
+}
+
+check_fmt_scan_survives_tf_cli_args
 check_lock_refuses_concurrent_run
 check_lock_refuses_foreign_host_lock
 check_lock_refuses_malformed_pid
