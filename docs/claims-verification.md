@@ -143,9 +143,9 @@ Both engines' changelogs were read independently.
 | # | Claim | Where | Verdict | Evidence (primary source, checked 2026-08-25) |
 | --- | --- | --- | --- | --- |
 | D1 | `TOFU_VERSION=1.10.3` | `versions.env:13` | VERIFIED (pin exists) / stale | `repos/opentofu/opentofu/releases` — `v1.10.3` published `2025-07-15T14:33:31Z`. It is not the newest 1.10 patch (`v1.10.10`, `2026-05-11`), and 1.10.x predates the 1.11.x series whose stated support ended 2026-08-01 (A10). The pin is a deliberate, reproducible choice, not an error — but it is two series behind what `pages/S10:65` calls "current baseline". |
-| D2 | `GO_VERSION=1.23.6` | `versions.env:18` | VERIFIED (pin exists) / **EOL** | `repos/golang/go` git ref `refs/tags/go1.23.6` exists. `https://go.dev/doc/devel/release`: "Each major Go release is supported until there are two newer major releases", latest major listed **Go 1.27.0 (2026-08-19)** → supported series are 1.26 and 1.27. **Go 1.23 receives no security fixes.** Also newer within its own series: `go1.23.12`. |
-| D3 | `LOCALSTACK_VERSION=4.9.2` | `versions.env:23` | VERIFIED (pin exists) | `repos/localstack/localstack/releases/tags/v4.9.2` — published `2025-10-06T09:01:27Z`. Latest is `v4.14.0` (`2026-02-26`). The comment's rationale ("last community release that boots without `LOCALSTACK_AUTH_TOKEN`") was **not** re-verified in this pass — see U2. |
-| D4 | `TERRAMATE_VERSION=0.17.1` | `versions.env:27` | VERIFIED (pin exists) | `repos/terramate-io/terramate/releases/tags/v0.17.1` — published `2026-05-26T13:24:47Z`. Latest is `v0.17.2` (`2026-07-31`). One patch behind; no correction needed. |
+| D2 | `GO_VERSION=1.23.6` | `versions.env:17` | VERIFIED (pin exists) / **EOL** | `repos/golang/go` git ref `refs/tags/go1.23.6` exists. `https://go.dev/doc/devel/release`: "Each major Go release is supported until there are two newer major releases", latest major listed **Go 1.27.0 (2026-08-19)** → supported series are 1.26 and 1.27. **Go 1.23 receives no security fixes.** Also newer within its own series: `go1.23.12`. |
+| D3 | `LOCALSTACK_VERSION=4.9.2` | `versions.env:22` | VERIFIED (pin exists) | `repos/localstack/localstack/releases/tags/v4.9.2` — published `2025-10-06T09:01:27Z`. Latest is `v4.14.0` (`2026-02-26`). The comment's rationale ("last community release that boots without `LOCALSTACK_AUTH_TOKEN`") was **not** re-verified in this pass — see U2. |
+| D4 | `TERRAMATE_VERSION=0.17.1` | `versions.env:26` | VERIFIED (pin exists) | `repos/terramate-io/terramate/releases/tags/v0.17.1` — published `2026-05-26T13:24:47Z`. Latest is `v0.17.2` (`2026-07-31`). One patch behind; no correction needed. |
 | D5 | Lab pins Trivy **0.72.0** · Checkov **3.3.0** · Conftest **0.68.2** | `labs/day-2/14-security-scanners.md:8` | VERIFIED (pins exist) | `repos/aquasecurity/trivy/releases/tags/v0.72.0` → `2026-06-30`; `repos/bridgecrewio/checkov/releases/tags/3.3.0` → `2026-06-10`; `repos/open-policy-agent/conftest/releases/tags/v0.68.2` → `2026-04-15`. All three exist. Current latest: Trivy `v0.74.0` (`2026-08-14`), Checkov `3.3.13` (`2026-08-20`), Conftest `v0.69.0` (`2026-08-03`). **These three pins live only in lab prose — they are not in `versions.env` and nothing gates them.** |
 
 ## E. Version floors and provider constraints (plan §5 #2, #12)
@@ -230,7 +230,7 @@ environment, so it was executed instead of assumed and is now VERIFIED at F12.)
 
 ## K. Should an automated prose check be built?
 
-`scripts/verify.sh` §10 (header at `:646`) enforces that **consumers** of `versions.env`
+`scripts/verify.sh` §10 (header at `:1016`) enforces that **consumers** of `versions.env`
 (CI workflow literals, `setup/terratest/Dockerfile`, `setup/bootstrap.sh`,
 `docker-compose.yml`) do not drift from the pin file. Nothing gates prose claims
 under `pages/**`. That asymmetry is deliberate and recorded — the question is
@@ -258,7 +258,7 @@ lab's documented pin (`labs/day-2/14-security-scanners.md:8`), and the promised
 authored.
 
 To be precise about what §9 costs: it does **not** inflate the 139-check total.
-Only `pass()` increments the counter (`scripts/verify.sh:45`), and §9 emits
+Only `pass()` increments the counter (`scripts/verify.sh:83`), and §9 emits
 `info`/`warn` exclusively — so it contributes *output lines*, not *checks*. The
 defect is therefore purely one of misleading output: three lines that read as
 S14 scanner coverage on every green run, backed by nothing.
@@ -455,20 +455,26 @@ line, not just a zero exit:
 claims-check: 31 correction row(s) - 31 resolved, 0 failed, 0 skipped
 ```
 
-The script fails — not warns — on: a row whose `Current` cell has no code span;
+**That the script's *logic* survived the column rename does not mean the rename
+was free.** It reads the column positionally, so nothing broke — but three of
+its comments and one runtime error string still named a `Current` cell that no
+longer exists, and a checker that reports a column the reader cannot find is its
+own small lie. Those strings moved in the same change.
+
+The script fails — not warns — on: a row whose **Now reads** cell has no code span;
 a row count that drifts from `EXPECTED_ROWS`; a line that declares an L-id but
 does not match the row grammar (a `` ``double-backtick`` `` File cell used to
 slip past the parser entirely and ship unchecked at exit 0); and **any code span
 anywhere in this file's tables** containing a backslash escape. Each guard was
-verified by mutation, not assumed — reintroducing an escape in a `Current` cell,
-in a `Corrected` cell, and in the left-alone table; deleting a row; stripping a
+verified by mutation, not assumed — reintroducing an escape in the checked cell,
+in its neighbour, and in the left-alone table; deleting a row; stripping a
 cell's code span; and swapping a File cell to double backticks each produce a
 non-zero exit.
 
 That last guard is deliberately document-wide rather than column-scoped, and
-that scoping is the lesson. Its first version checked `Current` cells only, so
-the defect simply relocated: escapes in `Corrected` cells and in the left-alone
-table kept publishing literally, and one of them collapsed a table cell to
+that scoping is the lesson. Its first version checked only the column then named
+`Current` — today's **Now reads** — so the defect simply relocated: escapes in
+its neighbour and in the left-alone table kept publishing literally, and one of them collapsed a table cell to
 **empty**, silently deleting the instruction that stops a later lane hand-editing
 `infra/lab-inventory.json`. A guard scoped to where the bug was last seen is not
 a guard.
@@ -634,7 +640,7 @@ oversight.
 | `pages/S19-testing-cicd/index.md:94` ("OpenTofu ≥ 1.8 preflight") | Accurate description of what the gate does: `scripts/verify.sh:432-435` really does `pass "tofu ${TOFU_VER} (>= 1.8)"` / `fail "… is below the required 1.8"`. It reports the gate's threshold, not a claim about lab sufficiency. (That the threshold *itself* understates Lab 10 is a separate finding — see below.) |
 | `pages/S14-security-scanners/index.md:164` ("Do not pick a dead tool as your standard") | Sits in the `::right::` / Terrascan column, which genuinely **is** archived (F4). "Dead" is correct here. Only the tfsec-scoped uses (L3–L7) overstate. |
 | `pages/S14-security-scanners/index.md:221` ("replaces the tfsec habit") | Accurate as written — it describes migrating off a habit, not declaring the tool dead. |
-| `versions.env:13, 18, 23, 27` (D1–D4) and `labs/day-2/14-security-scanners.md:8` (D5) | Pins, not prose. Deliberately untouched by this docs-only lane; carried in the out-of-scope section below. |
+| `versions.env:13, 17, 22, 26` (D1–D4) and `labs/day-2/14-security-scanners.md:8` (D5) | Pins, not prose. Deliberately untouched by this docs-only lane; carried in the out-of-scope section below. |
 | `labs/day-1/00-setup/versions.tf:2` and ~20 peers (E1) | The `>= 1.8` floor is *correct* for the content it guards. Only the claim that it suffices for **every** lab is wrong, and that is E2's business (L15–L18). |
 | `labs/day-3/28-ecosystem-tooling.md:98` ("any `tofu ≥ 1.8` **works here**") | **Considered and deliberately kept.** Unlike L15/L26, this sentence is scoped to the lab the reader is currently in — Lab 28 genuinely runs on 1.8. It makes no claim about "the labs" collectively, so it is true as written. Flagged here because a phase-2 grep for `tofu ≥ 1.8` will hit it two lines from a sentence that IS being corrected. |
 | The per-lab prerequisite lines (`tofu` ≥ N) in ~18 labs across Days 1–3 | Each states the floor for *its own* lab and each is correct — the floors are not uniform, and that is deliberate: Lab 07 says ≥ 1.6, Lab 09 says ≥ 1.7, most say ≥ 1.8, and **two say ≥ 1.9** — `labs/day-1/06-variables.md:63` ("Cross-variable validation needs 1.9+") and `labs/day-1/10-differentiators.md:31` (provider `for_each` / `-exclude`). Both are on Day 1. These per-lab lines are the reason the aggregate defect stayed invisible: the pattern is overwhelmingly correct, and only the *aggregate* claims (L15–L18, L20–L26) overreach. Do not sweep them. |
@@ -684,11 +690,42 @@ Not prose corrections — recorded so they are not lost.
   enforcers' *actual* threshold, not lab sufficiency (see the left-alone
   table). This is now the top follow-up: bump `MIN_TOFU`, the `verify.sh`
   preflight and its selftest literal together, then correct those three
-  locations in the same change. **Every `scripts/verify.sh` line number in
-  this file was re-derived at phase 2**: phase 1 cited `:92`, which four
-  `fix(verify)` commits had since pushed to `:433` — a rotted pointer in a
-  document whose thesis is that a rotted pointer is worse than none.
-- `versions.env:18` pins `GO_VERSION=1.23.6`, a Go series that no longer
+  locations **and `docs/validation-matrix.md:58`** in the same change. That
+  last one is subtle and worth naming: it sits under the heading **"Canonical
+  toolchain pins"** reading ``≥ **1.8** (setup/bootstrap.sh)``, which is true
+  today — it reports the enforcer — but the word *canonical* beside a number
+  lower than the one `README.md` and `docs/setup.md` now advertise is exactly
+  the shape of the defect L20–L26 removed. It stops being merely stale and
+  starts being misleading the moment a reader treats it as the pin of record.
+- **Every code-file line pointer in this file was re-derived at phase 2, by
+  class rather than by string.** This is recorded because the first attempt
+  did it wrong. Phase 2 was told that `scripts/verify.sh:92` had rotted, swept
+  for the literal `:92`, found and fixed five sites — and then wrote a sentence
+  claiming the whole class had been checked. Two had not: `:45` for `pass()`
+  (really `:83`) and §10's header at `:646` (really `:1016`), both rotted by
+  the same US-F-GATEHYG insertion that moved `:92`. The sweep that actually
+  settles it enumerates the class — every code span in this file that names a
+  source file with a line suffix, matched on the file *extension* rather than
+  on any one path — and opens every hit. The regex itself is deliberately not
+  quoted here: this file's render inventory sanctions exactly three
+  backslash-carrying code spans, and adding a fourth to illustrate a point
+  about rigour would cost more than it buys. Doing the sweep also caught three
+  **off-by-one** `versions.env` pointers inherited from phase 1 (`:18`, `:23`
+  and `:27` for `GO_VERSION`, `LOCALSTACK_VERSION` and `TERRAMATE_VERSION`,
+  which really sit at `:17`, `:22` and `:26`).
+
+  **And even that regex has a residual gap, which is why it is not the whole
+  method.** A pointer written *relative* — §10's "header at `:646`" names its
+  line and its file in different spans — matches no file-plus-line pattern at
+  all. That one was found by reading every `verify.sh` mention instead. So the
+  honest statement is: the class sweep found what a string sweep missed, a
+  mention-by-mention read found what the class sweep missed, and every code
+  pointer in this file is verified at this commit by one or the other.
+  **A sweep by literal string described as a sweep by class is the one thing
+  this document cannot afford to say** — it is the same failure as the
+  guard "scoped to where the bug was last seen" three sections above, and it
+  recurred here inside the very lane that quoted it.
+- `versions.env:17` pins `GO_VERSION=1.23.6`, a Go series that no longer
   receives security fixes (D2). This is a toolchain decision with `verify.sh`
   §10 consumers behind it (CI literals, `setup/terratest/Dockerfile`,
   `setup/bootstrap.sh`) and a Terratest re-run required — deliberately **not**

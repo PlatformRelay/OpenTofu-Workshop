@@ -40,7 +40,7 @@
 //     Any escape inside a code span is now an error: write the cell without
 //     pipes, or use ``double-backtick`` delimiters around bare backticks.
 //
-//   * DEGRADED GREEN. A Current cell with no code span, or a row count that
+//   * DEGRADED GREEN. A `Now reads` cell with no code span, or a row count that
 //     silently drops because a row was deleted, both used to exit 0. Both now
 //     fail. A checker that cannot distinguish "verified" from "did not look"
 //     is the failure this whole document exists to prevent.
@@ -213,7 +213,7 @@ for (const row of rows) {
   if (spans.length === 0) {
     failed++;
     problems.push(
-      `${row.id}: NO CODE SPAN in the Current cell - nothing to verify. ` +
+      `${row.id}: NO CODE SPAN in the "Now reads" cell - nothing to verify. ` +
       `Quote the source text so this row is checkable.`
     );
     continue;
@@ -240,7 +240,7 @@ for (const row of rows) {
 // RENDER FIDELITY, whole-file. This guard has now been rescoped twice, and each
 // time the defect moved to wherever the guard was not looking:
 //
-//   v1  checked `row.current`            -> escapes appeared in `Corrected`
+//   v1  checked the checked column only  -> escapes appeared in its neighbour
 //   v2  checked table rows only          -> an escape appeared in PROSE, in the
 //                                           very commit that rescoped it
 //
