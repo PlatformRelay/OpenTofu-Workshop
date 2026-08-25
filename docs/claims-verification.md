@@ -415,7 +415,7 @@ the exception set directly rather than hunt the majority value:
 
 **But be precise about what that command proves.** It returns **12 files, all
 under `labs/day-1/` and `labs/fixtures/` — zero from Day 2 or Day 3** — because
-Days 2 and 3 use a different phrasing (`- OpenTofu ≥1.8 (\`tofu version\`).`),
+Days 2 and 3 use a different phrasing (``- OpenTofu ≥1.8 (`tofu version`).``),
 and **Labs 16 and 17 use a third**: "OpenTofu 1.8 or newer", which carries no
 `≥` at all and is invisible to *every* `≥`-based pattern. Those two were found
 only by enumerating each lab file and reading its prerequisites. The conclusion
@@ -459,23 +459,45 @@ page:
 python3 -m venv /tmp/mkdocs-venv
 /tmp/mkdocs-venv/bin/pip install -q -r docs/requirements-docs.txt
 /tmp/mkdocs-venv/bin/mkdocs build --strict
-grep -c '<td></td>' site/claims-verification/index.html   # expect 0
-grep -n -E '\\[|`]' site/claims-verification/index.html          # expect 1 line
+python3 scripts/render-inventory.py          # inventory, not a count
 ```
 
-`<td></td>` must be **zero**. The escape grep must return **exactly one line** —
-the sentence below, which quotes a broken escape on purpose to show what one
-looks like. Any second match is a real defect: a literal `\|` or
-backslash-backtick on the page means a
-code span was authored with a Markdown escape that Python-Markdown does not
-process. An empty `<td>` is worse: it means a row collapsed entirely and its
+`scripts/render-inventory.py` parses the built page and **lists every backslash
+that survives into a rendered `<code>` element, plus every empty table cell.**
+Read the list; do not read a total.
+
+The expected inventory today is exactly:
+
+| Rendered `<code>` containing a backslash | Count | Why it is legitimate |
+| --- | --- | --- |
+| `≥ *1\.8` | 3 | A regex pattern quoted while explaining why bold markers defeat a naive sweep — once in the sweep-technique paragraph (`:410`), once in this inventory row, and once in the left-alone entry for `docs/validation-matrix.md:58`. The backslash escapes the dot *in the regex*, and the reader is meant to see it. |
+
+**Total: 3. Empty `<td>`: 0. Nothing else.** Anything outside that list is a
+defect, not a new exception to add — `scripts/render-inventory.py` will name it
+with its line number.
+
+**Why an inventory and not a count.** The previous revision of this section said
+"expect 1 line" and was measured, honestly, at exactly 1 — while
+`docs/claims-verification.md:418` was broken on the very page being measured.
+The one permitted exception absorbed the new defect: a count cannot tell a
+sanctioned backslash from a fresh one. That is also why the illustrative escape
+that used to justify the "1" has been removed rather than carved out — an
+allowance is a place for the next defect to hide.
+
+An empty `<td>` is the worse symptom: it means a row collapsed entirely and its
 guidance is gone from the published page even though the source still reads
 correctly — which is how the instruction against hand-editing
 `infra/lab-inventory.json` briefly vanished.
 
-Note `mkdocs` is not part of `task verify` or CI, and `scripts/claims-check.mjs`
-is standalone — in no gate, no `package.json` script, not in `verify.sh`. Both
-are run by hand. Saying so is part of the honesty this document is for.
+**What gates this, precisely.** `mkdocs build --strict` **is** CI-gated: the
+`pages-contract` job in `.github/workflows/ci.yml` runs it unconditionally on
+every PR and every push to `main`. It is **not** part of `task verify`. But
+`--strict` catches nav and link drift, **not this defect class** — the HTML it
+produced for `:418` was perfectly valid, merely wrong — so a green
+`pages-contract` is no evidence here. Both the inventory script and
+`scripts/claims-check.mjs` are standalone: in no gate, no `package.json` script,
+not in `verify.sh`, not in CI. They are hand-run, and saying so is part of the
+honesty this document is for.
 
 Phase 2 **must** re-run it before editing and again after, because line numbers
 drift as soon as any earlier correction lands.

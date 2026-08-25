@@ -75,6 +75,44 @@ function rawCodeSpans(cell) {
   return spans.map((x) => x.trim()).filter(Boolean);
 }
 
+/**
+ * Find backslash escapes that sit INSIDE a code span.
+ *
+ * Testing the parsed span *content* is not enough, and that gap shipped a real
+ * defect: in `` `a (\`b\`).` `` the span content ends at the backslash, so the
+ * escaped backtick never appears *within* any single span and a content-based
+ * test reports clean. Scan the raw line instead and ask whether the backslash's
+ * column falls inside a code-span region.
+ *
+ * Only `\` and `\|` are flagged. `\.` and friends are left alone: a regex
+ * quoted in prose is meant to show its backslash.
+ */
+function escapesInsideCodeSpans(line) {
+  // Map code-span regions by backtick runs, the way CommonMark pairs them.
+  const regions = [];
+  const runs = [...line.matchAll(/`+/g)].map((m) => ({ i: m.index, len: m[0].length }));
+  const used = new Set();
+  for (let a = 0; a < runs.length; a++) {
+    if (used.has(a)) continue;
+    for (let b = a + 1; b < runs.length; b++) {
+      if (used.has(b) || runs[b].len !== runs[a].len) continue;
+      regions.push([runs[a].i + runs[a].len, runs[b].i]);
+      used.add(a);
+      used.add(b);
+      break;
+    }
+  }
+  const hits = [];
+  for (let i = 0; i < line.length - 1; i++) {
+    if (line[i] !== '\\') continue;
+    if (line[i + 1] !== '`' && line[i + 1] !== '|') continue;
+    if (regions.some(([lo, hi]) => i >= lo && i < hi)) {
+      hits.push({ col: i + 1, context: line.slice(Math.max(0, i - 30), i + 20) });
+    }
+  }
+  return hits;
+}
+
 /** Pull code spans out of a markdown table cell, longest delimiter first. */
 function codeSpans(cell) {
   const spans = [];
@@ -188,25 +226,34 @@ for (const row of rows) {
   }
 }
 
-// RENDER FIDELITY, document-wide. The first version of this guard only looked
-// at each row's `Current` cell, so the defect simply relocated: escapes in
-// `Corrected` cells and in the left-alone table still published literally, and
-// one of them collapsed a table cell to empty, deleting real guidance from the
-// page. Scope the guard to the artifact, not to one column.
+// RENDER FIDELITY, whole-file. This guard has now been rescoped twice, and each
+// time the defect moved to wherever the guard was not looking:
+//
+//   v1  checked `row.current`            -> escapes appeared in `Corrected`
+//   v2  checked table rows only          -> an escape appeared in PROSE, in the
+//                                           very commit that rescoped it
+//
+// The lesson is the scoping, not the typo: a guard aimed at where the bug was
+// last seen is not a guard. It now reads every line of the file. Fenced blocks
+// are included deliberately -- a broken escape is just as unreadable there.
 let renderBad = 0;
+let inFence = false;
 doc.forEach((line, idx) => {
-  if (!line.startsWith('|')) return;
-  for (const span of rawCodeSpans(line)) {
-    if (/\\[`|]/.test(span)) {
-      renderBad++;
-      problems.push(
-        `${DOC.split('/').pop()}:${idx + 1}: WOULD NOT RENDER - code span contains a ` +
-        `backslash escape, which Python-Markdown emits literally` +
-        `\n      span: ${JSON.stringify(span.slice(0, 80))}` +
-        `\n      fix: drop the pipe from the quote, or wrap bare backticks in ` +
-        `\`\`double backticks\`\``
-      );
-    }
+  if (/^\s*(```|~~~)/.test(line)) {
+    inFence = !inFence;
+    return;
+  }
+  if (inFence) return;
+  for (const hit of escapesInsideCodeSpans(line)) {
+    renderBad++;
+    problems.push(
+      `${DOC.split('/').pop()}:${idx + 1}:${hit.col}: WOULD NOT RENDER - backslash ` +
+      `escape inside a code span; Python-Markdown emits it literally and ends the ` +
+      `span early` +
+      `\n      context: ${JSON.stringify(hit.context)}` +
+      `\n      fix: drop the pipe from the quote, or wrap bare backticks in ` +
+      `\`\`double backticks\`\``
+    );
   }
 });
 failed += renderBad;
