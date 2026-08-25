@@ -428,47 +428,108 @@ fi
 #     proves `task lab:fmt` — the command verify.sh actually advertises — still
 #     calls it. Reverting Taskfile.yaml's `lab:fmt` cmds to `tofu fmt -recursive`
 #     left this self-test AND verify.sh fully green while the fixture burned:
-#     verify.sh enumerates task NAMES only, never their `cmds`. That is the same
-#     hand-maintained-parity defect this lane flags in ci.yml, reintroduced by
-#     the fix itself, so it is pinned here rather than merely commented.
+#     verify.sh enumerates task NAMES only, never their `cmds`.
 #
-#     Parsed with awk rather than a YAML library to keep the self-test free of
-#     runtime deps: take the lines after the `  lab:fmt:` key up to the next
-#     2-space-indented key. The extraction is asserted to have WORKED before
-#     anything is concluded from it — an awk that silently matches nothing would
-#     otherwise "find no -recursive" and pass over a block it never read, which
-#     is exactly the empty-scan degradation case 4 exists to forbid.
+#     THIS CASE HAS BEEN DEFEATED TWICE. Both escapes shared ONE root cause: a
+#     line-based scan that silently read only PART of the block, then concluded
+#     from it — the exact degradation case 4 exists to forbid, committed in the
+#     case that polices it. Both were reproduced end-to-end with a `tofu` shim
+#     proving go-task really executed the destructive command while this suite
+#     scored a clean 29/29:
+#
+#       A. A comment at the task's own indent (column 2) TRUNCATED the block. The
+#          terminator was `^  [^[:space:]]`, which a comment matches, so awk quit
+#          mid-block. `cmds:` had already been seen, so the "extraction worked"
+#          guard was satisfied and nothing downstream knew the scan stopped.
+#              cmds:
+#                - bash scripts/lab-fmt.sh
+#            # follow-up: also normalise the docs examples
+#                - tofu fmt -recursive
+#
+#       B. A multi-line list item HID the command on a continuation line. Only
+#          lines that START an item were kept, so a block scalar's body was
+#          invisible. `- |` is the ordinary go-task idiom, not an exotic input.
+#              cmds:
+#                - bash scripts/lab-fmt.sh
+#                - |
+#                  tofu fmt -recursive
+#
+#     So: comments are stripped from the WHOLE file first (no comment can
+#     terminate anything), the block ends at a real column-2 key or a column-0
+#     key, the cmds range is bounded by its own 4-space sibling key, and EVERY
+#     line in that range is searched — continuations included. Bounding to
+#     `cmds:` also stops a `preconditions:` entry that merely mentions tofu fmt
+#     from manufacturing a false red.
+#
+#     Delegation is rejected too: `- task: something-else` would move the
+#     destruction out of this range entirely, and lab:fmt has no reason to
+#     delegate.
+#
+#     A YAML parser is deliberately NOT pulled in — this must run on a bare
+#     runner with no package manager. Instead, where go-task IS available the
+#     AUTHORITATIVE check below asks go-task itself what it resolves the task to,
+#     which no parsing bug can evade. It is conditional because CI does not
+#     install go-task (nothing in .github/workflows/ does), so it strengthens the
+#     local signal without becoming a CI dependency.
 # ---------------------------------------------------------------------------
 case_ "10. task lab:fmt is still wired to scripts/lab-fmt.sh"
 TASKFILE="$ROOT/Taskfile.yaml"
-LABFMT_BLOCK="$(awk '
+# Strip comments up front so no comment can act as a block terminator anywhere.
+TASKFILE_NOCOMMENT="$(grep -v '^[[:space:]]*#' "$TASKFILE")"
+LABFMT_BLOCK="$(printf '%s\n' "$TASKFILE_NOCOMMENT" | awk '
   /^  lab:fmt:[[:space:]]*$/ { inblock = 1; next }
+  inblock && /^[^[:space:]]/  { exit }
   inblock && /^  [^[:space:]]/ { exit }
   inblock { print }
-' "$TASKFILE")"
-# Narrow the block to its cmds LIST ITEMS before asserting anything. Substring
-# matching the whole block would include the prose comments inside `lab:fmt:` —
-# a comment merely MENTIONING `bash scripts/lab-fmt.sh` would satisfy the wiring
-# assertion while `cmds` ran something else entirely. That is the identical
-# vacuity F3 was raised for, and it would be invisible: the case stays green.
-LABFMT_CMDS="$(printf '%s\n' "$LABFMT_BLOCK" | grep -E '^[[:space:]]*-[[:space:]]' || true)"
-if [ -n "$LABFMT_BLOCK" ] && printf '%s' "$LABFMT_BLOCK" | grep -q '^    cmds:' && [ -n "$LABFMT_CMDS" ]; then
-  ok "the lab:fmt cmds list was extracted from Taskfile.yaml"
+')"
+# Bound to the cmds list, and keep EVERY line in it — a continuation line is a
+# command too. preconditions/desc/vars siblings are excluded by the 4-space key.
+LABFMT_CMDS="$(printf '%s\n' "$LABFMT_BLOCK" | awk '
+  /^    cmds:[[:space:]]*$/ { inc = 1; next }
+  inc && /^    [^[:space:]]/ { exit }
+  inc { print }
+')"
+LABFMT_ITEMS="$(printf '%s\n' "$LABFMT_CMDS" | grep -cE '^[[:space:]]*-[[:space:]]' || true)"
+if [ -n "$LABFMT_BLOCK" ] && [ -n "$LABFMT_CMDS" ] && [ "${LABFMT_ITEMS:-0}" -gt 0 ]; then
+  ok "the lab:fmt cmds range was extracted from Taskfile.yaml (${LABFMT_ITEMS} item(s))"
 else
   bad "could not extract lab:fmt's cmds from $TASKFILE — this case proves nothing; fix the parser"
 fi
-# Anchored to a whole list item, not a substring of the block.
 if printf '%s\n' "$LABFMT_CMDS" | grep -qE '^[[:space:]]*-[[:space:]]+bash scripts/lab-fmt\.sh[[:space:]]*$'; then
   ok "a lab:fmt cmd is exactly 'bash scripts/lab-fmt.sh'"
 else
   bad "no lab:fmt cmd invokes scripts/lab-fmt.sh — every case above is now moot"
 fi
-# Anywhere in a cmd, not just at its head: `- sh -c 'tofu fmt -recursive'` and
-# `- tofu fmt -recursive` are equally destructive and must both red.
+# Every line of the cmds range, not just item heads: `- tofu fmt -recursive`,
+# `- sh -c 'tofu fmt -recursive'` and a `- |` block scalar body are all caught.
 if printf '%s\n' "$LABFMT_CMDS" | grep -q 'tofu fmt'; then
   bad "a lab:fmt cmd shells out to 'tofu fmt' — the S13 fixture is unprotected"
 else
-  ok "no lab:fmt cmd shells out to 'tofu fmt' directly"
+  ok "no lab:fmt cmd shells out to 'tofu fmt' (continuation lines included)"
+fi
+if printf '%s\n' "$LABFMT_CMDS" | grep -qE '^[[:space:]]*-[[:space:]]*task:'; then
+  bad "lab:fmt delegates to another task — the destructive command could live out of this range"
+else
+  ok "lab:fmt does not delegate to another task"
+fi
+
+# AUTHORITATIVE CROSS-CHECK. Ask go-task what it actually resolves `lab:fmt` to,
+# instead of trusting this script's YAML parsing. `--dry` executes nothing.
+# Conditional: CI installs no go-task, so absence is a note, never a failure.
+if command -v task >/dev/null 2>&1; then
+  TASK_DRY="$( (cd "$ROOT" && task lab:fmt --dry -v 2>&1) || true)"
+  if printf '%s' "$TASK_DRY" | grep -q 'bash scripts/lab-fmt\.sh'; then
+    ok "go-task resolves lab:fmt to 'bash scripts/lab-fmt.sh' (--dry -v)"
+  else
+    bad "go-task does not resolve lab:fmt to scripts/lab-fmt.sh: $TASK_DRY"
+  fi
+  if printf '%s' "$TASK_DRY" | grep -q 'tofu fmt'; then
+    bad "go-task resolves a 'tofu fmt' command inside lab:fmt — the fixture is unprotected"
+  else
+    ok "go-task resolves no 'tofu fmt' command inside lab:fmt"
+  fi
+else
+  ok "note: go-task not installed — skipping the authoritative --dry cross-check (CI installs none)"
 fi
 
 # ---------------------------------------------------------------------------
