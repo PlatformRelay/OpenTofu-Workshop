@@ -377,20 +377,29 @@ LABFMT_BLOCK="$(awk '
   inblock && /^  [^[:space:]]/ { exit }
   inblock { print }
 ' "$TASKFILE")"
-if [ -n "$LABFMT_BLOCK" ] && printf '%s' "$LABFMT_BLOCK" | grep -q '^    cmds:'; then
-  ok "the lab:fmt task block was extracted from Taskfile.yaml"
+# Narrow the block to its cmds LIST ITEMS before asserting anything. Substring
+# matching the whole block would include the prose comments inside `lab:fmt:` —
+# a comment merely MENTIONING `bash scripts/lab-fmt.sh` would satisfy the wiring
+# assertion while `cmds` ran something else entirely. That is the identical
+# vacuity F3 was raised for, and it would be invisible: the case stays green.
+LABFMT_CMDS="$(printf '%s\n' "$LABFMT_BLOCK" | grep -E '^[[:space:]]*-[[:space:]]' || true)"
+if [ -n "$LABFMT_BLOCK" ] && printf '%s' "$LABFMT_BLOCK" | grep -q '^    cmds:' && [ -n "$LABFMT_CMDS" ]; then
+  ok "the lab:fmt cmds list was extracted from Taskfile.yaml"
 else
-  bad "could not extract the lab:fmt block from $TASKFILE — this case proves nothing; fix the parser"
+  bad "could not extract lab:fmt's cmds from $TASKFILE — this case proves nothing; fix the parser"
 fi
-if printf '%s' "$LABFMT_BLOCK" | grep -q 'bash scripts/lab-fmt\.sh'; then
-  ok "task lab:fmt invokes scripts/lab-fmt.sh"
+# Anchored to a whole list item, not a substring of the block.
+if printf '%s\n' "$LABFMT_CMDS" | grep -qE '^[[:space:]]*-[[:space:]]+bash scripts/lab-fmt\.sh[[:space:]]*$'; then
+  ok "a lab:fmt cmd is exactly 'bash scripts/lab-fmt.sh'"
 else
-  bad "task lab:fmt no longer invokes scripts/lab-fmt.sh — every case above is now moot"
+  bad "no lab:fmt cmd invokes scripts/lab-fmt.sh — every case above is now moot"
 fi
-if printf '%s' "$LABFMT_BLOCK" | grep -qE '^[[:space:]]*-[[:space:]]*tofu fmt'; then
-  bad "task lab:fmt runs 'tofu fmt' directly again — the S13 fixture is unprotected"
+# Anywhere in a cmd, not just at its head: `- sh -c 'tofu fmt -recursive'` and
+# `- tofu fmt -recursive` are equally destructive and must both red.
+if printf '%s\n' "$LABFMT_CMDS" | grep -q 'tofu fmt'; then
+  bad "a lab:fmt cmd shells out to 'tofu fmt' — the S13 fixture is unprotected"
 else
-  ok "task lab:fmt does not shell out to 'tofu fmt' directly"
+  ok "no lab:fmt cmd shells out to 'tofu fmt' directly"
 fi
 
 # ---------------------------------------------------------------------------
