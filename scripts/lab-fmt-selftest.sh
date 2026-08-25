@@ -538,11 +538,37 @@ fi
 #     must consciously update this guard, which is the point. It also fixes two
 #     FALSE reds the denylist produced, for the same reason.
 #
-#     WHAT IT STILL CANNOT SEE: the allowlist bounds THIS task. It cannot police
-#     what `scripts/lab-fmt.sh` does — cases 1-9 do that — and it would not
-#     notice `Taskfile.yaml` being replaced wholesale by an `includes:` from
-#     elsewhere. Assertion 1 is a `grep -c` over the whole file, so a `lab:fmt`
-#     defined in an included Taskfile is out of reach. Named, not papered over.
+#     WHAT THIS ACTUALLY BOUNDS — stated precisely, because an earlier version of
+#     this comment claimed additions were "structurally impossible" and a later
+#     round produced three that were not. A false "impossible" in a header is how
+#     the next round starts.
+#
+#     These assertions are TEXT MATCHES over `Taskfile.yaml`. What they bound is
+#     the text of the `lab:fmt` block: the set of keys at exactly four spaces
+#     (any spelling, including `<<:` merge keys and quoted `"deps":`), the line
+#     count and content of `cmds`, and the line count and content of
+#     `preconditions`. Within that block, adding anything go-task would execute
+#     reds — not because it is recognised as dangerous, but because the text
+#     stopped matching. That is the useful property, and it is a property of the
+#     TEXT, not of go-task's semantics.
+#
+#     What it does NOT bound:
+#       * anything outside the block — a top-level `env:`, another task, a
+#         different Taskfile. E5 exploited exactly this with the block left
+#         byte-identical; it is covered by the `unset` in scripts/lab-fmt.sh and
+#         by that script's EXIT-trap post-condition, not by this case.
+#       * what `scripts/lab-fmt.sh` itself does. Cases 1-9 and 11 cover that.
+#       * `includes:` pulling `lab:fmt` in from another file. This one happens to
+#         fail closed in both directions — go-task errors "Found multiple tasks
+#         (lab:fmt) included by lab", and with the local task removed assertion 1
+#         counts 0 and reds — but that is go-task's doing, not this case's, and
+#         it should not be relied on as if it were designed.
+#
+#     THE LAYERS ARE COMPLEMENTARY, and none is sufficient alone. This case
+#     catches a Taskfile that drops `bash scripts/lab-fmt.sh` from cmds entirely,
+#     which the post-condition never sees because the script never runs. The
+#     post-condition catches damage done before the script starts and by vectors
+#     no text match can see. Deleting either one reopens a class.
 #
 #     NO go-task CROSS-CHECK. An earlier version ran `task lab:fmt --dry -v` to
 #     ask go-task itself. `--dry` does not skip `preconditions:` — it RUNS them.
@@ -583,7 +609,15 @@ LABFMT_BLOCK="$(printf '%s\n' "$TASKFILE_NOCOMMENT" | awk '
 # 2. EXACTLY THE EXPECTED KEY SET. This is what makes the guard bounded: deps,
 #    vars, env, dotenv, includes, a second cmds — anything go-task would act on
 #    reds here without this script needing to know what it does.
-LABFMT_KEYS="$(printf '%s\n' "$LABFMT_BLOCK" | sed -n 's/^    \([A-Za-z_][A-Za-z0-9_-]*\):.*$/\1/p' | sort | tr '\n' ' ')"
+# The key pattern captures ANY token before the first colon at exactly four
+# spaces, not just [A-Za-z_]-shaped ones. Two evasions lived in that gap and both
+# are ordinary YAML a maintainer might write by accident:
+#   * a merge key, `<<: *shared` — `<` is not a letter, so the key was invisible
+#     and the anchored `deps:`/`vars:` came in unseen. Factoring shared config
+#     into an anchor across 40 tasks is a normal refactor, not an attack.
+#   * a quoted key, `"deps":` — same blind spot, payload in plain sight.
+# Anything that reaches the key set now reds, whatever it is spelled like.
+LABFMT_KEYS="$(printf '%s\n' "$LABFMT_BLOCK" | sed -n 's/^    \([^ :][^:]*\):.*$/\1/p' | sort | tr '\n' ' ')"
 LABFMT_KEYS="${LABFMT_KEYS% }"
 LABFMT_KEYS_EXPECTED='cmds desc preconditions'
 if [ "$LABFMT_KEYS" = "$LABFMT_KEYS_EXPECTED" ]; then
@@ -611,15 +645,33 @@ fi
 # 4. THE PRECONDITION IS THE TOOL CHECK, NOTHING ELSE. `preconditions: sh:` runs
 #    arbitrary shell, before cmds, every single invocation. It is as executable
 #    as cmds and must be pinned just as tightly.
-LABFMT_PRECOND_SH="$(printf '%s\n' "$LABFMT_BLOCK" | awk '
+#    Grepping for `- sh:` was not enough. go-task also accepts a BARE STRING
+#    precondition, and one of those is a whole shell command with no `sh:` key to
+#    find — while `preconditions` remains a single key, so the key set above
+#    never changes:
+#        preconditions:
+#          - sh: command -v tofu
+#            msg: "..."
+#          - bash scripts/lab-fmt-cache-warm.sh     # runs a formatter inside
+#    That scored 36/36 green with the fixture destroyed. One level of indirection
+#    put the payload beyond any pattern, which is the denylist failure this case
+#    exists to stop repeating. So the precondition BLOCK is allowlisted whole,
+#    the same way cmds is: a fixed line count, a fixed first line, and a second
+#    line that may only be a msg.
+LABFMT_PRECOND="$(printf '%s\n' "$LABFMT_BLOCK" | awk '
   /^    preconditions:[[:space:]]*$/ { inp = 1; next }
   inp && /^    [^[:space:]]/ { exit }
   inp { print }
-' | sed -n 's/^[[:space:]]*-[[:space:]]*sh:[[:space:]]*//p' | sed 's/[[:space:]]*$//')"
-if [ "$LABFMT_PRECOND_SH" = "command -v tofu" ]; then
-  ok "lab:fmt's only precondition is 'command -v tofu'"
+' | sed '/^[[:space:]]*$/d')"
+LABFMT_PRECOND_LINES="$(printf '%s\n' "$LABFMT_PRECOND" | sed '/^$/d' | wc -l | tr -d ' ')"
+LABFMT_PRECOND_1="$(printf '%s\n' "$LABFMT_PRECOND" | sed -n '1s/^[[:space:]]*//;1s/[[:space:]]*$//;1p')"
+LABFMT_PRECOND_2="$(printf '%s\n' "$LABFMT_PRECOND" | sed -n '2s/^[[:space:]]*//;2p')"
+if [ "$LABFMT_PRECOND_LINES" = "2" ] &&
+  [ "$LABFMT_PRECOND_1" = "- sh: command -v tofu" ] &&
+  case "$LABFMT_PRECOND_2" in msg:*) true ;; *) false ;; esac then
+  ok "lab:fmt's preconditions are exactly the 'command -v tofu' check plus its msg"
 else
-  bad "lab:fmt's precondition sh is '$LABFMT_PRECOND_SH' — expected 'command -v tofu'; preconditions run arbitrary shell on every invocation"
+  bad "lab:fmt's preconditions are ${LABFMT_PRECOND_LINES} line(s) starting [$LABFMT_PRECOND_1] — expected exactly '- sh: command -v tofu' + a msg. preconditions run arbitrary shell BEFORE cmds, every invocation, and a bare-string item needs no 'sh:' key at all"
 fi
 
 # 5. SECONDARY, DEFENCE IN DEPTH. The allowlist above already forbids everything
