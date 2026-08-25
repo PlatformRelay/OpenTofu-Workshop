@@ -56,9 +56,13 @@
 # verify-unit for EVERYONE, on every push, from the moment this lane merges. And
 # this suite has still never been executed on Linux. The contract below is
 # therefore load-bearing rather than aspirational:
-#   * No network, no Docker, no package manager. External binaries used are
-#     git, tofu, awk, sed, grep, cmp, mktemp, cp, mkdir, rm, chmod — all present
-#     on a bare ubuntu-latest runner.
+#   * No network, no Docker, no package manager. The external binaries are git,
+#     tofu and coreutils — awk, sed, grep, cmp, mktemp, cp, mkdir, rm, chmod,
+#     basename, ln, wc, tr, head, sort among them. Treat that as INDICATIVE, not
+#     exhaustive: an earlier version of this list read as complete while omitting
+#     several actually in use. The invariant to preserve is the category — git,
+#     tofu, coreutils, all present on a bare ubuntu-latest runner — not the
+#     enumeration.
 #   * No git identity inherited. CI runners have no default user.email, so every
 #     throwaway repo sets user.email/user.name repo-locally and disables
 #     commit.gpgsign; a global signing key requirement would otherwise fail the
@@ -564,8 +568,12 @@ fi
 #     duplicate were both live evasions; both are now closed by "exactly one
 #     taskfile-shaped file" and "the name occurs exactly once". What that does
 #     NOT cover is a go-task version whose discovery reaches OUTSIDE the repo
-#     root, or a `TASKFILE`/`--taskfile` override in the caller's environment.
-#     Neither is asserted here.
+#     root, or an explicit CLI override: `-t/--taskfile`, `-d/--dir`, `-g/--global`
+#     all repoint go-task at a different file. Measured on 3.52.0, and an earlier
+#     version of this sentence also named a `TASKFILE` ENV VAR — there is no such
+#     variable: setting it is ignored (fixture intact) and `task --help` lists
+#     only those three flags. None of them is asserted here; they are CLI
+#     arguments, so anyone who can pass them already controls the invocation.
 #
 #     What it does NOT bound:
 #       * anything outside the block — a top-level `env:`, another task. E5
@@ -578,6 +586,19 @@ fi
 #         (lab:fmt) included by lab", and with the local task removed assertion
 #         0b counts 0 and reds — but that is go-task's doing, not this case's,
 #         and it should not be relied on as if it were designed.
+#       * A DUPLICATE WHOSE NAME IS ON NO SINGLE LINE. `? "lab:\` continued as
+#         `    fmt"` splits the name across a backslash-escaped line break, so
+#         0b's line-based count never sees it: measured 47/47 green with the
+#         fixture destroyed. Documented rather than fixed, on measured grounds —
+#         the plain block form of it does not even parse ("mapping values are not
+#         allowed in this context"), nothing emits the `? ` explicit-key form
+#         (not a merge conflict, not Prettier, not a human), it is a visible
+#         tracked hunk in review, and the damage is loud: `git status` shows the
+#         fixture and this suite's own startup guard reds on the next run.
+#         Widening 0b to catch it is exactly the `? >-`-class arms race this case
+#         refuses to enter, and would ship the next hole. HONEST RESIDUAL: an
+#         attacker who commits the escaped-key Taskfile AND reverts the fixture
+#         leaves CI green with a latent bomb.
 #       * THE `tofu` BINARY ITSELF. A trust boundary, not an oversight: the EXIT
 #         trap's probe in scripts/lab-fmt.sh is `tofu fmt -check`, the same binary
 #         as the mutation vector, so a `tofu` wrapper earlier on PATH defeats
@@ -675,12 +696,23 @@ fi
 #     Exotic spellings that this count somehow missed would still not slip by:
 #     they break the block extraction below, and assertions 2-5 then red on an
 #     empty block. Fail-closed either way.
+#
+#     THE PRICE, and it is real: this counts the NAME file-wide, not key
+#     positions, so ANY other reference to `lab:fmt` in Taskfile.yaml reds the
+#     suite — a sibling task doing `- task: lab:fmt`, or a `desc:` reading
+#     \"run lab:fmt first\". Both are ordinary correct maintenance and both were
+#     measured failing. Scoping the count to key-position lines is NOT the fix:
+#     that reintroduces exactly the spelling-dependence 0b exists to remove, and
+#     is round 6 replayed. The mitigation is a warning comment above `lab:fmt:`
+#     in Taskfile.yaml plus the failure text below naming BOTH causes, so nobody
+#     reads a false \"duplicate\" diagnosis and deletes the assertion instead of
+#     fixing the file.
 TASKFILE_NOCOMMENT="$(grep -v '^[[:space:]]*#' "$TASKFILE")"
 LABFMT_NAME_COUNT="$(printf '%s\n' "$TASKFILE_NOCOMMENT" | grep -c 'lab:fmt' || true)"
 if [ "${LABFMT_NAME_COUNT:-0}" -eq 1 ]; then
   ok "the name 'lab:fmt' occurs exactly once in Taskfile.yaml, in any spelling"
 else
-  bad "the name 'lab:fmt' occurs ${LABFMT_NAME_COUNT} times — go-task last-wins on duplicates, so the task it runs may not be the block audited below"
+  bad "the name 'lab:fmt' occurs ${LABFMT_NAME_COUNT} times — either a DUPLICATE DECLARATION (go-task last-wins, so the task it runs may not be the block audited below) or simply ANOTHER REFERENCE to the name elsewhere in Taskfile.yaml, e.g. '- task: lab:fmt' in a sibling task or a desc: mentioning it. Both red here: 0b counts the NAME file-wide on purpose, because a duplicate can be spelled in ways no key-shape pattern catches. Check which it is before changing anything"
 fi
 
 LABFMT_BLOCK="$(printf '%s\n' "$TASKFILE_NOCOMMENT" | awk '
@@ -868,6 +900,20 @@ else
 fi
 # Guard the guard: clearing all TF_* would break callers who legitimately set
 # TF_LOG or provider credentials, so the unset must stay narrow.
+#
+# SCOPE OF THIS PIN, stated here because it belongs in the file a maintainer
+# reads rather than in a commit message. This greps "$SUT" — scripts/lab-fmt.sh
+# — and NOTHING ELSE. So "TF_CLI_ARGS is neutralised" is true of lab-fmt.sh's own
+# process and of nothing further: scripts/verify.sh has the same exposure and its
+# own `unset` (added by US-F-GATEHYG, not pinned by anything here), and any other
+# caller of tofu in this repo is unguarded. Claiming the variable is neutralised
+# repo-wide would be false.
+#
+# Related, same reason: case 10 assertion 0b makes duplicate detection
+# SPELLING-INDEPENDENT. An earlier round's claim that duplicates were merely
+# "detected by count" was true only of the unquoted, comment-free spelling; the
+# quoted, annotated and explicit-key forms all went uncounted until 0b stopped
+# matching key shapes and started counting the name.
 if grep -q '^unset TF_CLI_ARGS TF_CLI_ARGS_fmt$' "$SUT"; then
   ok "the unset is scoped to the two TF_CLI_ARGS names, not all TF_*"
 else

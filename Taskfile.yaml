@@ -300,6 +300,16 @@ tasks:
         msg: "tofu is required. Install: brew install opentofu"
 
   lab:fmt:
+    # DO NOT MENTION `lab:fmt` ANYWHERE ELSE IN THIS FILE. scripts/lab-fmt-selftest.sh
+    # case 10 assertion 0b counts occurrences of the NAME across the whole file and
+    # requires exactly one, because go-task last-wins on a duplicate task and the
+    # duplicate can be spelled `"lab:fmt":`, `'lab:fmt':`, `? lab:fmt` or with a
+    # trailing comment — matching a key SHAPE would miss all of those. The price of
+    # that spelling-independence is that ANY other reference reds the suite: another
+    # task doing `- task: lab:fmt`, or a `desc:` that says "run lab:fmt first". Both
+    # are ordinary correct maintenance and both fail. Since CI discovers self-tests
+    # by glob, that reds `verify-unit` for everyone on the next push. If you need a
+    # cross-reference, say "the fmt task" in prose, or update 0b deliberately.
     # Deliberately NOT `tofu fmt -recursive`. This task is the remedy verify.sh
     # advertises when its fmt gate reds, and -recursive rewrote the one file the
     # gate deliberately excludes: labs/day-2/13-static-analysis/messy/main.tf,

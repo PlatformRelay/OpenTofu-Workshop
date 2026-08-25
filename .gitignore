@@ -68,7 +68,15 @@ references/
 # and several gates in this repo, including this lane's own positive control,
 # use an empty `git status --porcelain` as evidence. A lock is never committable,
 # so this line is inert if that guard is never landed.
-/.verify.lock
+#
+# The trailing `*` is load-bearing, not sloppiness. A SIGKILL between GATEHYG's
+# `mv` and its re-`mkdir` strands a `.verify.lock.stale.<pid>` sidecar, and there
+# is no reaper — measured NOT ignored by a bare `/.verify.lock`, so it would sit
+# untracked indefinitely. Every lane this session has used "porcelain is empty"
+# as delivery evidence, so a stray untracked file is not cosmetic here. Still
+# ROOT-ANCHORED by the leading slash: a `sub/.verify.lock` deeper in the tree is
+# correctly NOT ignored. Only over-reach is a hypothetical `.verify.locked`.
+/.verify.lock*
 
 # Keep deck docs even if ignored globally
 !AGENTS.md
