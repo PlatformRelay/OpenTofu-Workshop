@@ -8,7 +8,10 @@
 # rewrote labs/day-2/13-static-analysis/messy/main.tf — a DELIBERATELY
 # unformatted Day-2 static-analysis fixture whose misalignment IS the exercise.
 # Following the advertised remedy silently destroyed the lab. It fired in the
-# wild on 2026-08-19. `-recursive` also descended into sibling git worktrees.
+# wild on 2026-08-19. It did NOT, contrary to an earlier draft of this header,
+# descend into the agent worktrees: `tofu fmt -recursive` skips dot-prefixed
+# directories, so `.worktrees/` and `.claude/worktrees/` were never in its reach.
+# Case 3 below depends on that fact being stated correctly — see its comment.
 #
 # So lab-fmt.sh is now scoped to the git INDEX minus that one fixture, mirroring
 # verify.sh §2. Detection and remediation must agree or one of them is lying.
@@ -22,8 +25,13 @@
 #     `set -o pipefail` and kill the script from inside the branch whose only
 #     job is to report a failure.
 #
+# Case 10 additionally pins the WIRING: `task lab:fmt` must actually invoke this
+# script. Without it, reverting Taskfile.yaml to `tofu fmt -recursive` leaves
+# every case here green while the fixture burns — the same hand-maintained-parity
+# defect this lane criticises in ci.yml, reintroduced by the fix itself.
+#
 # Every case runs against a throwaway git repo in a temp dir. Nothing here
-# touches the real worktree except case 7, which only READS two scripts.
+# touches the real worktree except cases 7 and 10, which only READ tracked files.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -128,20 +136,38 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 3. Index scoping is what excludes sibling worktrees. An UNTRACKED .tf standing
-#    in for one must be left alone — that is the whole mechanism, tested
-#    directly instead of trusting the absence of `-recursive`.
+# 3. Index scoping is what puts untracked content out of reach. Tested directly
+#    rather than trusting the absence of `-recursive`.
+#
+#    THE DIRECTORY NAMES HERE ARE LOAD-BEARING AND MUST NOT BE DOT-PREFIXED.
+#    An earlier version of this case planted the file in `.worktrees/other-lane/`
+#    and asserted it survived. That assertion was VACUOUS: `tofu fmt -recursive`
+#    skips dot-prefixed directories, so it passed even against a fully
+#    destructive `-recursive` stand-in — a gate certifying nothing. Reproduced:
+#    identical files in `.worktrees/x/`, `.claude/worktrees/y/` and `normal/`,
+#    `tofu fmt -recursive`, only `normal/main.tf` rewritten.
+#
+#    So the stand-ins below sit at NON-dot paths, where `-recursive` genuinely
+#    would reach them: `worktrees/` (a worktree root without the dot), a nested
+#    untracked directory, and an untracked file at the root. Those three are what
+#    make this case bite.
 # ---------------------------------------------------------------------------
-case_ "3. untracked .tf (stand-in for a sibling worktree) is left alone"
+case_ "3. untracked .tf at non-dot paths (reachable by -recursive) is left alone"
 R3="$(make_repo full 3)"
-mkdir -p "$R3/.worktrees/other-lane"
-printf '%s' "$UNFORMATTED_TF" >"$R3/.worktrees/other-lane/main.tf"
+mkdir -p "$R3/worktrees/other-lane" "$R3/vendor/nested/deep"
+printf '%s' "$UNFORMATTED_TF" >"$R3/worktrees/other-lane/main.tf"
+printf '%s' "$UNFORMATTED_TF" >"$R3/vendor/nested/deep/main.tf"
 printf '%s' "$UNFORMATTED_TF" >"$R3/untracked-scratch.tf"
 (cd "$R3" && bash scripts/lab-fmt.sh >/dev/null 2>&1) || true
-if ! is_canonical "$R3/.worktrees/other-lane/main.tf"; then
-  ok "a .tf inside .worktrees/ was not touched"
+if ! is_canonical "$R3/worktrees/other-lane/main.tf"; then
+  ok "a .tf in a non-dot sibling-worktree root was not touched"
 else
-  bad "lab:fmt reformatted a file inside .worktrees/ — sibling worktrees are still in scope"
+  bad "lab:fmt reformatted a file under worktrees/ — untracked trees are still in scope"
+fi
+if ! is_canonical "$R3/vendor/nested/deep/main.tf"; then
+  ok "a deeply nested untracked .tf was not touched"
+else
+  bad "lab:fmt reformatted a nested untracked .tf — the scan is not index-scoped"
 fi
 if ! is_canonical "$R3/untracked-scratch.tf"; then
   ok "an untracked .tf at the root was not touched"
@@ -326,6 +352,45 @@ if is_canonical "$R9/modules/aaa-early/main.tf"; then
   ok "the remaining files were still formatted"
 else
   bad "one absent file aborted formatting of the rest"
+fi
+
+# ---------------------------------------------------------------------------
+# 10. THE WIRING. Everything above proves scripts/lab-fmt.sh is safe. NONE of it
+#     proves `task lab:fmt` — the command verify.sh actually advertises — still
+#     calls it. Reverting Taskfile.yaml's `lab:fmt` cmds to `tofu fmt -recursive`
+#     left this self-test AND verify.sh fully green while the fixture burned:
+#     verify.sh enumerates task NAMES only, never their `cmds`. That is the same
+#     hand-maintained-parity defect this lane flags in ci.yml, reintroduced by
+#     the fix itself, so it is pinned here rather than merely commented.
+#
+#     Parsed with awk rather than a YAML library to keep the self-test free of
+#     runtime deps: take the lines after the `  lab:fmt:` key up to the next
+#     2-space-indented key. The extraction is asserted to have WORKED before
+#     anything is concluded from it — an awk that silently matches nothing would
+#     otherwise "find no -recursive" and pass over a block it never read, which
+#     is exactly the empty-scan degradation case 4 exists to forbid.
+# ---------------------------------------------------------------------------
+case_ "10. task lab:fmt is still wired to scripts/lab-fmt.sh"
+TASKFILE="$ROOT/Taskfile.yaml"
+LABFMT_BLOCK="$(awk '
+  /^  lab:fmt:[[:space:]]*$/ { inblock = 1; next }
+  inblock && /^  [^[:space:]]/ { exit }
+  inblock { print }
+' "$TASKFILE")"
+if [ -n "$LABFMT_BLOCK" ] && printf '%s' "$LABFMT_BLOCK" | grep -q '^    cmds:'; then
+  ok "the lab:fmt task block was extracted from Taskfile.yaml"
+else
+  bad "could not extract the lab:fmt block from $TASKFILE — this case proves nothing; fix the parser"
+fi
+if printf '%s' "$LABFMT_BLOCK" | grep -q 'bash scripts/lab-fmt\.sh'; then
+  ok "task lab:fmt invokes scripts/lab-fmt.sh"
+else
+  bad "task lab:fmt no longer invokes scripts/lab-fmt.sh — every case above is now moot"
+fi
+if printf '%s' "$LABFMT_BLOCK" | grep -qE '^[[:space:]]*-[[:space:]]*tofu fmt'; then
+  bad "task lab:fmt runs 'tofu fmt' directly again — the S13 fixture is unprotected"
+else
+  ok "task lab:fmt does not shell out to 'tofu fmt' directly"
 fi
 
 # ---------------------------------------------------------------------------

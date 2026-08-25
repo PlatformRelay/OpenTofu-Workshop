@@ -14,15 +14,39 @@
 # was the whole damage. It fired in the wild on 2026-08-19: a worktree was found
 # holding one modified file — that fixture, canonicalised away.
 #
-# `-recursive` also descended into anything else sitting under the root, most
-# painfully sibling git worktrees at .worktrees/<lane>/ or .claude/worktrees/,
-# each carrying its own copy of the tree including its own S13 fixture.
+# CORRECTION, verified rather than assumed: `-recursive` did NOT reach the agent
+# worktrees. `tofu fmt -recursive` SKIPS dot-prefixed directories, so
+# .worktrees/<lane>/ and .claude/worktrees/<lane>/ were never in its reach —
+# reproduced by planting identical unformatted files in `.worktrees/x/`,
+# `.claude/worktrees/y/` and `normal/`, running `tofu fmt -recursive`, and seeing
+# only `normal/main.tf` rewritten. An earlier draft of this header asserted the
+# opposite and was wrong. What `-recursive` DID reach is every NON-dot directory
+# under the root — which is labs/, which is the fixture. That is the whole
+# hazard; the sibling-worktree story was never part of it.
+#
+# The dot-skip is luck, not protection: a worktree at a non-dot path (or any
+# untracked clone, vendored tree or build output that is not dot-prefixed) sits
+# squarely in `-recursive`'s path. Index scoping removes the class rather than
+# relying on a prefix convention.
+#
+# `-recursive` is NOT the only path that destroys this fixture. Two others exist
+# at the time of writing:
+#   * .pre-commit-config.yaml's `terraform_fmt` hook — `files: \.tf$` with NO
+#     `exclude:` — rewrites the fixture on commit or on the `pre-commit run
+#     --all-files` its own header documents. Independently reproduced. This is
+#     the likelier cause of the 2026-08-19 incident than `task lab:fmt`, and it
+#     is NOT fixed by this script. Owner: lane/us-f-ciparity.
+#   * labs/day-2/19-testing-cicd/.github/workflows/pipeline.yml's bare
+#     `tofu fmt -recursive` — a DELIBERATELY planted false-green gate the lab
+#     teaches learners to find. Leave it alone; any grep-and-fix sweep for
+#     `fmt -recursive` must skip it.
 #
 # SCOPE: the git INDEX minus that fixture — deliberately the SAME mechanism
 # verify.sh §2 uses to DETECT (US-F-VERIFY-WT), because detection and
 # remediation disagreeing means one of them is lying to the user. Untracked
 # files, sibling worktrees, node_modules and provider caches fall out of scope
-# structurally, with no exclusion list to keep in sync.
+# structurally, with no exclusion list to keep in sync and no dependence on a
+# dot-prefix convention.
 #
 # Trade-off, inherited from verify.sh on purpose: a brand-new .tf that has never
 # been `git add`ed is not formatted. It is picked up the moment it is staged,

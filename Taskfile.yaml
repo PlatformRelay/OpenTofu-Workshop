@@ -379,6 +379,9 @@ tasks:
       # Regression guard: prove `task lab:fmt` — the remedy the fmt gate below
       # advertises — still leaves the S13 messy fixture byte-identical, and still
       # formats everything else. Runs in throwaway git repos; see the script.
+      # Its case 10 reads the `lab:fmt` cmds out of THIS file, so the claim above
+      # names the task rather than the script honestly: reverting lab:fmt to a
+      # bare `tofu fmt -recursive` reds this self-test instead of sailing past it.
       - bash scripts/lab-fmt-selftest.sh
       - bash scripts/verify.sh
       # Regression guard: prove the slide↔lab drift ENFORCEMENT actually fails on
