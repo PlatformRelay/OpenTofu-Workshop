@@ -117,6 +117,16 @@
 #    46b. an UNUSABLE lock path (a stray regular file where the directory
 #        belongs) is diagnosed as itself — `mkdir` fails with EEXIST there too,
 #        so without the guard it would be reported as a phantom concurrent run
+#    46c. a lock recorded on ANOTHER host, whose pid is dead LOCALLY → refused
+#        intact (review G4; a live pid would let a broken host check pass)
+#    46d. a lock with an UNREADABLE pid → refused intact, never assumed dead
+#        (review G5; malformed rather than absent, so the host check cannot
+#        produce the refusal and the pid guard is the thing under test)
+#    46e. TWO RACERS: a stale-lock break must not destroy a lock re-acquired
+#        between the read and the break (review G1). Reproduced against the
+#        unfixed code by stubbing `cat` to return the STALE pid and only then
+#        hold the pipe open — the delay has to come after the read, or the
+#        guard sees the new pid and the case passes for the wrong reason.
 #    47. the lock is genuinely TAKEN during a run (without this, every
 #        "released" assertion below passes vacuously against no guard at all)
 #    48. a SIGTERMed run releases its lock — no wedge
@@ -192,8 +202,16 @@ trap 'selftest_cleanup; trap - TERM; kill -TERM $$' TERM
 # parent variable — the wiring probe is precisely the FAIL-path case whose
 # cleanup we most need to observe.
 RUN_CASE_TMP_TRACE="$SELFTEST_TMP_ROOT/case-tmp-roots.txt"
+# G6: the lock scenarios get their OWN ledger. Sharing one with run_case made
+# the "no roots recorded -> DISARMED" guard below unreachable: the lock
+# sandboxes kept the total at 4 or more, so deleting run_case's ledger append
+# produced "all 4 case temp root(s) removed, 0 leaked" — a confident green over
+# 49 unswept roots. Two ledgers, each with its own floor, means either append
+# can be deleted and something goes red.
+LOCK_SANDBOX_TMP_TRACE="$SELFTEST_TMP_ROOT/lock-sandbox-roots.txt"
 RUN_CASE_LOCK_TRACE="$SELFTEST_TMP_ROOT/case-lock-leaks.txt"
 : >"$RUN_CASE_TMP_TRACE"
+: >"$LOCK_SANDBOX_TMP_TRACE"
 : >"$RUN_CASE_LOCK_TRACE"
 
 command -v tofu >/dev/null 2>&1 || { echo "selftest: tofu required" >&2; exit 1; }
@@ -508,7 +526,14 @@ run_case() {
   # that checkout. Record it here rather than failing the case: the sweep below
   # reports the total, so ONE misleading case message cannot be mistaken for a
   # drift/tier regression.
-  [ -d "$tmp/.verify.lock" ] && printf '%s\n' "$tmp" >>"$RUN_CASE_LOCK_TRACE"
+  # G7: `if`, not `[ … ] && …`. As an && list this returns 1 on the normal path
+  # (no lock left behind), and the only thing keeping that off run_case's exit
+  # status is the `rm -rf` that follows. Delete that line and run_case returns 1,
+  # `set -e` kills the self-test mid-run, and it dies with no summary at all —
+  # this repo's signature false-red, caused by the cleanup fix itself.
+  if [ -d "$tmp/.verify.lock" ]; then
+    printf '%s\n' "$tmp" >>"$RUN_CASE_LOCK_TRACE"
+  fi
   # Hoisted past the verdict, exactly like the dump call above: with a copy in
   # each branch, reverting only the fail-path one would leak on every red case
   # while the self-test stayed green.
@@ -1075,19 +1100,28 @@ check_case_tmp_cleaned() {
 # removed its own tree while this script was still running, so deleting
 # run_case's `rm -rf` and leaning on the script-level EXIT trap instead is a
 # red, not a silent behaviour change.
+# check_all_case_tmp_cleaned <label> <ledger> <floor>
+#
+# <floor> is a LOWER BOUND on how many roots that ledger must have recorded, not
+# the exact count — deliberately loose, so adding or removing a case does not
+# force an edit here, while a regression that routes the append somewhere it
+# only fires for a handful of cases still goes red. A ledger that recorded
+# nothing is reported as DISARMED, never as a clean sweep: "nothing leaked" and
+# "nothing was ever recorded" are the same observation and only one is good.
 check_all_case_tmp_cleaned() {
+  local label="$1" ledger="$2" floor="$3"
   local total=0 leaked=0 p
   while IFS= read -r p; do
     [ -n "$p" ] || continue
     total=$((total + 1))
     if [ -d "$p" ]; then leaked=$((leaked + 1)); fi
-  done <"$RUN_CASE_TMP_TRACE"
-  if [ "$total" -eq 0 ]; then
-    bad "temp cleanup sweep — no case temp roots were recorded; this probe is DISARMED"
+  done <"$ledger"
+  if [ "$total" -lt "$floor" ]; then
+    bad "temp cleanup sweep ($label) — only $total root(s) recorded, expected at least $floor; this probe is DISARMED"
   elif [ "$leaked" -eq 0 ]; then
-    ok "temp cleanup sweep — all $total case temp root(s) removed, 0 leaked"
+    ok "temp cleanup sweep ($label) — all $total temp root(s) removed, 0 leaked"
   else
-    bad "temp cleanup sweep — $leaked of $total case temp root(s) still on disk"
+    bad "temp cleanup sweep ($label) — $leaked of $total temp root(s) still on disk"
   fi
 }
 
@@ -1128,10 +1162,10 @@ LOCK_REFUSAL_NEEDLE='another verify.sh is already running in this checkout'
 
 # Plant a lock directory by hand, exactly as verify.sh writes one.
 plant_verify_lock() {
-  local root="$1" pid="$2"
+  local root="$1" pid="$2" host="${3:-$(uname -n)}"
   mkdir -p "$root/.verify.lock"
-  printf '%s\n' "$pid"        >"$root/.verify.lock/pid"
-  printf '%s\n' "$(uname -n)" >"$root/.verify.lock/host"
+  printf '%s\n' "$pid"  >"$root/.verify.lock/pid"
+  printf '%s\n' "$host" >"$root/.verify.lock/host"
   printf '%s\n' "planted by verify-selftest.sh" >"$root/.verify.lock/started"
 }
 
@@ -1140,7 +1174,7 @@ plant_verify_lock() {
 new_lock_sandbox() {
   local t
   t="$(mktemp -d "$SELFTEST_TMP_ROOT/lock.XXXXXXXX")"
-  printf '%s\n' "$t" >>"$RUN_CASE_TMP_TRACE"
+  printf '%s\n' "$t" >>"$LOCK_SANDBOX_TMP_TRACE"
   build_root "$t"
   printf '%s' "$t"
 }
@@ -1189,7 +1223,9 @@ check_lock_breaks_stale_lock() {
   out="$(PATH="$tmp/test-bin:$PATH" bash "$tmp/scripts/verify.sh" 2>&1)"
   rc=$?
   set -e
-  if [ "$rc" -eq 0 ] && has_text "$out" "stale .verify.lock left by pid $dead" \
+  # Absolute path in the needle: the message names $VERIFY_LOCK_DIR so a reader
+  # in a subdirectory gets a remedy that actually works (review G8).
+  if [ "$rc" -eq 0 ] && has_text "$out" "stale $tmp/.verify.lock left by pid $dead" \
      && [ ! -d "$tmp/.verify.lock" ]; then
     ok "concurrency guard — a stale lock (dead pid) is named, broken, and the run completes"
   else
@@ -1264,8 +1300,142 @@ check_lock_reports_unusable_lock_path() {
   rm -rf "$tmp"
 }
 
+# G1 — the stale-lock break is a READ-then-DESTROY sequence, and between the two
+# there are three forks and a `warn`. If another run acquires the lock in that
+# gap, an unguarded break destroys a LIVE lock while announcing "breaking it",
+# and both runs then `tofu init` in the labs — the exact corruption this lane
+# exists to prevent, with a confident message on top.
+#
+# `check_lock_breaks_stale_lock` is single-racer by construction and cannot see
+# this. Making the race deterministic needs a controllable window, so this case
+# stubs `cat` to sleep for exactly one path — the lock's pid file, which is the
+# first thing acquire_verify_lock reads. Everything else is delegated untouched.
+# A second acquirer is then interleaved by the clock, not by luck.
+check_lock_break_is_not_a_race() {
+  local tmp dead live a_pid rc real_cat lock_pid
+  tmp="$(new_lock_sandbox)"
+  ( exit 0 ) &
+  dead=$!
+  wait "$dead" 2>/dev/null || true
+  plant_verify_lock "$tmp" "$dead"
+  real_cat="$(command -v cat)"
+  # The delay must come AFTER the read, not before it. A stub that sleeps first
+  # hands verify.sh the pid as it stands at the END of the window — i.e. racer
+  # B's live pid — so the guard correctly refuses and the case passes for the
+  # wrong reason. (Observed: this test went green against the unfixed code.)
+  # Emitting the STALE value and only then holding the pipe open reproduces the
+  # real defect: a decision made on data that has since gone out of date.
+  cat >"$tmp/test-bin/cat" <<STUB
+#!/bin/sh
+case "\$1" in
+  */.verify.lock/pid)
+    "$real_cat" "\$@"
+    sleep 3
+    exit 0
+    ;;
+esac
+exec "$real_cat" "\$@"
+STUB
+  chmod +x "$tmp/test-bin/cat"
+  PATH="$tmp/test-bin:$PATH" bash "$tmp/scripts/verify.sh" >"$tmp/racer.log" 2>&1 &
+  a_pid=$!
+  # Racer A is now inside the widened read. Racer B takes the lock underneath it,
+  # exactly as a second lane start would after a SIGKILL left the stale lock.
+  sleep 1
+  sleep 30 &
+  live=$!
+  rm -rf "$tmp/.verify.lock"
+  mkdir "$tmp/.verify.lock"
+  printf '%s\n' "$live"       >"$tmp/.verify.lock/pid"
+  printf '%s\n' "$(uname -n)" >"$tmp/.verify.lock/host"
+  printf '%s\n' "racer B"     >"$tmp/.verify.lock/started"
+  set +e
+  wait "$a_pid"
+  rc=$?
+  set -e
+  lock_pid="$("$real_cat" "$tmp/.verify.lock/pid" 2>/dev/null || true)"
+  kill "$live" 2>/dev/null || true
+  wait "$live" 2>/dev/null || true
+  if [ "$rc" -ne 0 ] && [ "$lock_pid" = "$live" ]; then
+    ok "concurrency guard — a stale-lock break does not destroy a lock re-acquired mid-break (two racers)"
+  else
+    bad "concurrency guard — the break DESTROYED a live lock re-acquired mid-break: racer A exited $rc, lock now held by '${lock_pid:-nobody}' (expected '$live')"
+    dump_case_output "$("$real_cat" "$tmp/racer.log" 2>/dev/null || true)"
+  fi
+  rm -rf "$tmp"
+}
+
+# G4 — the host check was untested. Mutating `[ "$host" = "$VERIFY_HOST" ]` to
+# always-true left the whole suite green, because plant_verify_lock only ever
+# wrote this host's name.
+#
+# The pid here must be DEAD, and that is the whole design of the case. With a
+# LIVE pid a broken host check still refuses — correctly, for the wrong reason —
+# and the case passes while proving nothing. With a dead one, correct code
+# refuses on the host mismatch and broken code breaks the lock and runs, so the
+# two are distinguishable. (First draft of this case used a live pid and was
+# mutation-blind; caught before it shipped.)
+#
+# Why the host must match at all: a pid recorded on another machine says nothing
+# about any process here. Pid 4242 from a CI runner is, on this laptop, either
+# nothing or something entirely unrelated — "is it alive?" is not even the right
+# question. Shared checkouts over NFS/SMB and container-vs-host mounts are how
+# a foreign-host lock actually arrives.
+check_lock_refuses_foreign_host_lock() {
+  local tmp dead out rc
+  tmp="$(new_lock_sandbox)"
+  ( exit 0 ) &
+  dead=$!
+  wait "$dead" 2>/dev/null || true
+  plant_verify_lock "$tmp" "$dead" "some-other-machine.example"
+  set +e
+  out="$(PATH="$tmp/test-bin:$PATH" bash "$tmp/scripts/verify.sh" 2>&1)"
+  rc=$?
+  set -e
+  if [ "$rc" -ne 0 ] && has_text "$out" "$LOCK_REFUSAL_NEEDLE" \
+     && has_text "$out" "some-other-machine.example" && [ -d "$tmp/.verify.lock" ]; then
+    ok "concurrency guard — a lock recorded on another HOST is refused intact, never broken on a local pid"
+  else
+    bad "concurrency guard — a foreign-host lock was not refused intact; got exit $rc"
+    dump_case_output "$out"
+  fi
+  rm -rf "$tmp"
+}
+
+# G5 — the pid-shape guard was untested too. Neutralising `'' | *[!0-9]*)` left
+# the suite green.
+#
+# The guard's job is to treat anything that is not a plain number as "not
+# provably dead, therefore refuse". A MALFORMED pid is what isolates it: the
+# host matches, so the host check cannot produce the refusal, and `ps -p
+# not-a-number` fails, so a missing guard reads that as "dead" and breaks a lock
+# it knows nothing about. The neighbouring state — a holder that won the `mkdir`
+# and has written no metadata AT ALL — is covered by the host check instead,
+# since its host file is empty too; that one cannot isolate this guard, which is
+# why this case plants garbage rather than nothing.
+check_lock_refuses_malformed_pid() {
+  local tmp out rc
+  tmp="$(new_lock_sandbox)"
+  plant_verify_lock "$tmp" "not-a-number"
+  set +e
+  out="$(PATH="$tmp/test-bin:$PATH" bash "$tmp/scripts/verify.sh" 2>&1)"
+  rc=$?
+  set -e
+  if [ "$rc" -ne 0 ] && has_text "$out" "$LOCK_REFUSAL_NEEDLE" \
+     && [ -d "$tmp/.verify.lock" ]; then
+    ok "concurrency guard — a lock with an unreadable pid is refused intact, never assumed dead"
+  else
+    bad "concurrency guard — a malformed-pid lock was not refused intact; got exit $rc"
+    dump_case_output "$out"
+  fi
+  rm -rf "$tmp"
+}
+
 check_lock_refuses_concurrent_run
+check_lock_refuses_foreign_host_lock
+check_lock_refuses_malformed_pid
 check_lock_breaks_stale_lock
+check_lock_break_is_not_a_race
 check_lock_reports_unusable_lock_path
 check_lock_released_after_kill
 
@@ -1365,7 +1535,8 @@ else
 fi
 
 printf '\n### temp + lock hygiene sweeps (US-F-GATEHYG) ###\n'
-check_all_case_tmp_cleaned
+check_all_case_tmp_cleaned "run_case" "$RUN_CASE_TMP_TRACE" 40
+check_all_case_tmp_cleaned "lock scenarios" "$LOCK_SANDBOX_TMP_TRACE" 5
 check_no_case_left_lock
 
 printf '\n'

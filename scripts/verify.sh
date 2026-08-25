@@ -142,6 +142,15 @@ trap 'verify_rc=$?; verify_cleanup; exit "$verify_rc"' EXIT
 trap 'verify_cleanup; trap - INT;  kill -INT  $$' INT
 trap 'verify_cleanup; trap - TERM; kill -TERM $$' TERM
 
+holder_is_alive() {
+  # G3: NOT `kill -0`. That conflates ESRCH ("no such process") with EPERM
+  # ("alive, but you may not signal it"), so a holder started by another user on
+  # this host — `sudo bash scripts/verify.sh`, a CI runner that switches user —
+  # reads as DEAD and its LIVE lock gets broken. `ps -p` is POSIX and answers
+  # the question actually being asked: does this pid exist?
+  ps -p "$1" >/dev/null 2>&1
+}
+
 write_verify_lock_metadata() {
   printf '%s\n' "$$"           >"$VERIFY_LOCK_DIR/pid"
   printf '%s\n' "$VERIFY_HOST" >"$VERIFY_LOCK_DIR/host"
@@ -153,16 +162,92 @@ refuse_concurrent_run() {
   local pid="$1" host="$2" when="$3"
   bad "another verify.sh is already running in this checkout — refusing to start"
   info "holder: pid ${pid:-unknown} on ${host:-unknown}${when:+, started $when}"
-  info "lock:   $VERIFY_LOCK_NAME"
+  # G8: the ABSOLUTE path. This message is read wherever the reader happens to
+  # be, and `rm -rf .verify.lock` typed from labs/day-1/03-core-workflow removes
+  # nothing at all while looking like it worked.
+  info "lock:   $VERIFY_LOCK_DIR"
   info "why: this gate runs 'tofu init' IN PLACE in every day-1/day-3 lab workdir,"
   info "     so two runs here would write the same labs/**/.terraform/ and corrupt"
   info "     each other's provider cache. The damage would surface later as an init"
   info "     failure in a directory that varies by timing — i.e. as a fake flake."
   info "wait for the other run to finish, or run the second one in its own checkout."
-  info "if no such process exists the lock is stale: rm -rf $VERIFY_LOCK_NAME"
+  info "if no such process exists the lock is stale: rm -rf $VERIFY_LOCK_DIR"
   # Distinct from 1 on purpose: 1 means "the gate ran and found problems",
   # 2 means "the gate declined to run and certified nothing".
   exit 2
+}
+
+# Break a lock whose recorded holder is gone, and take it — or refuse. Never
+# return without doing one of those two things.
+#
+# THE BUG THIS EXISTS TO CLOSE (review G1). The obvious form is
+#
+#     read pid -> decide it is dead -> rm -rf the lock -> mkdir it again
+#
+# and between the read and the `rm` sit three forks and a `warn` write. If any
+# other run acquires the lock in that gap, the `rm -rf` destroys a LIVE lock
+# while announcing "breaking it", and two runs then `tofu init` in the same lab
+# workdirs — precisely the corruption this whole guard exists to prevent, with a
+# confident message on top. A re-`mkdir` afterwards does not help: it only
+# covers someone acquiring between the `rm` and the `mkdir`, which is the
+# narrower half of the window.
+#
+# Two racers B and C both finding the same stale lock is not exotic either. A
+# SIGKILL (an agent-harness timeout, a laptop sleep) leaves the stale lock, and
+# a parallel lane launch supplies the second starter.
+#
+# The arbitration primitive here is `mv`, not `mkdir`: renaming a directory
+# within the same parent is a single `rename(2)`, and it fails for everyone
+# except the one caller whose source still exists. So of any number of
+# simultaneous breakers, exactly ONE can move the lock aside, and the losers
+# find their source gone and refuse. `mkdir` cannot do this job — two breakers
+# can both `rm -rf` and both `mkdir`, and the loser's `rm` deletes the winner's
+# fresh lock.
+#
+# A rename is also the right failure mode. If this process is killed between the
+# `mv` and the re-`mkdir`, what is stranded is a `.verify.lock.stale.<pid>`
+# directory and NO lock — so the next run acquires normally. A break TOKEN, the
+# other obvious design, strands the token instead and then refuses every future
+# break, wedging the checkout: strictly worse than the bug being fixed.
+break_stale_lock_and_acquire() {
+  local pid="$1" host="$2" when="$3"
+  local stale_dir="$VERIFY_LOCK_DIR.stale.$$" moved_pid
+  # 1. Re-read first, cheaply and with no side effects. If the holder changed
+  #    between the read above and now, someone re-acquired and there is nothing
+  #    stale here — leave their lock strictly alone.
+  if [ "$(cat "$VERIFY_LOCK_DIR/pid" 2>/dev/null || true)" != "$pid" ]; then
+    refuse_concurrent_run \
+      "$(cat "$VERIFY_LOCK_DIR/pid" 2>/dev/null || true)" \
+      "$(cat "$VERIFY_LOCK_DIR/host" 2>/dev/null || true)" \
+      "$(cat "$VERIFY_LOCK_DIR/started" 2>/dev/null || true)"
+  fi
+  # 2. Claim the break by moving the lock aside. Exactly one racer wins.
+  if ! mv "$VERIFY_LOCK_DIR" "$stale_dir" 2>/dev/null; then
+    refuse_concurrent_run "$pid" "$host" "$when"
+  fi
+  # 3. Confirm what was actually moved. Step 1 can still be beaten by a very
+  #    narrow interleaving (a lock removed by hand, then re-acquired, between
+  #    the re-read and the `mv`), and this is the last chance to notice before
+  #    the contents are gone. Put it back if so — best effort, because by then
+  #    the correct owner is someone else's business, not this run's.
+  moved_pid="$(cat "$stale_dir/pid" 2>/dev/null || true)"
+  if [ "$moved_pid" != "$pid" ]; then
+    mv "$stale_dir" "$VERIFY_LOCK_DIR" 2>/dev/null || rm -rf "$stale_dir"
+    refuse_concurrent_run "$moved_pid" "$host" "$when"
+  fi
+  warn "stale $VERIFY_LOCK_DIR left by pid $pid (no longer running) — breaking it"
+  rm -rf "$stale_dir"
+  if mkdir "$VERIFY_LOCK_DIR" 2>/dev/null; then
+    VERIFY_LOCK_HELD=1
+    write_verify_lock_metadata
+    return 0
+  fi
+  # Someone acquired in the instant after the break. Correct and expected —
+  # breaking is not acquiring.
+  refuse_concurrent_run \
+    "$(cat "$VERIFY_LOCK_DIR/pid" 2>/dev/null || true)" \
+    "$(cat "$VERIFY_LOCK_DIR/host" 2>/dev/null || true)" \
+    "$(cat "$VERIFY_LOCK_DIR/started" 2>/dev/null || true)"
 }
 
 acquire_verify_lock() {
@@ -182,7 +267,7 @@ acquire_verify_lock() {
     bad "cannot create $VERIFY_LOCK_NAME — the single-run guard cannot be established"
     info "this is NOT a concurrent run: something other than a lock directory is in"
     info "the way, or $REPO_ROOT is not writable."
-    info "check: ls -ld $VERIFY_LOCK_NAME  (a stray regular file? remove it)"
+    info "check: ls -ld $VERIFY_LOCK_DIR  (a stray regular file? remove it)"
     exit 2
   fi
   pid="$(cat "$VERIFY_LOCK_DIR/pid" 2>/dev/null || true)"
@@ -197,20 +282,14 @@ acquire_verify_lock() {
   case "$pid" in
     '' | *[!0-9]*) refuse_concurrent_run "$pid" "$host" "$when" ;;
   esac
-  if [ "$host" = "$VERIFY_HOST" ] && ! kill -0 "$pid" 2>/dev/null; then
-    warn "stale $VERIFY_LOCK_NAME left by pid $pid (no longer running) — breaking it"
-    rm -rf "$VERIFY_LOCK_DIR"
-    # Re-attempt rather than assume: breaking is not acquiring. Another refused
-    # run may have broken the same stale lock a moment earlier and now own it,
-    # and proceeding on that assumption would put two runs in the labs again.
-    if mkdir "$VERIFY_LOCK_DIR" 2>/dev/null; then
-      VERIFY_LOCK_HELD=1
-      write_verify_lock_metadata
-      return 0
-    fi
-    pid="$(cat "$VERIFY_LOCK_DIR/pid" 2>/dev/null || true)"
-    host="$(cat "$VERIFY_LOCK_DIR/host" 2>/dev/null || true)"
-    when="$(cat "$VERIFY_LOCK_DIR/started" 2>/dev/null || true)"
+  if [ "$host" = "$VERIFY_HOST" ] && ! holder_is_alive "$pid"; then
+    # The breaker either acquires and returns 0, or refuses and exits — it never
+    # returns without resolving. So this `return` is unconditional, and leaving
+    # it out let a SUCCESSFUL break fall straight through into the refusal
+    # below. (It did: the two-racer case went green while the ordinary
+    # stale-break case started failing with exit 2.)
+    break_stale_lock_and_acquire "$pid" "$host" "$when"
+    return 0
   fi
   refuse_concurrent_run "$pid" "$host" "$when"
 }
