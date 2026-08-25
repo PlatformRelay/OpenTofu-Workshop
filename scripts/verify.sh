@@ -2,6 +2,10 @@
 # scripts/verify.sh — the "tested workshop" gate.
 #
 # Unit lane (no Docker needed):
+#   0. single-run guard: this gate is STATEFUL in the worktree (section 3 runs
+#      `tofu init` in place in every lab workdir), so a mkdir-based .verify.lock
+#      refuses a second concurrent run in the same checkout rather than letting
+#      the two corrupt each other's provider cache
 #   1. deps preflight (tofu present, version)
 #   2. tofu fmt -check over git-tracked *.tf (minus the S13 messy fixture);
 #      falls back to a filesystem walk when the root is not a git work tree
@@ -47,6 +51,160 @@ pass() { ok "$*"; CHECKS=$((CHECKS + 1)); }
 title "OpenTofu Workshop · verify (unit lane)"
 
 # ---------------------------------------------------------------------------
+# 0. Single-run guard + temp lifetime (US-F-GATEHYG)
+#
+#    WHY A LOCK AT ALL: since US-C-GATE this gate is STATEFUL in the worktree.
+#    Section 3 runs `tofu init -backend=false` IN PLACE in every day-1/day-3 lab
+#    workdir, writing labs/**/.terraform/. Nothing serialized that, so two
+#    overlapping runs in the same checkout populate the same provider cache
+#    directories and shred each other's. The damage does not surface where it
+#    was done — it surfaces later, as
+#
+#        labs/day-2/17-mocking: init failed
+#        there is no package for registry.opentofu.org/hashicorp/aws 5.100.0
+#        cached in .terraform/providers
+#
+#    in a directory that VARIES BY TIMING. That reads exactly like a flake, and
+#    a failure of that shape has already cost this project a revert of an
+#    innocent lane. A gate whose red can be produced by a second copy of itself
+#    is not evidence about the diff under test.
+#
+#    WHY mkdir AND NOT flock: flock(1) is a util-linux tool and is NOT present
+#    on macOS/BSD, where this repo is developed. `mkdir` is atomic on every
+#    POSIX filesystem and needs nothing installed, so one mechanism covers the
+#    darwin dev host and the Linux CI runner. (`set -o noclobber` is the weaker
+#    guarantee — its `>|` override semantics vary between shells.)
+#
+#    WHY $REPO_ROOT AND NOT $TMPDIR: the resource being protected is THIS
+#    checkout's lab workdirs, so the lock belongs next to them. A TMPDIR-keyed
+#    lock silently stops excluding anything the moment two shells disagree about
+#    TMPDIR — which is the normal case under nix-shell and direnv, each of which
+#    mints a per-shell temp directory. Deriving it from `git rev-parse --git-dir`
+#    was rejected for a different reason: scripts/verify-selftest.sh drives this
+#    script inside a NON-git temp root, so every self-test would exercise a
+#    fallback while production exercised the primary — the precise "the gate
+#    does not test what it certifies" shape this story exists to close.
+#
+#    .verify.lock is untracked and transient: it exists only while a run is in
+#    flight, so it does not sit in `git status` between runs. It is deliberately
+#    NOT placed under a `git clean -X`-able path — the documented local gate
+#    matrix starts with `git clean -Xfd labs`, and a lock that a routine cleanup
+#    can delete out from under a LIVE run is not a lock.
+#
+#    WHAT IT DOES NOT FIX: the same "no package … cached in .terraform/providers"
+#    message is much more often produced by a COLD provider cache on the first
+#    run after `git clean -Xfd labs`, with no second process anywhere. This lock
+#    cannot help with that; section 3's failure branch names both causes instead.
+# ---------------------------------------------------------------------------
+VERIFY_LOCK_DIR="$REPO_ROOT/.verify.lock"
+VERIFY_LOCK_NAME="${VERIFY_LOCK_DIR#"$REPO_ROOT"/}"
+VERIFY_LOCK_HELD=0
+VERIFY_HOST="$(uname -n)"
+# Every mktemp this script takes is registered here so the exit path can reclaim
+# it. The explicit `rm -f`s further down stay: they free early, this is the net
+# that catches an exit BETWEEN the mktemp and the rm.
+VERIFY_TMP_FILES=()
+
+release_verify_lock() {
+  # Only ever remove a lock THIS process owns. Without the guard, the run that
+  # was REFUSED the lock would delete the live holder's on its way out — the
+  # corruption reopened by the very code that just prevented it, and with a
+  # clean-looking refusal on screen. (Self-tested: "the refused run left the
+  # holder's lock intact".)
+  [ "$VERIFY_LOCK_HELD" -eq 1 ] || return 0
+  VERIFY_LOCK_HELD=0
+  rm -rf "$VERIFY_LOCK_DIR"
+  return 0
+}
+
+verify_cleanup() {
+  release_verify_lock
+  if [ "${#VERIFY_TMP_FILES[@]}" -gt 0 ]; then
+    rm -f "${VERIFY_TMP_FILES[@]}"
+  fi
+  # Never let the cleanup itself decide the exit status.
+  return 0
+}
+
+# EXIT covers a normal `exit 0`/`exit 1`, every `set -e` death including the
+# preflight bail-out below, and — MEASURED, not assumed — an untrapped SIGTERM
+# as well: bash's fatal-signal handler runs the EXIT trap before re-raising
+# (probe on GNU bash 5.3.15: the trap fired and the shell still exited 143).
+# The explicit INT/TERM handlers below are therefore REDUNDANT on this shell.
+# That was checked the only way it can be: deleting them does NOT turn the
+# "a SIGTERMed run releases its lock" self-test red. They are kept as
+# belt-and-braces for shells that do not run the exit trap on a fatal signal,
+# and the self-test asserts the OUTCOME, so either mechanism satisfies it.
+# SIGKILL is untrappable by anyone — that residue is what the staleness
+# detection in acquire_verify_lock is for, and it is self-tested too.
+verify_rc=0
+trap 'verify_rc=$?; verify_cleanup; exit "$verify_rc"' EXIT
+trap 'verify_cleanup; trap - INT;  kill -INT  $$' INT
+trap 'verify_cleanup; trap - TERM; kill -TERM $$' TERM
+
+write_verify_lock_metadata() {
+  printf '%s\n' "$$"           >"$VERIFY_LOCK_DIR/pid"
+  printf '%s\n' "$VERIFY_HOST" >"$VERIFY_LOCK_DIR/host"
+  # `date` is only ever read back for the human-facing message.
+  date                          >"$VERIFY_LOCK_DIR/started" 2>/dev/null || true
+}
+
+refuse_concurrent_run() {
+  local pid="$1" host="$2" when="$3"
+  bad "another verify.sh is already running in this checkout — refusing to start"
+  info "holder: pid ${pid:-unknown} on ${host:-unknown}${when:+, started $when}"
+  info "lock:   $VERIFY_LOCK_NAME"
+  info "why: this gate runs 'tofu init' IN PLACE in every day-1/day-3 lab workdir,"
+  info "     so two runs here would write the same labs/**/.terraform/ and corrupt"
+  info "     each other's provider cache. The damage would surface later as an init"
+  info "     failure in a directory that varies by timing — i.e. as a fake flake."
+  info "wait for the other run to finish, or run the second one in its own checkout."
+  info "if no such process exists the lock is stale: rm -rf $VERIFY_LOCK_NAME"
+  # Distinct from 1 on purpose: 1 means "the gate ran and found problems",
+  # 2 means "the gate declined to run and certified nothing".
+  exit 2
+}
+
+acquire_verify_lock() {
+  local pid host when
+  if mkdir "$VERIFY_LOCK_DIR" 2>/dev/null; then
+    VERIFY_LOCK_HELD=1
+    write_verify_lock_metadata
+    return 0
+  fi
+  pid="$(cat "$VERIFY_LOCK_DIR/pid" 2>/dev/null || true)"
+  host="$(cat "$VERIFY_LOCK_DIR/host" 2>/dev/null || true)"
+  when="$(cat "$VERIFY_LOCK_DIR/started" 2>/dev/null || true)"
+  # Staleness, conservatively. Break the lock ONLY when this host recorded it
+  # (a pid from another machine says nothing about any process here) and that
+  # pid is provably gone. A missing or non-numeric pid file is NOT staleness —
+  # it is most likely the holder having won the mkdir microseconds ago and not
+  # yet written its metadata, and breaking that would be the original bug with
+  # extra steps.
+  case "$pid" in
+    '' | *[!0-9]*) refuse_concurrent_run "$pid" "$host" "$when" ;;
+  esac
+  if [ "$host" = "$VERIFY_HOST" ] && ! kill -0 "$pid" 2>/dev/null; then
+    warn "stale $VERIFY_LOCK_NAME left by pid $pid (no longer running) — breaking it"
+    rm -rf "$VERIFY_LOCK_DIR"
+    # Re-attempt rather than assume: breaking is not acquiring. Another refused
+    # run may have broken the same stale lock a moment earlier and now own it,
+    # and proceeding on that assumption would put two runs in the labs again.
+    if mkdir "$VERIFY_LOCK_DIR" 2>/dev/null; then
+      VERIFY_LOCK_HELD=1
+      write_verify_lock_metadata
+      return 0
+    fi
+    pid="$(cat "$VERIFY_LOCK_DIR/pid" 2>/dev/null || true)"
+    host="$(cat "$VERIFY_LOCK_DIR/host" 2>/dev/null || true)"
+    when="$(cat "$VERIFY_LOCK_DIR/started" 2>/dev/null || true)"
+  fi
+  refuse_concurrent_run "$pid" "$host" "$when"
+}
+
+acquire_verify_lock
+
+# ---------------------------------------------------------------------------
 # 1. Deps preflight
 # ---------------------------------------------------------------------------
 heading "Preflight"
@@ -80,6 +238,7 @@ if have tofu; then
   # way, and is echoed only when the probe actually fails.
   TOFU_VER_RC=0
   TOFU_VER_ERR="$(mktemp)"
+  VERIFY_TMP_FILES+=("$TOFU_VER_ERR")
   TOFU_VER_OUT="$(tofu version 2>"$TOFU_VER_ERR")" || TOFU_VER_RC=$?
   TOFU_VER="$(printf '%s\n' "$TOFU_VER_OUT" | awk 'NR == 1 { print $2 }')"
   if [ "$TOFU_VER_RC" -ne 0 ] || [ -z "$TOFU_VER" ]; then
@@ -229,6 +388,7 @@ if have git && [ -e "$REPO_ROOT/.git" ]; then
   # into one bogus path.
   GIT_TF_LIST="$(mktemp)"
   GIT_TF_ERR="$(mktemp)"
+  VERIFY_TMP_FILES+=("$GIT_TF_LIST" "$GIT_TF_ERR")
   # Keep git's OWN diagnosis (dubious ownership, corrupt index, …) instead of
   # discarding it and leaving the operator to guess between the causes.
   git ls-files -z -- '*.tf' >"$GIT_TF_LIST" 2>"$GIT_TF_ERR" || FMT_SCAN_OK=0
@@ -307,10 +467,15 @@ if [ "${#CODE_DIRS[@]}" -eq 0 ]; then
   warn "no modules/* / examples/* / labs/day-1|day-3 / labs/day-2 tftest roots with .tf files yet — nothing to validate."
   info "This is expected before lab content is authored. (pass)"
 else
+  # init's output used to go straight to /dev/null, so the failure branch below
+  # could only ever say "init failed" and nothing else — no message, no cause,
+  # nothing to act on. Capture it once and reuse the file for every directory.
+  INIT_LOG="$(mktemp)"
+  VERIFY_TMP_FILES+=("$INIT_LOG")
   for d in "${CODE_DIRS[@]}"; do
     info "→ $d"
     # init without a backend so validate has its providers, no remote state.
-    if tofu -chdir="$d" init -backend=false -input=false >/dev/null 2>&1; then
+    if tofu -chdir="$d" init -backend=false -input=false >"$INIT_LOG" 2>&1; then
       if tofu -chdir="$d" validate -no-color >/dev/null 2>&1; then
         pass "$d: validate"
       else
@@ -341,6 +506,24 @@ else
       fi
     else
       fail "$d: init failed (cannot validate)"
+      sed 's/^/    /' "$INIT_LOG" || true
+      # TWO different mechanisms produce this one message, and telling them
+      # apart by hand has already cost this project real debugging time — plus
+      # one revert of an innocent lane. Neither is a defect in the diff under
+      # test, and the lock above only rules out ONE of them.
+      if grep -qE 'no package for registry|cached in \.terraform/providers' "$INIT_LOG"; then
+        info "$d: that is the provider-cache signature. It has TWO causes:"
+        info "  (1) a COLD or partial provider cache — typically the FIRST run"
+        info "      after 'git clean -Xfd labs' removed every .terraform/."
+        info "      Nothing in this script fixes that: re-run verify once, on its"
+        info "      own, and it clears. Treat the SECOND run as the result."
+        info "  (2) another process writing .terraform/ in this checkout at the"
+        info "      same time. A concurrent verify.sh is already ruled out — the"
+        info "      $VERIFY_LOCK_NAME guard refused it — but a stray 'tofu init'"
+        info "      or 'task lab:apply' in another terminal is not."
+        info "  Both pick a DIFFERENT directory each time, which is why this"
+        info "  reads like a flake. Re-run serialized before suspecting the diff."
+      fi
     fi
 
     # tofu test if the dir (or its tests/ subdir) ships *.tftest.hcl.

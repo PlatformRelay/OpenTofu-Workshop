@@ -98,6 +98,30 @@
 #    38. dump_case_output on a flood → head AND elision marker AND tail AND
 #        closing marker, exit 0 (pins the `sed -n` that replaced a fatal `head`)
 #    39. run_case WIRING: a failing case emits the dump, not a filtered grep
+#   this script's OWN temp hygiene (US-F-GATEHYG):
+#    40. run_case removes its temp root on the PASS path
+#    41. run_case removes its temp root on the FAIL path (the wiring probe's
+#        deliberately failing case — the branch a green run never enters)
+#    42. whole-run sweep: EVERY case removed its own tree, 0 leaked. Deleting
+#        run_case's `rm -rf` and leaning on the script-level EXIT trap instead
+#        is a red, not a silent behaviour change.
+#    43. whole-run sweep: no case left a .verify.lock behind (pass AND fail
+#        exits) — a run that does not release wedges every later run
+#   verify.sh single-run guard (US-F-GATEHYG, verify.sh section 0):
+#    44. a second run against the same checkout → exit 2 AND a refusal naming
+#        the holder, not silent provider-cache corruption
+#    45. the refused run leaves the LIVE holder's lock intact (the error path
+#        that would otherwise reopen the corruption it just refused)
+#    46. a STALE lock (recorded pid provably dead) is named, broken, and the
+#        run completes — a wedge is worse than the bug being fixed
+#    47. the lock is genuinely TAKEN during a run (without this, every
+#        "released" assertion below passes vacuously against no guard at all)
+#    48. a SIGTERMed run releases its lock — no wedge
+#   init failure diagnosis (verify.sh section 3 failure branch):
+#    49. an init that fails with the provider-cache signature → exit !=0 AND
+#        verify.sh reproduces what tofu said AND names BOTH mechanisms: a cold
+#        cache (which nothing here fixes) and a concurrent writer (which the
+#        lock covers). The branch printed nothing but "init failed" before.
 #
 # It NEVER mutates the tracked fixture or decks; all edits happen in the temp copy.
 set -euo pipefail
@@ -148,10 +172,12 @@ selftest_cleanup() {
   [ -n "${SELFTEST_TMP_ROOT:-}" ] && rm -rf "$SELFTEST_TMP_ROOT"
   return 0
 }
-# EXIT covers normal exit AND every `set -e` death. It does NOT cover an
-# untrapped SIGINT/SIGTERM — bash dies without running the EXIT trap — so those
-# get explicit handlers that clean up and then re-raise with the default
-# disposition, preserving the "killed by signal" exit status for the caller.
+# EXIT covers normal exit and every `set -e` death. On GNU bash it also covers
+# an untrapped SIGINT/SIGTERM — the fatal-signal handler runs the exit trap
+# before re-raising, measured on 5.3.15 — so the INT/TERM handlers below are
+# belt-and-braces for shells that do not, not the primary mechanism. They
+# re-raise with the default disposition so "killed by signal" still reaches the
+# caller instead of being swallowed into a plain exit status.
 selftest_rc=0
 trap 'selftest_rc=$?; selftest_cleanup; exit "$selftest_rc"' EXIT
 trap 'selftest_cleanup; trap - INT;  kill -INT  $$' INT
@@ -890,6 +916,30 @@ m_lab_validate_day3_nested_broken() {
   plant_lab_validate_root "$1" "$DAY3_VALIDATE_DIR" broken
 }
 
+# The init FAILURE branch used to print nothing but "init failed", and the one
+# message it hides is the provider-cache signature that this project has twice
+# misdiagnosed as a flake. Stub `init` for one lab dir to emit exactly that
+# text, and assert verify.sh reproduces it AND names both mechanisms — the cold
+# cache (which nothing here fixes) and a concurrent writer (which the lock
+# covers). Everything other than that one init call is delegated to the real
+# tofu, so the rest of the run is unaffected.
+m_init_provider_cache_failure() {
+  local root="$1" real
+  plant_lab_validate_root "$root" "$DAY1_VALIDATE_DIR" clean
+  real="$(command -v tofu)"
+  cat >"$root/test-bin/tofu" <<STUB
+#!/bin/sh
+if [ "\$1" = "-chdir=$DAY1_VALIDATE_DIR" ] && [ "\$2" = "init" ]; then
+  echo "Initializing the backend..." >&2
+  echo "Error: Required plugins are not installed" >&2
+  echo "there is no package for registry.opentofu.org/hashicorp/aws 5.100.0 cached in .terraform/providers" >&2
+  exit 1
+fi
+exec "$real" "\$@"
+STUB
+  chmod +x "$root/test-bin/tofu"
+}
+
 m_lab_integration_only() {
   local root="$1"
   mkdir -p "$root/$LAB_TFTTEST_DIR/tests"
@@ -1055,6 +1105,143 @@ check_no_case_left_lock() {
 check_run_case_wiring
 check_case_tmp_cleaned "fail path — the wiring probe's deliberately failing case"
 
+# --- verify.sh single-run guard (US-F-GATEHYG) -------------------------------
+#
+# These four scenarios cannot be expressed as run_case cases: each needs the
+# sandbox root BEFORE and AFTER the run — to plant a lock, to inspect what
+# survived, or to signal the run mid-flight — while run_case owns its root for
+# exactly the duration of one invocation.
+#
+# What they establish, and why each is here rather than assumed:
+#   * the guard REFUSES a second run and explains itself   (the deliverable)
+#   * the refused run does NOT delete the holder's lock    (the error path that
+#     would silently reopen the corruption while looking like a clean refusal)
+#   * a STALE lock is broken, not obeyed forever           (a wedge is worse
+#     than the bug being fixed)
+#   * the lock is genuinely TAKEN during a run, and released after SIGTERM
+#     (without the "taken" half, every "released" assertion would pass
+#     vacuously against a verify.sh that never locked at all)
+LOCK_REFUSAL_NEEDLE='another verify.sh is already running in this checkout'
+
+# Plant a lock directory by hand, exactly as verify.sh writes one.
+plant_verify_lock() {
+  local root="$1" pid="$2"
+  mkdir -p "$root/.verify.lock"
+  printf '%s\n' "$pid"        >"$root/.verify.lock/pid"
+  printf '%s\n' "$(uname -n)" >"$root/.verify.lock/host"
+  printf '%s\n' "planted by verify-selftest.sh" >"$root/.verify.lock/started"
+}
+
+# A sandbox root that is tracked by the same ledger run_case uses, so the
+# end-of-run sweep covers these scenarios too.
+new_lock_sandbox() {
+  local t
+  t="$(mktemp -d "$SELFTEST_TMP_ROOT/lock.XXXXXXXX")"
+  printf '%s\n' "$t" >>"$RUN_CASE_TMP_TRACE"
+  build_root "$t"
+  printf '%s' "$t"
+}
+
+check_lock_refuses_concurrent_run() {
+  local tmp holder out rc
+  tmp="$(new_lock_sandbox)"
+  # A LIVE holder. `kill -0` on this pid succeeds, so the staleness path must
+  # NOT fire — a guard that breaks a live lock is not a guard.
+  sleep 30 &
+  holder=$!
+  plant_verify_lock "$tmp" "$holder"
+  set +e
+  out="$(PATH="$tmp/test-bin:$PATH" bash "$tmp/scripts/verify.sh" 2>&1)"
+  rc=$?
+  set -e
+  kill "$holder" 2>/dev/null || true
+  wait "$holder" 2>/dev/null || true
+  # Exit code AND message, for the same reason every other case asserts both:
+  # a non-zero exit alone would also be produced by an unrelated env break.
+  if [ "$rc" -ne 0 ] && has_text "$out" "$LOCK_REFUSAL_NEEDLE"; then
+    ok "concurrency guard — a second run in the same checkout is refused (exit $rc) and says why"
+  else
+    bad "concurrency guard — expected a non-zero refusal naming the concurrent run; got exit $rc"
+    dump_case_output "$out"
+  fi
+  if [ -d "$tmp/.verify.lock" ]; then
+    ok "concurrency guard — the refused run left the live holder's lock intact"
+  else
+    bad "concurrency guard — the refused run DELETED the holder's lock, reopening the corruption it just refused"
+  fi
+  rm -rf "$tmp"
+}
+
+check_lock_breaks_stale_lock() {
+  local tmp dead out rc
+  tmp="$(new_lock_sandbox)"
+  # A pid that is guaranteed dead, obtained honestly: spawn, then reap. Picking
+  # a large constant instead would be a coin flip on whether the OS had already
+  # recycled it, and this test would fail for a reason that is not the code.
+  ( exit 0 ) &
+  dead=$!
+  wait "$dead" 2>/dev/null || true
+  plant_verify_lock "$tmp" "$dead"
+  set +e
+  out="$(PATH="$tmp/test-bin:$PATH" bash "$tmp/scripts/verify.sh" 2>&1)"
+  rc=$?
+  set -e
+  if [ "$rc" -eq 0 ] && has_text "$out" "stale .verify.lock left by pid $dead" \
+     && [ ! -d "$tmp/.verify.lock" ]; then
+    ok "concurrency guard — a stale lock (dead pid) is named, broken, and the run completes"
+  else
+    bad "concurrency guard — expected the stale lock to be broken and the run to finish; got exit $rc"
+    dump_case_output "$out"
+  fi
+  rm -rf "$tmp"
+}
+
+check_lock_released_after_kill() {
+  local tmp real pid tries=0 appeared=0 alive=0
+  tmp="$(new_lock_sandbox)"
+  # Slow the run down so it can be caught in the act. `version` is delegated
+  # untouched so preflight still passes and the lock is genuinely taken; only
+  # `fmt` is padded, and it still runs for real afterwards.
+  real="$(command -v tofu)"
+  cat >"$tmp/test-bin/tofu" <<STUB
+#!/bin/sh
+if [ "\$1" = "fmt" ]; then sleep 3; fi
+exec "$real" "\$@"
+STUB
+  chmod +x "$tmp/test-bin/tofu"
+  PATH="$tmp/test-bin:$PATH" bash "$tmp/scripts/verify.sh" >/dev/null 2>&1 &
+  pid=$!
+  # Poll for the lock instead of sleeping a fixed amount: a fixed delay races
+  # acquisition and would make this test intermittently green for the wrong
+  # reason — in the one lane whose whole subject is misleading flakes.
+  while [ "$tries" -lt 100 ]; do
+    if [ -d "$tmp/.verify.lock" ]; then appeared=1; break; fi
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 0.05
+    tries=$((tries + 1))
+  done
+  if [ "$appeared" -eq 1 ]; then
+    ok "single-run guard — the lock is actually TAKEN during a run (so the release checks are not vacuous)"
+  else
+    bad "single-run guard — no .verify.lock ever appeared; the guard is absent and every release assertion is vacuous"
+  fi
+  kill -0 "$pid" 2>/dev/null && alive=1
+  kill -TERM "$pid" 2>/dev/null || true
+  wait "$pid" 2>/dev/null || true
+  if [ "$alive" -eq 1 ] && [ ! -d "$tmp/.verify.lock" ]; then
+    ok "anti-wedge — a SIGTERMed run releases its lock (the next run in that checkout is not refused)"
+  elif [ "$alive" -ne 1 ]; then
+    bad "anti-wedge — the run had already exited before SIGTERM; this scenario proved nothing"
+  else
+    bad "anti-wedge — a killed run left .verify.lock behind; every later run in that checkout is WEDGED"
+  fi
+  rm -rf "$tmp"
+}
+
+check_lock_refuses_concurrent_run
+check_lock_breaks_stale_lock
+check_lock_released_after_kill
+
 run_case "clean fixture"        pass "no drift: labs/fixtures/drift-demo/main.tf matches" m_clean
 check_case_tmp_cleaned "pass path — an ordinary green case"
 run_case "LF-authored drift"    fail "drift: block in labs/fixtures/drift-demo.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_drift_lf
@@ -1090,6 +1277,7 @@ run_case "day-2 lab integration tftest deferred" pass "labs/day-2/99-lab-tftest-
 run_case "day-1 lab workdir validated" pass "$DAY1_VALIDATE_DIR: validate" m_lab_validate_day1_clean "$VALIDATE_SCOPE_HEADING"
 run_case "day-1 dangling reference armed" fail "$DAY1_VALIDATE_DIR: validate" m_lab_validate_day1_broken "$VALIDATE_SCOPE_HEADING"
 run_case "day-3 nested stack dangling reference armed" fail "$DAY3_VALIDATE_DIR: validate" m_lab_validate_day3_nested_broken "$VALIDATE_SCOPE_HEADING"
+run_case "init failure names BOTH provider-cache causes" fail "a COLD or partial provider cache" m_init_provider_cache_failure "no package for registry.opentofu.org" "another process writing .terraform/"
 # `also` pins the SURVIVAL half: exit non-zero alone would also be produced by
 # the silent death this case exists to forbid. Reaching the summary proves the
 # gate reported and kept going.
