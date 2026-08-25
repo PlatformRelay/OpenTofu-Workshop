@@ -185,15 +185,48 @@ jobs:
         with:
           tofu_version: "1.10.3"
       - name: Bootstrap contract · fmt · validate · test (no cloud)
-        # Unit lane — the same gate developers run locally as `task verify`:
-        # bootstrap contract, lab-terratest-selftest (docker-absent fail-fast),
-        # verify-selftest (enforcement armed), fmt-check, validate, and
-        # `tofu test` (plan/mock) across modules/examples, excluding
-        # integration tests (those run in verify-integration below).
+        # Unit lane. DISCOVERED, not enumerated: every `scripts/*-selftest.sh`
+        # runs, then `scripts/verify.sh` (fmt-check, validate, and `tofu test`
+        # in plan/mock across modules/examples — integration suites run in
+        # verify-integration below).
+        #
+        # WHY a glob and not a list: the previous hand-written enumeration meant
+        # a self-test added later silently never ran here, so a PR could
+        # reintroduce the very regression that self-test was written to prevent
+        # and still show green. Discovery makes a new `*-selftest.sh` gate CI
+        # the moment it lands — no CI edit, nothing to forget.
+        #
+        # This is a SUPERSET of the local `task verify` list, not a mirror of
+        # it: that list is hand-maintained in Taskfile.yaml and may lag. Do not
+        # re-describe this block as "the same gate as `task verify`".
+        #
+        # ORDERING: verify-selftest.sh must run BEFORE verify.sh (see the
+        # release-self-test note in scripts/verify-selftest.sh). That holds
+        # because the whole discovery loop precedes verify.sh — NOT because of
+        # collation. Keep verify.sh after the loop.
         run: |
-          bash scripts/bootstrap-selftest.sh
-          bash scripts/lab-terratest-selftest.sh
-          bash scripts/verify-selftest.sh
+          set -euo pipefail
+          # Fixed collation so discovery order is identical on every runner.
+          export LC_ALL=C
+          # nullglob: an unmatched glob otherwise expands to the LITERAL pattern
+          # and `bash 'scripts/*-selftest.sh'` would be the only thing that ever
+          # ran. With nullglob the array is simply empty — and an empty array is
+          # a hard failure below, never a silent green.
+          shopt -s nullglob
+          selftests=(scripts/*-selftest.sh)
+          shopt -u nullglob
+          if [ "${#selftests[@]}" -eq 0 ]; then
+            echo "::error::self-test discovery matched no scripts/*-selftest.sh."
+            echo "::error::The unit lane would have certified nothing. Refusing to report green."
+            exit 1
+          fi
+          echo "Discovered ${#selftests[@]} self-test(s):"
+          printf '  %s\n' "${selftests[@]}"
+          for selftest in "${selftests[@]}"; do
+            echo "::group::${selftest}"
+            bash "${selftest}"
+            echo "::endgroup::"
+          done
           bash scripts/verify.sh
 
   verify-integration:
