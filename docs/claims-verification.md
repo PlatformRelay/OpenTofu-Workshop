@@ -24,6 +24,29 @@ metadata, licence text, or docs site — never a blog post, never recollection,
 never this repo's own existing prose. GitHub facts were read through the GitHub
 REST API (`gh api`) rather than scraped HTML, so dates and flags are exact.
 
+## What gates do and do not say about this file
+
+No gate reads this table's *content*, so a green run is not delivery evidence
+here — the citations are. What the gates do establish, each by being run rather
+than assumed:
+
+- **`mkdocs build --strict` passes with this file present, and no `nav` entry is
+  required.** MkDocs reports an omitted-from-nav page at INFO, not WARNING, so
+  `strict: true` does not trip on it; four pages (`beta-limitations.md`,
+  `rehearsal-checklist.md`, `timing-results-template.md`,
+  `validation-matrix.md`) are already nav-omitted. Checked by building the
+  pinned stack from `docs/requirements-docs.txt` in a throwaway venv — the
+  `mkdocs` on PATH lacks `mkdocs-material` and fails at config-parse time, which
+  is a tooling artefact, not a defect in this file.
+- **`pnpm link-check` covers `docs/**` and passes** — but only from a clean
+  checkout. In a dirty tree it exits 1 with ~200 failures, every one of them
+  inside `.terraform/` provider trees vendored by a previous `verify.sh` run and
+  none touching this file. That is exactly why the gate matrix runs
+  `git clean -Xfd labs` first; a red here is almost always that, not a diff.
+- **`markdownlint-cli2` does NOT lint this file in CI** — its globs are
+  `labs/**` only. It was run against this path by hand instead (0 errors). Worth
+  knowing before trusting a green markdownlint as cover for `docs/**`.
+
 ## Scope
 
 The plan's §5 lists 13 stale-risky claims. Several of those are compound (one
@@ -113,19 +136,19 @@ Both engines' changelogs were read independently.
 | # | Claim | Where | Verdict | Evidence (primary source, checked 2026-08-25) |
 | --- | --- | --- | --- | --- |
 | E1 | `required_version = ">= 1.8"` | `labs/day-1/00-setup/versions.tf:2` (and ~20 peer files) | VERIFIED as a floor | Correct minimum for the `mock_provider`/`override_*` content (C2/C3). Note the plan's §5 cites `labs/day-1/00-setup/hello.tf:2`; the `terraform` block actually lives in `labs/day-1/00-setup/versions.tf:2` — `hello.tf` holds only the `local_file` resource. |
-| E2 | ">= 1.8" is a *sufficient* floor for the workshop | `pages/S28-ecosystem-tooling/index.md:88, 99`; `setup/bootstrap.sh:25` (`MIN_TOFU="1.8"`) | INCONSISTENT | `labs/day-1/10-differentiators.md:31` states "`tofu` ≥ 1.9 — provider `for_each` and `-exclude` are 1.9 features", and `labs/day-1/10-differentiators.md:60` sets `required_version = ">= 1.9.0"`. Confirmed against OpenTofu `CHANGELOG.md` @ `v1.9.0` (A5): both features genuinely arrived in 1.9. So "any `tofu ≥ 1.8` runs the labs" is false for Lab 10. |
+| E2 | ">= 1.8" is a *sufficient* floor for the workshop | `pages/S00-welcome/index.md:218`; `pages/S17-mocking/index.md:55`; `pages/S28-ecosystem-tooling/index.md:88, 99`; `setup/bootstrap.sh:25` and `scripts/verify.sh:92` (both `1.8`) | INCONSISTENT | `labs/day-1/10-differentiators.md:31` states "`tofu` ≥ 1.9 — provider `for_each` and `-exclude` are 1.9 features", and `labs/day-1/10-differentiators.md:60` sets `required_version = ">= 1.9.0"`. Confirmed against OpenTofu `CHANGELOG.md` @ `v1.9.0` (A5): both features genuinely arrived in 1.9. So "any `tofu ≥ 1.8` runs the labs" is false for Lab 10. |
 | E3 | `aws = "~> 6.0"` | `labs/day-1/00-setup/versions.tf:7` | VERIFIED | `repos/hashicorp/terraform-provider-aws/releases/latest` → `v6.61.0` (`2026-08-19`). `~> 6.0` resolves inside the current major. |
 | E4 | `local = "~> 2.5"` | `labs/day-1/00-setup/versions.tf:11` | VERIFIED | `repos/hashicorp/terraform-provider-local/releases/latest` → `v2.9.0` (`2026-05-13`). `~> 2.5` (≥2.5, <3.0) is satisfiable and current. |
 | E5 | `random = "~> 3.7"` | `labs/day-1/00-setup/versions.tf:15` | VERIFIED | `repos/hashicorp/terraform-provider-random/releases/latest` → `v3.9.0` (`2026-05-13`). `~> 3.7` (≥3.7, <4.0) is satisfiable and current. |
 | E6 | The S14 slide fixture pins `aws = "~> 5.0"` | `pages/S14-security-scanners/index.md:242` | INCONSISTENT | One major behind E3. The AWS provider's current major is 6.x, and `labs/day-1/00-setup/versions.tf:7` pins `~> 6.0` an hour earlier in the same workshop. **The repo is not uniformly 6.0, though, and that is deliberate:** `labs/day-1/10-differentiators.md:67` pins `">= 5.0, < 6.0"` with the reason in a comment — "provider v6's waiters are incompatible with LocalStack community (last release 4.9.2). v5 applies clean against :4566." That pin is correct and must not be swept up by any bump (nor by a gate — see §K). S14 is different: its fixture is scan-only, never applied against LocalStack, so no waiter behaviour is in play and the bump is safe — proven, not assumed, at F12. |
-| E7 | *(gate check, not a deck claim)* Is the S14 slide's HCL block drift-checked against its fixture? | `pages/S14-.../index.md:235-289` vs `labs/day-2/14-security-scanners/messy/main.tf` | **NOT GATED** | `scripts/verify.sh` §6 only arms on a `<!-- source: PATH -->` comment "IMMEDIATELY followed by an opening ```hcl fence"; an "unannotated block → ignored (only counted/warned)". The fence at `pages/S14-.../index.md:235` has **no such marker** — line 234 is blank and 233 is a heading — so §6 does not read this pair at all. The two are byte-identical today — verified, not assumed: `sed -n '236,288p'` of the slide `diff`s clean against the 53-line fixture, and §6's fence regex explicitly tolerates the magic-move metadata this fence carries in its `{...}` highlight spec. So **adding the one-line marker arms the existing gate for free and passes on the first run.** Note the asymmetry that makes this worth doing: the *lab* copy of the same fixture (`labs/day-2/14-security-scanners.md:60`, marker at `:52`) **is** armed, so a fixture edit that skips the lab reds §6 immediately, while the same edit skipping the *slide* is silent. Two of the three copies are guarded and the learner-facing one is not. Recommended alongside L9. |
+| E7 | *(gate check, not a deck claim)* Is the S14 slide's HCL block drift-checked against its fixture? | `pages/S14-.../index.md:235-289` vs `labs/day-2/14-security-scanners/messy/main.tf` | **NOT GATED** | `scripts/verify.sh` §6 only arms on a `<!-- source: PATH -->` comment "IMMEDIATELY followed by an opening ```hcl fence"; an "unannotated block → ignored (only counted/warned)". The fence at `pages/S14-.../index.md:235` has **no such marker** — line 234 is blank and 233 is a heading — so §6 does not read this pair at all. The two are byte-identical today — verified, not assumed: `sed -n '236,288p'` of the slide `diff`s clean against the 53-line fixture, and §6's fence regex explicitly tolerates the magic-move metadata this fence carries in its `{...}` highlight spec. So **adding the one-line marker arms the existing gate for free and passes on the first run.** Note the asymmetry that makes this worth doing: the *lab* copy of the same fixture (`labs/day-2/14-security-scanners.md:60`, marker at `:52`) **is** armed, so a fixture edit that skips the lab reds §6 immediately, while the same edit skipping the *slide* is silent. Two of the three copies are guarded and the learner-facing one is not. Recommended alongside L12. |
 
 ## F. Scanner and policy-tool status (plan §5 #6, #7 — "Two load-bearing facts")
 
 | # | Claim | Where | Verdict | Evidence (primary source, checked 2026-08-25) |
 | --- | --- | --- | --- | --- |
 | F1 | "Aqua merged **tfsec** into Trivy (**2023**)" | `pages/S14-.../index.md:64, 154` | VERIFIED (the 2023 date) | `repos/aquasecurity/tfsec` commit history for `README.md`: "docs: README tfsec to trivy migration callout (#2020)", authored `2023-08-31T15:25:11Z`. The README text itself: "we have been consolidating all of our scanning-related efforts in one place, and that is Trivy… Going forward we want to encourage the tfsec community to transition over to Trivy." |
-| F2 | tfsec belongs under the heading "**dead tools · don't adopt ghosts**" | `pages/S14-.../index.md:146, 148, 156` | PARTIAL — overstated | `repos/aquasecurity/tfsec` → `"archived": false`, `pushed_at: 2026-03-25T08:06:52Z`; latest release `v1.28.14` (`2025-05-02`). Its own README says: "tfsec will continue to remain available for the time being, although our engineering attention will be directed at Trivy going forward." **tfsec is superseded and in maintenance, not dead or archived.** The teaching advice ("new material should not teach `tfsec`"; "command today: `trivy config`") is sound and sourced; only the *ghost/dead* framing outruns the evidence — and it is grouped on the same slide as Terrascan, which genuinely *is* archived, which makes the conflation easy to absorb. |
+| F2 | tfsec belongs under the heading "**dead tools · don't adopt ghosts**" | `pages/S14-.../index.md:135, 146, 156, 169, 418` | PARTIAL — overstated | `repos/aquasecurity/tfsec` → `"archived": false`, `pushed_at: 2026-03-25T08:06:52Z`; latest release `v1.28.14` (`2025-05-02`). Its own README says: "tfsec will continue to remain available for the time being, although our engineering attention will be directed at Trivy going forward." **tfsec is superseded and in maintenance, not dead or archived.** The teaching advice ("new material should not teach `tfsec`"; "command today: `trivy config`") is sound and sourced; only the *ghost/dead* framing outruns the evidence — and it is grouped on the same slide as Terrascan, which genuinely *is* archived, which makes the conflation easy to absorb. |
 | F3 | "Command today: **`trivy config`**" | `pages/S14-.../index.md:155` | VERIFIED | tfsec README links a "tfsec to Trivy migration guide" and directs users to Trivy for the same Terraform scanning engine; `repos/aquasecurity/trivy` is active (`archived: false`, `pushed_at: 2026-08-21`). |
 | F4 | "**Terrascan → archived** — Archived **2025-11-20** (read-only)" | `pages/S14-.../index.md:75, 160, 162` | VERIFIED | `repos/tenable/terrascan` → `"archived": true`, `pushed_at: 2025-11-20T19:37:10Z`. Its `README.md` opens "## ⚠️ Archived / This project is no longer maintained. The repository is archived and no further updates, issues, or pull requests will be accepted." The commit that added it: "Added archival messages (#1740)", `2025-11-20T19:37:08Z`. **The exact date on the slide is correct.** |
 | F5 | "Terrascan's last meaningful release trail went cold in **2024**" | `pages/S14-.../index.md:163` | VERIFIED | `repos/tenable/terrascan/releases` — newest is `v1.19.9`, published `2024-09-18T08:02:14Z`. |
@@ -134,7 +157,7 @@ Both engines' changelogs were read independently.
 | F8 | KICS is ALIVE (Checkmarx OSS) | `pages/S14-.../index.md:80` | VERIFIED | `repos/Checkmarx/kics` → `archived: false`, `pushed_at: 2026-08-25T08:38:10Z`; latest release `v2.1.21` (`2026-07-30`). |
 | F9 | Snyk IaC is ALIVE | `pages/S14-.../index.md:88` | UNVERIFIED | No primary source reached. Snyk IaC is a commercial product with no single canonical repo whose status settles the claim; the CLI repo was not checked in this pass. **Do not cite this as sourced.** |
 | F10 | "CNCF **Graduated** OPA; Conftest wraps Rego for config" | `pages/S14-.../index.md:186` | VERIFIED | `https://www.cncf.io/projects/open-policy-agent-opa/`: "Open Policy Agent (OPA) was accepted to CNCF on March 29, 2018, moved to the Incubating maturity level on April 2, 2019, and then moved to the **Graduated** maturity level on January 29, 2021." |
-| F11 | "Sentinel — **TFC / HCP Terraform only**" | `pages/S14-.../index.md:195, 199` (+ speaker note "tied to HashiCorp's cloud product") | CONTRADICTED | HashiCorp's own Sentinel landing page, `https://developer.hashicorp.com/sentinel`, names three products: "Use **HCP Terraform** with Sentinel to check that infrastructure will comply with policies"; "Use **Vault** with Sentinel to control who can access secrets based on their role or the endpoint"; "Use **Nomad** with Sentinel to control jobs based on driver or other attributes of the job object." Self-hosted Terraform Enterprise also carries it — `https://developer.hashicorp.com/terraform/enterprise/policy-enforcement/define-policies/custom-sentinel` serves a live page describing "how to create and manage custom policies using Sentinel policy language". The *teaching point* survives — Sentinel is not a portable OpenTofu-first default — but "TFC / HCP Terraform only" is factually wrong. |
+| F11 | "Sentinel — **TFC / HCP Terraform only**" | `pages/S14-.../index.md:195-197` (bullets), `:204-205` (speaker note), `:421` (recap) | CONTRADICTED | HashiCorp's own Sentinel landing page, `https://developer.hashicorp.com/sentinel`, names three products: "Use **HCP Terraform** with Sentinel to check that infrastructure will comply with policies"; "Use **Vault** with Sentinel to control who can access secrets based on their role or the endpoint"; "Use **Nomad** with Sentinel to control jobs based on driver or other attributes of the job object." Self-hosted Terraform Enterprise also carries it: `https://developer.hashicorp.com/terraform/enterprise/policy-enforcement/define-policies/custom-sentinel` resolves to a live page under HashiCorp's *Terraform Enterprise* docs tree, and the fetch returned the sentence "This topic describes how to create and manage custom policies using Sentinel policy language" from within it. The URL path is the load-bearing part of that citation; the quoted sentence is a supporting line from the page body, not its opening claim. The *teaching point* survives — Sentinel is not a portable OpenTofu-first default — but "TFC / HCP Terraform only" is factually wrong. |
 | F12 | The captured scanner output on the slide (`Failures: 7 (HIGH: 6, CRITICAL: 1)`, `AWS-0086/0104/0107/0132`; `Passed 5, Failed 7`, `CKV_AWS_23/24/53-56/382`) | `pages/S14-.../index.md:265-282`; `labs/day-2/14-security-scanners.md:131, 185` | VERIFIED — **reproduced** | Confirming a *version* exists says nothing about the *output* it emits, so this was executed rather than inferred. Trivy reported `Version: 0.72.0` and Checkov `3.3.0` — the exact pins — so the lab's documented commands were run verbatim against `labs/day-2/14-security-scanners/messy/`. `trivy config --severity HIGH,CRITICAL --format table --exit-code 1 .` → `Tests: 7 (SUCCESSES: 0, FAILURES: 7)` / `Failures: 7 (HIGH: 6, CRITICAL: 1)` and exactly `AWS-0086, 0087, 0091, 0093 (HIGH)`, `AWS-0104 (CRITICAL)`, `AWS-0107, 0132 (HIGH)`. `checkov -d . --framework terraform --compact --quiet` → `Passed checks: 5, Failed checks: 7, Skipped checks: 0` and exactly `CKV_AWS_53, 54, 55, 56, 24, 23, 382`. **Every count, severity and rule ID on the slide and in the lab spoiler matches byte-for-byte.** |
 | F13 | "**Facts verified 2026-07**" stamp on the field table | `pages/S14-.../index.md:44` | INCONSISTENT | The stamp is now this table's job. Every maintenance-status row above was re-checked on **2026-08-25**; the stamp still says 2026-07 and is the only staleness signal a facilitator sees. |
 
@@ -144,7 +167,7 @@ Both engines' changelogs were read independently.
 | --- | --- | --- | --- | --- |
 | G1 | "**tenv** — successor to `tfenv`/`tofuenv`" | `pages/S28-.../index.md:85, 95-96, 265` | VERIFIED | `tofuenv`'s **own** README, `repos/tofuutils/tofuenv` `README.md`, "### Important Notice": "we are finally ready to announce a successor for **tfenv** and **tofuenv**: tenv 🚀 written in Golang. tenv is able to handle Terraform binaries as well as OpenTofu binaries." That is the superseded project itself saying so — the strongest available source. Corroborating: `repos/tofuutils/tofuenv/releases` newest is `v1.0.7` (`2025-04-08`) vs `repos/tofuutils/tenv/releases/latest` `v4.15.1` (`2026-07-24`, repo `pushed_at 2026-08-20`). |
 | G2 | tenv is "actively maintained" | `pages/S28-.../index.md:95` | VERIFIED | `repos/tofuutils/tenv` → `archived: false`, `pushed_at: 2026-08-20T09:46:49Z`; release `v4.15.1` one month old at check date. |
-| G3 | tenv "manages **OpenTofu, Terraform, Terragrunt, Atmos**" | `pages/S28-.../index.md:85-86, 96-97` | INCOMPLETE | `repos/tofuutils/tenv` description and README both read: "OpenTofu, Terraform, Terragrunt, **Terramate** and Atmos version manager, written in Go." The README's tool table lists `tofu`, `tf`, `tg` (terragrunt), `tm` (terramate), `at` (atmos). **Terramate is missing from the deck's list — and this workshop spends all of Day 3 on Terramate**, so the omission drops the one entry the audience would most care about. |
+| G3 | tenv "manages **OpenTofu, Terraform, Terragrunt, Atmos**" | `pages/S28-.../index.md:85-86, 96-97` | INCOMPLETE | `repos/tofuutils/tenv` `README.md` line 19 reads: "OpenTofu, Terraform, Terragrunt, **Terramate** and Atmos version manager, written in Go." (The GitHub `description` field carries the same tool list in a different form — "OpenTofu / Terraform / Terragrunt / Terramate and Atmos version manager", slash-separated, no "written in Go" — so the quoted sentence is attributed to the README alone.) The README's tool table lists `tofu`, `tf`, `tg` (terragrunt), `tm` (terramate), `at` (atmos). **Terramate is missing from the deck's list — and this workshop spends all of Day 3 on Terramate**, so the omission drops the one entry the audience would most care about. |
 | G4 | `tenv tofu install/use <version>` and `.opentofu-version` files | `pages/S28-.../index.md:80-81, 87` | VERIFIED | tenv `README.md`: tool table maps `tofu` → OpenTofu; `use` flag documented as "`-w, --working-dir` create `.opentofu-version` file in working directory"; env-var section references "`.opentofu-version` files". |
 | G5 | `tofuenv`/`tfenv` are superseded but **not** archived | *(deck does not claim archived — recorded for accuracy)* | VERIFIED | `repos/tofuutils/tofuenv` → `archived: false`, `pushed_at: 2026-02-10`; `repos/tfutils/tfenv` → `archived: false`, `pushed_at: 2026-07-01`. The deck's "successor to" wording is correctly weaker than "archived" — no change needed. |
 | G6 | Terragrunt: "**Unit** = a directory with `terragrunt.hcl`"; DRY via `remote_state`/`generate`; order via `dependency`; `run --all` (formerly `run-all`) | `pages/S27-terragrunt-comparison/index.md:61-68` | VERIFIED | `https://docs.terragrunt.com/reference/hcl/blocks/` documents `terragrunt.hcl` as the primary configuration file and states "The `remote_state` block is used to configure how Terragrunt will set up the remote state configuration of your OpenTofu/Terraform code" — **not deprecated**. Repo `gruntwork-io/terragrunt` is active (`archived: false`, `pushed_at: 2026-08-24`). |
@@ -190,7 +213,7 @@ environment, so it was executed instead of assumed and is now VERIFIED at F12.)
 
 ## K. Should an automated prose check be built?
 
-`scripts/verify.sh:437` (§10) enforces that **consumers** of `versions.env`
+`scripts/verify.sh` §10 (header at `:646`) enforces that **consumers** of `versions.env`
 (CI workflow literals, `setup/terratest/Dockerfile`, `setup/bootstrap.sh`,
 `docker-compose.yml`) do not drift from the pin file. Nothing gates prose claims
 under `pages/**`. That asymmetry is deliberate and recorded — the question is
@@ -281,7 +304,7 @@ already implements.
 This one is not speculative: **F12 was verified this way during this pass**, and
 it took two commands. Both scanners are installed at the pinned versions, both
 reproduced the documented output byte-for-byte, and re-running them against a
-`~> 6.0` variant of the fixture produced identical findings — which is how L9
+`~> 6.0` variant of the fixture produced identical findings — which is how L12
 was cleared as safe to apply without a re-capture. The check is deterministic
 (no network: Trivy's misconfig rules are compiled in), it is offline, and it
 guards the single most learner-visible class of claim in the deck: output a
@@ -305,9 +328,10 @@ recently* — which a gate can answer offline and deterministically.
 **Cost/benefit.** Check 1 is roughly the size of the existing §10 block and
 reuses its parsing. Check 2 is a regex plus a date comparison. Check 3 is two
 subprocess calls and a grep, hung off scaffolding §9 already has. Together they
-would have caught **one** of the thirteen defects in the correction list below
-outright (L11/E2), plus one it would have flagged without prescribing the right
-fix (L1) — call it 1–2 of 13, not 3. Check 3 additionally *locks in* the F12
+would have caught the `>= 1.8` floor defect that L15–L18 correct in four
+places, plus one it would have flagged without prescribing the right fix (L1).
+Against a 19-row correction list that is **1 defect class solidly, 2 at the most
+generous reading** — not the "three" an earlier draft of this section claimed. Check 3 additionally *locks in* the F12
 result that took this pass a manual run to establish, and the E7 marker arms an
 already-built gate over the S14 slide.
 
@@ -317,7 +341,7 @@ building — E2 is a real learner-facing failure, and checks 2 and 3 guard again
 *future* drift rather than past defects, which is where their value actually
 sits.
 
-The remaining eleven or twelve corrections are semantic (F11's "Sentinel TFC-only", F2's
+The remaining seventeen-odd corrections are semantic (F11's "Sentinel TFC-only", F2's
 "dead tools" framing, G3's missing Terramate, G7's pre-1.0 Terragrunt framing,
 B6's CNCF gap) and are only reachable by a human reading a primary source. That
 is the honest ceiling of automation here, and it is worth being explicit about
@@ -340,6 +364,24 @@ ever be a regression alarm around it.** §9 above is the cautionary example — 
 Phase 1 does not apply these. Each row gives file, line, current text, corrected
 text, and the row above that carries the citation.
 
+**Completeness by construction, not by luck.** Phase 2 executes this list
+literally and blind, so a claim that appears in three places and gets one L row
+ships two-thirds of the defect. Every row in sections A–I whose verdict is not
+plain `VERIFIED` was therefore walked, and **every location named in its Where
+cell** now either has an L row or an explicit entry in "Locations deliberately
+left alone" below. The Where cells were not trusted on their own either: each
+contested claim was re-grepped across all of `pages/**`, which is how the
+Sentinel recap (`S14:421`), the welcome slide's toolchain card (`S00:218`) and
+the S17 floor panel (`S17:55`) were found — none of them appeared in any Where
+cell.
+
+**Every `Current` cell below was machine-checked against the deck**: each quoted
+string was asserted to appear on the exact line named, in the exact file named.
+That check caught one wrong line number in this very table (the `S00` toolchain
+card is at `:218`, not `:217`) and one apostrophe mismatch (`S17:55` uses a curly
+`’`, which L18 now reproduces). Phase 2 should re-run the same assertion before
+editing, since line numbers drift as soon as any earlier correction lands.
+
 | # | File | Line | Current | Corrected | Source |
 | --- | --- | --- | --- | --- | --- |
 | L1 | `pages/S10-opentofu-differentiators/index.md` | 65 | `Current baseline: **OpenTofu 1.12.x** (supported to 2027-02-01).` | `Current baseline: **OpenTofu 1.12.x** (supported to 2027-02-01) — the workshop toolchain pins **1.10.3** (\`versions.env\`) for reproducibility.` | A1, A2, D1 |
@@ -347,21 +389,76 @@ text, and the row above that carries the citation.
 | L3 | `pages/S14-security-scanners/index.md` | 146 | `<span class="kw-kicker">dead tools · don't adopt ghosts</span>` | `<span class="kw-kicker">superseded &amp; archived · don't adopt either</span>` | F2, F4 |
 | L4 | `pages/S14-security-scanners/index.md` | 156 | `- New material should not teach \`tfsec\`` | `- Still published (v1.28.14, 2025-05-02) but superseded — new material should not teach \`tfsec\`` | F2 |
 | L5 | `pages/S14-security-scanners/index.md` | 135 | ``teach `trivy config`, not a dead binary.`` (speaker note) | ``teach `trivy config`, not the superseded binary.`` | F2 |
-| L6 | `pages/S14-security-scanners/index.md` | 169 | `Say: Say these two facts slowly — they are the workshop's "don't teach the dead` (note continues `tool" pair.` on line 170) | `Say: Say these two facts slowly — they are the workshop's "don't teach the superseded or archived` / `tool" pair.` | F2 |
+| L6 | `pages/S14-security-scanners/index.md` | 169 | `Say: Say these two facts slowly — they are the workshop's "don't teach the dead` (note wraps; `tool" pair.` is on line 170) | `Say: Say these two facts slowly — they are the workshop's "don't teach the superseded or archived` / `tool" pair.` | F2 |
 | L7 | `pages/S14-security-scanners/index.md` | 418 | `- **tfsec → Trivy**; **Terrascan → archived** — do not teach ghosts.` | `- **tfsec → Trivy** (superseded); **Terrascan → archived** — teach neither.` | F2 |
 | L8 | `pages/S14-security-scanners/index.md` | 195 | `- **TFC / HCP Terraform only**` | `- **HashiCorp products only** — HCP Terraform / Terraform Enterprise, Vault, Nomad` | F11 |
-| L9 | `pages/S14-security-scanners/index.md` | 242 | `version = "~> 5.0"` (indented 6 spaces) | `version = "~> 6.0"` (same indent) — **there are THREE copies of this pin and all three must move together**: `pages/S14-security-scanners/index.md:242`, `labs/day-2/14-security-scanners/messy/main.tf:7`, and `labs/day-2/14-security-scanners.md:60`. The third one is the trap: `labs/day-2/14-security-scanners.md:52` carries `<!-- source: labs/day-2/14-security-scanners/messy/main.tf -->`, so that block **is** armed under `verify.sh` §6 and editing the fixture without it reds the gate — `✗ drift: block in labs/day-2/14-security-scanners.md does NOT match source file`. (The slide copy at :242 is *not* armed — see E7 — which is why the fixture+slide pair alone looks safe and is not.) **Both directions were reproduced rather than reasoned about:** applying all three edits leaves `verify.sh` at `139 check(s) OK, 0 failures` with "all 82 annotated block(s) match their source files"; reverting only the lab copy immediately reds with `✗ drift: block in labs/day-2/14-security-scanners.md does NOT match source file` and `verify FAILED — 1 failure(s) across 138 check(s)`. The edits were then reverted — this lane changes no prose. **No re-capture of the F12 output is needed** — the bump was tested: both pinned scanners were re-run on a copy of the fixture carrying `~> 6.0` and emitted byte-identical findings (same 7 Trivy IDs, same 7 Checkov IDs, same counts). The provider constraint does not reach any rule. | E3, E6, E7, F12 |
-| L10 | `pages/S28-ecosystem-tooling/index.md` | 86 | `Terraform, Terragrunt, Atmos**.` (indented 2 spaces) | `Terraform, Terragrunt, Terramate, Atmos**.` (same indent) | G3 |
-| L11 | `pages/S28-ecosystem-tooling/index.md` | 88 | `- **Not** part of \`task setup\` here — any \`tofu ≥ 1.8\` runs the labs. Adopt` | `- **Not** part of \`task setup\` here — \`tofu ≥ 1.8\` runs most labs (Lab 10 needs ≥ 1.9). Adopt` | E2 |
-| L12 | `pages/S28-ecosystem-tooling/index.md` | 96 | `tfenv and tofuenv, is one binary that manages OpenTofu, Terraform, Terragrunt,` | `tfenv and tofuenv, is one binary that manages OpenTofu, Terraform, Terragrunt, Terramate,` (speaker note; line 97 already reads `and Atmos`) | G3 |
-| L13 | `pages/S01-iac/index.md` | 352 | `- Governed by the **Linux Foundation** (neutral, community)` | `- Governed by the **Linux Foundation**; a **CNCF Sandbox** project since 2025-04-23 (neutral, community)` | B6 |
+| L9 | `pages/S14-security-scanners/index.md` | 197 | `- Fine inside that product — not a portable default` | `- Fine inside those products — not a portable default` | F11 |
+| L10 | `pages/S14-security-scanners/index.md` | 204-205 | `Sentinel is real and useful, but it` / `is tied to HashiCorp's cloud product; do not present it as the OpenTofu-first` (speaker note) | `Sentinel is real and useful, but it` / `is tied to HashiCorp's own products; do not present it as the OpenTofu-first` | F11 |
+| L11 | `pages/S14-security-scanners/index.md` | 421 | `- Sentinel stays TFC-only; portable policy prefers OPA.` | `- Sentinel stays inside HashiCorp's products; portable policy prefers OPA.` | F11 |
+| L12 | `pages/S14-security-scanners/index.md` | 242 | `version = "~> 5.0"` (indented 6 spaces) | `version = "~> 6.0"` (same indent) — **all three copies of this pin must move together**; see the note directly below this table | E3, E6, E7, F12 |
+| L13 | `pages/S28-ecosystem-tooling/index.md` | 86 | `Terraform, Terragrunt, Atmos**.` (indented 2 spaces) | `Terraform, Terragrunt, Terramate, Atmos**.` (same indent) | G3 |
+| L14 | `pages/S28-ecosystem-tooling/index.md` | 96 | `tfenv and tofuenv, is one binary that manages OpenTofu, Terraform, Terragrunt,` | `tfenv and tofuenv, is one binary that manages OpenTofu, Terraform, Terragrunt, Terramate,` (line 97 already reads `and Atmos`) | G3 |
+| L15 | `pages/S28-ecosystem-tooling/index.md` | 88 | `- **Not** part of \`task setup\` here — any \`tofu ≥ 1.8\` runs the labs. Adopt` | `- **Not** part of \`task setup\` here — \`tofu ≥ 1.8\` runs most labs (Lab 10 needs ≥ 1.9). Adopt` | E2 |
+| L16 | `pages/S28-ecosystem-tooling/index.md` | 99 | `workshop deliberately does not require tenv — any tofu one-point-eight or newer` (speaker note; `works —` continues on line 100) | `workshop deliberately does not require tenv — any tofu one-point-eight or newer runs most labs, and Lab 10 needs one-point-nine —` | E2 |
+| L17 | `pages/S00-welcome/index.md` | 218 | `<KwCard heading="tofu ≥ 1.8" icon="🧊">` (indented 2 spaces) | `<KwCard heading="tofu ≥ 1.9" icon="🧊">` (same indent) — **the highest-value row in this table.** This is the "# Required toolchain" card a learner reads before installing anything; at 1.8 they satisfy it and still hard-fail Lab 10. Raising the advertised floor is simpler and safer than annotating an exception on a setup card. | E2 |
+| L18 | `pages/S17-mocking/index.md` | 55 | `blocks; the workshop’s floor remains OpenTofu <strong>1.8+</strong>.` (note the curly apostrophe ’ — match it exactly) | `blocks; \`mock_provider\` needs OpenTofu <strong>1.8+</strong>, and Lab 10 raises the workshop's floor to <strong>1.9</strong>.` | C5, E2 |
+| L19 | `pages/S01-iac/index.md` | 352 | `- Governed by the **Linux Foundation** (neutral, community)` | `- Governed by the **Linux Foundation**; a **CNCF Sandbox** project since 2025-04-23 (neutral, community)` | B6 |
+
+### The L12 trap — read before applying it
+
+`aws ~> 5.0` exists in **three** places and all three must move in one change:
+
+1. `pages/S14-security-scanners/index.md:242` — the slide block.
+2. `labs/day-2/14-security-scanners/messy/main.tf:7` — the tracked fixture.
+3. `labs/day-2/14-security-scanners.md:60` — the lab's copy of the fixture.
+
+The third is the trap. `labs/day-2/14-security-scanners.md:52` carries
+`<!-- source: labs/day-2/14-security-scanners/messy/main.tf -->`, so that block
+**is** armed under `verify.sh` §6, and editing the fixture without it reds the
+gate. The slide copy at `:242` is *not* armed (E7), which is why the
+fixture+slide pair alone looks safe and is not.
+
+**Both directions were reproduced rather than reasoned about.** All three edits
+together: `verify PASSED — 139 check(s) OK, 0 failures`, with
+`all 82 annotated block(s) match their source files`. Reverting only the lab
+copy: `✗ drift: block in labs/day-2/14-security-scanners.md does NOT match
+source file` and `verify FAILED — 1 failure(s) across 138 check(s)`. The edits
+were reverted afterwards — this lane changes no prose.
+
+**No re-capture of the F12 scanner output is needed.** Both pinned scanners were
+re-run on a fixture copy carrying `~> 6.0` and emitted byte-identical findings
+(same 7 Trivy IDs, same 7 Checkov IDs, same counts). The provider constraint
+does not reach any rule.
+
+### Locations deliberately left alone
+
+Named in a Where cell above, or surfaced by the deck-wide grep, and correctly
+carrying **no** L row. Recorded so a phase-2 reader can tell a decision from an
+oversight.
+
+| Location | Why no correction |
+| --- | --- |
+| `pages/S01-iac/index.md:319` (B6) | The timeline chip dates OpenTofu's 2024-01-10 GA "under the Linux Foundation". That was true then; CNCF acceptance came 15 months later (2025-04-23). Adding CNCF to a 2024 timeline beat would be an anachronism. L19 carries the update in the governance comparison, where it is timeless. |
+| `pages/S01-iac/index.md:491` (B6) | Compressed one-line recap of the licence contrast. One insertion at `:352` is enough for the deck to state current governance; padding the recap costs clarity for no added truth. |
+| `pages/S18-integration-cost/index.md:122, 179` (H1) | H1 is PARTIAL only because Infracost's docs call the key "free" without stating in those words that it is *mandatory*. The deck's wording ("needs a free API key for live runs") is if anything conservative — it over-warns, and the design decision it protects (Infracost stays an opt-in stretch; the core lab needs no signup) is unaffected either way. Correcting toward "may need" would make the deck less safe, not more accurate. |
+| `pages/S27-terragrunt-comparison/index.md` (G7) | Nothing in S27 is *wrong*; G7 is an omission (Terragrunt v1.0.0 on 2026-03-30 and `terragrunt.stack.hcl`). The fix is new content, not a line edit, so it has no current/corrected pair. Belongs to a content story, not this list. |
+| `pages/S01-iac/index.md:398-406, 440-442` (I4) | I4 is PARTIAL because the fetch returned Ansible's agentless property as a paraphrase rather than the literal adjective. The deck's substance matches the source; there is nothing to correct, only a weaker-than-hoped citation to record honestly. |
+| `pages/S14-security-scanners/index.md:88` (F9) | UNVERIFIED is not "wrong". No source was reached on Snyk IaC's status, so there is nothing to correct toward. Correcting on an unsourced hunch is the exact failure this document exists to prevent. |
+| `pages/S21-stacks` … `pages/S25-terramate-ci` (G8) | Same reasoning as F9: the Terramate CLI surface was never checked, so no correction can be justified. |
+| `pages/S11-taco-landscape/index.md:231, 239` | Surfaced by the deck-wide `Sentinel` grep and **correctly left alone**: these say Sentinel policy *on HCP Terraform* is Terraform-only, i.e. a statement about which engine HCP Terraform runs. That is a different claim from F11's "Sentinel exists only in TFC", and it is accurate. A phase-2 lane grepping `Sentinel.*only` will hit it — do not "fix" it. |
+| `pages/S19-testing-cicd/index.md:94` ("OpenTofu ≥ 1.8 preflight") | Accurate description of what the gate does: `scripts/verify.sh:92-95` really does `pass "tofu ${TOFU_VER} (>= 1.8)"` / `fail "… is below the required 1.8"`. It reports the gate's threshold, not a claim about lab sufficiency. (That the threshold *itself* understates Lab 10 is a separate finding — see below.) |
+| `pages/S14-security-scanners/index.md:164` ("Do not pick a dead tool as your standard") | Sits in the `::right::` / Terrascan column, which genuinely **is** archived (F4). "Dead" is correct here. Only the tfsec-scoped uses (L3–L7) overstate. |
+| `pages/S14-security-scanners/index.md:221` ("replaces the tfsec habit") | Accurate as written — it describes migrating off a habit, not declaring the tool dead. |
+| `versions.env:13, 18, 23, 27` (D1–D4) and `labs/day-2/14-security-scanners.md:8` (D5) | Pins, not prose. Deliberately untouched by this docs-only lane; carried in the out-of-scope section below. |
+| `labs/day-1/00-setup/versions.tf:2` and ~20 peers (E1) | The `>= 1.8` floor is *correct* for the content it guards. Only the claim that it suffices for **every** lab is wrong, and that is E2's business (L15–L18). |
+| `pages/S14-security-scanners/index.md:64, 154` (F1) | The 2023 tfsec→Trivy date is verified correct. Only the dead/ghost framing around it overstates. |
 
 ### Out-of-scope findings raised by this pass
 
 Not prose corrections — recorded so they are not lost.
 
 - `setup/bootstrap.sh:25` sets `MIN_TOFU="1.8"`, which understates Lab 10's real
-  1.9 requirement (E2). Whoever applies L11 should raise this in the same change
+  1.9 requirement (E2), and `scripts/verify.sh:92` preflights at the same 1.8. Whoever applies L15–L18 should raise both in the same change
   or file it separately.
 - `versions.env:18` pins `GO_VERSION=1.23.6`, a Go series that no longer
   receives security fixes (D2). This is a toolchain decision with `verify.sh`
