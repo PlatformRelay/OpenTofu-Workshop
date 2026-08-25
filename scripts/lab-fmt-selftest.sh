@@ -344,38 +344,67 @@ fi
 
 # THIRD WRITER. `task lab:fmt` is not the only thing that can destroy this
 # fixture: .pre-commit-config.yaml's `terraform_fmt` hook rewrites .tf on commit
-# and on the `pre-commit run --all-files` its own header documents. Its exclude
+# and on the `pre-commit run --all-files` its own header documents. That exclude
 # is owned by another lane (US-F-CIPARITY), so this assertion is CONDITIONAL —
-# it checks agreement once the exclude exists and says so plainly while it does
-# not. Hard-failing on a file this lane does not own would red CI for everyone
-# over someone else's merge order.
+# it checks agreement once an exclude exists and says so plainly while none does.
+# Hard-failing over a file this lane does not own would red verify-unit for
+# everyone purely on which lane merges first.
+#
+# THREE THINGS THIS GETS RIGHT THAT AN EARLIER VERSION DID NOT:
+#
+#   * BOTH placements are read. pre-commit honours a repo-level top-level
+#     `exclude:` as well as a per-hook one. Reading only the hook meant that if
+#     CIPARITY put it at the top level this check would report the benign
+#     "no exclude yet" note FOREVER — armed in appearance, disarmed in fact.
+#
+#   * A BROADER exclude is accepted. The exclude is a REGEX, and a directory-wide
+#     `^labs/day-2/13-static-analysis/` protects the fixture perfectly well.
+#     Demanding string equality with the file path would red the suite over
+#     another lane's wording, and once glob discovery lands that reds CI for
+#     everyone. So the fixture path is MATCHED against the regex rather than
+#     compared to it.
+#
+#   * A blanket exclude is still rejected. Matching alone is too weak: `.` or
+#     `.*` matches the fixture and also disables terraform_fmt for the entire
+#     repo, which is a bigger regression than the one being guarded. So a normal
+#     tracked .tf must NOT match. Broader-but-targeted passes; blanket fails.
 PRECOMMIT="$ROOT/.pre-commit-config.yaml"
 PC_EXCLUDE=""
+PC_WHERE=""
 if [ -f "$PRECOMMIT" ]; then
+  # Per-hook exclude, bounded to the terraform_fmt hook.
   PC_EXCLUDE="$(awk '
     /^[[:space:]]*-[[:space:]]*id:[[:space:]]*terraform_fmt[[:space:]]*$/ { inhook = 1; next }
     inhook && /^[[:space:]]*-[[:space:]]*id:[[:space:]]*/ { exit }
     inhook && /^[[:space:]]*exclude:[[:space:]]*/ { print; exit }
   ' "$PRECOMMIT")"
+  PC_WHERE="the terraform_fmt hook"
+  if [ -z "$PC_EXCLUDE" ]; then
+    # Repo-level top-level exclude (column 0), which applies to every hook.
+    PC_EXCLUDE="$(grep -m1 '^exclude:[[:space:]]*' "$PRECOMMIT" || true)"
+    PC_WHERE="the repo-level exclude"
+  fi
 fi
 if [ -z "$PC_EXCLUDE" ]; then
-  ok "note: .pre-commit-config.yaml's terraform_fmt has no exclude yet (US-F-CIPARITY owns it) — nothing to agree with"
+  ok "note: .pre-commit-config.yaml has no terraform_fmt or repo-level exclude yet (US-F-CIPARITY owns it) — nothing to agree with"
 else
-  # Reduce the anchored regex to a plain path with parameter expansion rather
-  # than nested sed quoting: strip the key, surrounding quotes, ^ and $ anchors,
-  # then the regex backslash escapes.
+  # Strip the key and any surrounding quotes; keep the regex itself intact.
   PC_RE="${PC_EXCLUDE#*exclude:}"
   PC_RE="${PC_RE#"${PC_RE%%[![:space:]]*}"}"
   PC_RE="${PC_RE%"${PC_RE##*[![:space:]]}"}"
   PC_RE="${PC_RE#\'}"; PC_RE="${PC_RE%\'}"
   PC_RE="${PC_RE#\"}"; PC_RE="${PC_RE%\"}"
-  PC_PATH="${PC_RE#^}"
-  PC_PATH="${PC_PATH%$}"
-  PC_PATH="${PC_PATH//\\/}"
-  if [ "$PC_PATH" = "$FIXTURE_PATH" ]; then
-    ok "the pre-commit terraform_fmt exclude names the same fixture: $PC_PATH"
+  if printf '%s' "$FIXTURE_PATH" | grep -qE "$PC_RE" 2>/dev/null; then
+    ok "$PC_WHERE excludes the S13 fixture (regex '$PC_RE' matches $FIXTURE_PATH)"
   else
-    bad "DIVERGENCE: pre-commit excludes '$PC_PATH' but the fmt scripts exclude '$FIXTURE_PATH'"
+    bad "DIVERGENCE: $PC_WHERE ('$PC_RE') does NOT cover $FIXTURE_PATH — pre-commit will still destroy it"
+  fi
+  # Negative control: a targeted exclude, not terraform_fmt switched off wholesale.
+  PC_CONTROL='modules/naming/variables.tf'
+  if printf '%s' "$PC_CONTROL" | grep -qE "$PC_RE" 2>/dev/null; then
+    bad "$PC_WHERE ('$PC_RE') also matches $PC_CONTROL — that is a blanket exclude, not a fixture exclude"
+  else
+    ok "$PC_WHERE leaves ordinary tracked .tf in scope (checked against $PC_CONTROL)"
   fi
 fi
 
