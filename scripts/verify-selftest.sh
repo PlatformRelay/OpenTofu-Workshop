@@ -120,6 +120,53 @@ note() { printf '  [selftest] %s\n' "$*"; }
 ok()   { printf '  [ OK ] %s\n' "$*"; pass_n=$((pass_n + 1)); }
 bad()  { printf '  [FAIL] %s\n' "$*"; fail_n=$((fail_n + 1)); }
 
+# --- temp lifetime (US-F-GATEHYG) --------------------------------------------
+#
+# THE BUG THIS REPLACES: run_case used to do
+#
+#     tmp="$(mktemp -d)"
+#     trap 'rm -rf "$tmp"' RETURN
+#     ...
+#     trap - RETURN          # <-- disarms the trap BEFORE the function returns
+#
+# so the RETURN trap was cleared while it was still the only thing that would
+# ever have fired, and NOTHING removed the tree. Every case leaks a full repo
+# copy: ~44 cases per run, each a few MB with provider caches, and the dev host
+# had accumulated thousands. CI runners have finite disk; this is how they fill.
+#
+# The replacement is two layers, deliberately:
+#   1. run_case removes its own tree explicitly, past the verdict, on BOTH the
+#      pass and the fail path (one `rm -rf`, hoisted like the dump call is, so
+#      "revert one branch" is not a representable mutation).
+#   2. every case tree is a CHILD of one script-level root that an EXIT/INT/TERM
+#      trap removes, so an early `set -e` death or a Ctrl-C still cleans up.
+# Layer 2 alone would be enough for the disk, but not for the invariant: the
+# sweep check at the end of this script asserts layer 1 actually ran, so
+# deleting it turns this self-test red instead of silently relying on layer 2.
+SELFTEST_TMP_ROOT="$(mktemp -d)"
+selftest_cleanup() {
+  [ -n "${SELFTEST_TMP_ROOT:-}" ] && rm -rf "$SELFTEST_TMP_ROOT"
+  return 0
+}
+# EXIT covers normal exit AND every `set -e` death. It does NOT cover an
+# untrapped SIGINT/SIGTERM — bash dies without running the EXIT trap — so those
+# get explicit handlers that clean up and then re-raise with the default
+# disposition, preserving the "killed by signal" exit status for the caller.
+selftest_rc=0
+trap 'selftest_rc=$?; selftest_cleanup; exit "$selftest_rc"' EXIT
+trap 'selftest_cleanup; trap - INT;  kill -INT  $$' INT
+trap 'selftest_cleanup; trap - TERM; kill -TERM $$' TERM
+
+# Ledger of every temp root run_case created, and of any case that left a
+# verify.sh lock behind. Files, not shell arrays: check_run_case_wiring drives
+# run_case inside a command substitution, and a subshell cannot write back to a
+# parent variable — the wiring probe is precisely the FAIL-path case whose
+# cleanup we most need to observe.
+RUN_CASE_TMP_TRACE="$SELFTEST_TMP_ROOT/case-tmp-roots.txt"
+RUN_CASE_LOCK_TRACE="$SELFTEST_TMP_ROOT/case-lock-leaks.txt"
+: >"$RUN_CASE_TMP_TRACE"
+: >"$RUN_CASE_LOCK_TRACE"
+
 command -v tofu >/dev/null 2>&1 || { echo "selftest: tofu required" >&2; exit 1; }
 
 printf '\n### verify.sh enforcement self-test (drift + tier + README navigation) ###\n'
@@ -385,8 +432,11 @@ run_case() {
   # silently drop whatever it already pinned.
   local extra=("$@")
   local tmp out rc extra_ok=1 needle_ok=0 verdict_ok=0 missing_extra=""
-  tmp="$(mktemp -d)"
-  trap 'rm -rf "$tmp"' RETURN
+  # Child of the script-level root so an early death still gets collected, and
+  # recorded in the ledger so the sweep at the end of this script can prove the
+  # explicit removal below actually ran.
+  tmp="$(mktemp -d "$SELFTEST_TMP_ROOT/case.XXXXXXXX")"
+  printf '%s\n' "$tmp" >>"$RUN_CASE_TMP_TRACE"
   build_root "$tmp"
   "$mutate" "$tmp"
   set +e
@@ -425,7 +475,15 @@ run_case() {
   # would have fired on the CI failure that cost the revert. Hoisting past the
   # verdict makes that mutation unrepresentable rather than merely tested for.
   [ "$verdict_ok" -eq 1 ] || dump_case_output "$out"
-  trap - RETURN
+  # A verify.sh that exits without releasing its lock wedges every future run in
+  # that checkout. Record it here rather than failing the case: the sweep below
+  # reports the total, so ONE misleading case message cannot be mistaken for a
+  # drift/tier regression.
+  [ -d "$tmp/.verify.lock" ] && printf '%s\n' "$tmp" >>"$RUN_CASE_LOCK_TRACE"
+  # Hoisted past the verdict, exactly like the dump call above: with a copy in
+  # each branch, reverting only the fail-path one would leak on every red case
+  # while the self-test stayed green.
+  rm -rf "$tmp"
 }
 
 # Heading literals that identify which scan path section 2 selected.
@@ -938,9 +996,67 @@ check_run_case_wiring() {
     printf '%s\n' "$out" | tail -n 10 | sed 's/^/        | /'
   fi
 }
+# --- temp-root cleanup probes (US-F-GATEHYG) ---------------------------------
+#
+# Both branches of run_case must remove the case tree, and the FAIL branch is
+# the one nothing ever exercised on a green run — the same blind spot that let
+# the dump_case_output regression ship. check_run_case_wiring below drives a
+# deliberately-failing case, so calling this immediately after it observes the
+# fail path; calling it again after the first ordinary case observes the pass
+# path. `tail -n 1` of the ledger is the tree the most recent case used.
+check_case_tmp_cleaned() {
+  local label="$1" tmp_path
+  tmp_path="$(tail -n 1 "$RUN_CASE_TMP_TRACE" 2>/dev/null || true)"
+  if [ -z "$tmp_path" ]; then
+    # Never report a green over an empty ledger: "nothing leaked" and "nothing
+    # was ever recorded" are the same observation and only one of them is good.
+    bad "temp cleanup ($label) — run_case recorded no temp root; this probe is DISARMED"
+  elif [ -d "$tmp_path" ]; then
+    bad "temp cleanup ($label) — $tmp_path still on disk after the case returned"
+  else
+    ok "temp cleanup ($label) — the case's temp root was removed"
+  fi
+}
+
+# Whole-run sweep. Stronger than the two point checks: it asserts EVERY case
+# removed its own tree while this script was still running, so deleting
+# run_case's `rm -rf` and leaning on the script-level EXIT trap instead is a
+# red, not a silent behaviour change.
+check_all_case_tmp_cleaned() {
+  local total=0 leaked=0 p
+  while IFS= read -r p; do
+    [ -n "$p" ] || continue
+    total=$((total + 1))
+    if [ -d "$p" ]; then leaked=$((leaked + 1)); fi
+  done <"$RUN_CASE_TMP_TRACE"
+  if [ "$total" -eq 0 ]; then
+    bad "temp cleanup sweep — no case temp roots were recorded; this probe is DISARMED"
+  elif [ "$leaked" -eq 0 ]; then
+    ok "temp cleanup sweep — all $total case temp root(s) removed, 0 leaked"
+  else
+    bad "temp cleanup sweep — $leaked of $total case temp root(s) still on disk"
+  fi
+}
+
+# Anti-wedge sweep for the verify.sh lock: a run that exits without releasing it
+# leaves every FUTURE run in that checkout refused. Covers all cases at once,
+# including the ones that exit non-zero (drift, pin drift, the preflight death).
+check_no_case_left_lock() {
+  local leaked
+  leaked="$(grep -c . "$RUN_CASE_LOCK_TRACE" 2>/dev/null || true)"
+  [ -n "$leaked" ] || leaked=0
+  if [ "$leaked" -eq 0 ]; then
+    ok "lock release sweep — no case left a .verify.lock behind (pass and fail exits)"
+  else
+    bad "lock release sweep — $leaked case(s) left .verify.lock behind; the next run in that checkout is WEDGED"
+  fi
+}
+
 check_run_case_wiring
+check_case_tmp_cleaned "fail path — the wiring probe's deliberately failing case"
 
 run_case "clean fixture"        pass "no drift: labs/fixtures/drift-demo/main.tf matches" m_clean
+check_case_tmp_cleaned "pass path — an ordinary green case"
 run_case "LF-authored drift"    fail "drift: block in labs/fixtures/drift-demo.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_drift_lf
 run_case "CRLF-authored drift"  fail "drift: block in labs/fixtures/drift-demo.md does NOT match source file: labs/fixtures/drift-demo/main.tf" m_drift_crlf
 run_case "pages magic-move clean" pass "no drift: labs/fixtures/drift-demo/main.tf matches its block in index.md" m_pages_clean
@@ -1032,6 +1148,10 @@ if node --test "$REPO_ROOT/scripts/opentofu-sec4-pin.test.mjs"; then
 else
   bad "OpenTofu SEC-4 offline pin failed"
 fi
+
+printf '\n### temp + lock hygiene sweeps (US-F-GATEHYG) ###\n'
+check_all_case_tmp_cleaned
+check_no_case_left_lock
 
 printf '\n'
 if [ "$fail_n" -eq 0 ]; then
