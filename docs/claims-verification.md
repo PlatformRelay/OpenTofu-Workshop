@@ -31,17 +31,22 @@ row covering four separate assertions), so they are decomposed below into
 atomic, individually checkable claims. Rows are grouped by the plan's numbering
 where it maps cleanly.
 
-**Counts: 60 atomic claim rows enumerated below (sections A–I), plus one
-gate-behaviour check (E7) that is not a deck claim.**
+**Counts.** Sections A–I hold **62 rows**. One of them (E7) is a *gate-behaviour*
+check rather than a deck claim, leaving **61 atomic claims**:
 
-- **57** rows are `VERIFIED` / `PARTIAL` / `INCONSISTENT` / `CONTRADICTED` /
-  `INCOMPLETE` — i.e. a primary source was actually reached and quoted.
-- **2** rows are `UNVERIFIED` outright: F9, G8.
-- **1** further named sub-claim inside an otherwise-verified row is unverified:
-  U3, the *rationale* comment on `LOCALSTACK_VERSION` (the release's existence
-  and date were confirmed; the behavioural claim about newer images was not).
+- **59** are `VERIFIED` (in any of its qualified forms) / `PARTIAL` /
+  `INCONSISTENT` / `CONTRADICTED` / `INCOMPLETE` — i.e. a primary source was
+  actually reached and quoted.
+- **2** are `UNVERIFIED` outright: **F9** (Snyk IaC status) and **G8** (Terramate
+  CLI surface).
+- One further item appears in §J that is **not** a 62nd row: **U2** is a named
+  sub-claim living inside the otherwise-verified **D3**. The
+  `LOCALSTACK_VERSION` release's existence and date were confirmed; the
+  behavioural *rationale* in its comment was not. It is listed separately so it
+  is not silently carried by D3's verdict — but it must not be double-counted.
 
-Section J lists all three unverified items together so silence is never mistaken
+So: **59 verified, 2 unverified, plus 1 unverified sub-claim inside a verified
+row.** §J lists all three unverified items together so silence is never mistaken
 for confirmation.
 
 ## A. OpenTofu release timeline and support window (plan §5 #1)
@@ -50,13 +55,13 @@ for confirmation.
 | --- | --- | --- | --- | --- |
 | A1 | Current baseline is OpenTofu **1.12.x** | `pages/S10-opentofu-differentiators/index.md:65` | VERIFIED | GitHub API `repos/opentofu/opentofu/releases` — latest stable tag `v1.12.6`, published `2026-08-19T11:40:07Z`. |
 | A2 | 1.12.x is "supported to 2027-02-01" | `pages/S10-opentofu-differentiators/index.md:65` | VERIFIED | `CHANGELOG.md` at tag `v1.12.0`, first line: "The v1.12.x release series is supported until **February 1 2027**." |
-| A3 | **1.7** = client-side state & plan encryption · provider-defined functions · `removed` block | `pages/S10-.../index.md:55` | PARTIAL | `CHANGELOG.md` @ `v1.7.0`: "STATE ENCRYPTION — We're introducing optional end-to-end encryption for **state files**"; "Add support for a `removed` block…"; "Provider-defined functions are now available." The 1.7 changelog says *state files* only — it never mentions plan files. Plan-file coverage is real but is only documented on the current docs page (`https://opentofu.org/docs/language/state/encryption/`: "OpenTofu supports encrypting state and plan files at rest"), which is versioned v1.12.x, so 1.7 is not the sourced introduction version for the *plan* half. |
+| A3 | **1.7** = client-side state **& plan** encryption · provider-defined functions · `removed` block | `pages/S10-.../index.md:55` | VERIFIED | `CHANGELOG.md` @ `v1.7.0`: "Add support for a `removed` block…"; "Provider-defined functions are now available." For encryption the changelog header reads "STATE ENCRYPTION — We're introducing optional end-to-end encryption for **state files**" and never says *plan*, which initially looked like the deck overclaiming. It is not. The **v1.7-versioned** docs settle it: `website/docs/language/state/encryption.mdx` at tag `v1.7.0` is titled "# State and Plan Encryption" and opens "OpenTofu supports encrypting **state and plan files** at rest, both for local storage and when using a backend." The changelog header is simply loose. (Method note: the *current* docs page carries the same sentence but is versioned v1.12.x, so it cannot adjudicate a 1.7 claim — the tagged docs source can, and does.) |
 | A4 | **1.8** = early variable/backend evaluation · `.tofu` extension · test mocking & overrides | `pages/S10-.../index.md:56` | VERIFIED | `CHANGELOG.md` @ `v1.8.0` NEW FEATURES: "Variables and Locals allowed in module sources and backend configurations (with limitations)"; "Added support to new .tofu extensions"; "Added support for `override_resource`, `override_data` and `override_module` blocks"; "Added support for `mock_provider`, `mock_resource` and `mock_data` blocks". Release published `2024-07-29T13:04:14Z`. |
 | A5 | **1.9** = provider `for_each` · `-exclude` · cross-referencing variable validation | `pages/S10-.../index.md:57` | VERIFIED | `CHANGELOG.md` @ `v1.9.0`: "**`for_each` in provider configuration blocks**"; "**`-exclude` planning option**"; "References to vars, data, etc. are now usable in variable validation". Published `2025-01-09T16:20:29Z`. |
 | A6 | **1.10** = OCI registry for providers *and* modules · external key providers · native S3 state locking | `pages/S10-.../index.md:58` | VERIFIED | `CHANGELOG.md` @ `v1.10.0`: "install **module packages from OCI Registries**"; "**OCI Registries as a new kind of provider mirror**"; "**The `s3` backend can now implement locking without DynamoDB**"; "State encryption now supports using external programs as key providers." Published `2025-06-24T13:58:50Z`. |
 | A7 | **1.11** = ephemeral resources & write-only attributes · `enabled` meta-arg | `pages/S10-.../index.md:59` | VERIFIED | `CHANGELOG.md` @ `v1.11.0`: "**Ephemeral values**… ephemeral resource types… managed resource types with write-only attributes"; "The new **`enabled` meta-argument**". Published `2025-12-09T18:52:00Z`. |
 | A8 | **1.12** = dynamic `prevent_destroy` · `destroy = false` · concurrent provider install | `pages/S10-.../index.md:60` | VERIFIED | `CHANGELOG.md` @ `v1.12.0`: "A `prevent_destroy` argument… can now refer to other symbols in the same module"; "New `lifecycle` meta-argument `destroy`: when set to `false`…"; "Provider installation now makes concurrent requests to download provider packages". |
-| A9 | The 1.7→1.12 span is a genuine divergence window | `pages/S10-.../index.md:39-40, 291, 303` | VERIFIED | Follows from A3–A8 read against Terraform's own changelogs; every listed feature is present in OpenTofu's changelog under the version claimed. |
+| A9 | The 1.7→1.12 span is a genuine divergence window — "several **with no Terraform equivalent**"; provider `for_each` is "**OpenTofu-only** since 1.9" | `pages/S10-.../index.md:39-40, 147, 291, 303` | VERIFIED | Two halves, checked separately. (a) Every feature listed in A3–A8 appears in OpenTofu's own changelog at the version claimed. (b) The *exclusivity* half was checked against **HashiCorp's** docs, not inferred: provider `for_each` — `https://developer.hashicorp.com/terraform/language/providers/configuration` documents only aliasing ("include multiple `provider` blocks with the same provider name, then add the `alias` argument…") and never mentions `for_each` on a provider block; `-exclude` — `https://developer.hashicorp.com/terraform/cli/commands/plan` documents `-target=ADDRESS` as its only resource-targeting option, with no `-exclude`; client-side state encryption — `https://developer.hashicorp.com/terraform/language/state/sensitive-data` states "You can encrypt your state at rest, but the encryption method depends on your specific backend", i.e. delegated to S3/GCS/HCP rather than a native `encryption` block with key providers. All three OpenTofu features named as differentiators are genuinely absent from Terraform. |
 | A10 | 1.11.x support window | *(not asserted in the deck)* | VERIFIED | `CHANGELOG.md` @ `v1.11.0` first line: "The v1.11.x release series is supported until **August 1 2026**." → **1.11.x is out of support as of this check date.** Relevant because `versions.env` pins an even older series (see D1). |
 
 ## B. Licensing, fork and governance (plan §5 #3, #4)
@@ -105,7 +110,7 @@ Both engines' changelogs were read independently.
 | E4 | `local = "~> 2.5"` | `labs/day-1/00-setup/versions.tf:11` | VERIFIED | `repos/hashicorp/terraform-provider-local/releases/latest` → `v2.9.0` (`2026-05-13`). `~> 2.5` (≥2.5, <3.0) is satisfiable and current. |
 | E5 | `random = "~> 3.7"` | `labs/day-1/00-setup/versions.tf:15` | VERIFIED | `repos/hashicorp/terraform-provider-random/releases/latest` → `v3.9.0` (`2026-05-13`). `~> 3.7` (≥3.7, <4.0) is satisfiable and current. |
 | E6 | The S14 slide fixture pins `aws = "~> 5.0"` | `pages/S14-security-scanners/index.md:242` | INCONSISTENT | One major behind E3. The AWS provider's current major is 6.x. Nothing in the scanner content depends on 5.x; Day 1 teaches 6.0 an hour earlier in the same workshop. |
-| E7 | *(gate check, not a deck claim)* Is the S14 slide's HCL block drift-checked against its fixture? | `pages/S14-.../index.md:235-289` vs `labs/day-2/14-security-scanners/messy/main.tf` | **NOT GATED** | `scripts/verify.sh` §6 only arms on a `<!-- source: PATH -->` comment "IMMEDIATELY followed by an opening ```hcl fence"; an "unannotated block → ignored (only counted/warned)". The fence at `pages/S14-.../index.md:235` has **no such marker** — line 234 is blank and 233 is a heading — so §6 does not read this pair at all. The two are byte-identical today (verified: `sed -n '236,288p'` of the slide `diff`s clean against the fixture), which means **adding the marker would arm the existing gate for free and pass on the first run**. Recommended alongside L7 so the `~> 5.0` → `~> 6.0` fix cannot half-land. |
+| E7 | *(gate check, not a deck claim)* Is the S14 slide's HCL block drift-checked against its fixture? | `pages/S14-.../index.md:235-289` vs `labs/day-2/14-security-scanners/messy/main.tf` | **NOT GATED** | `scripts/verify.sh` §6 only arms on a `<!-- source: PATH -->` comment "IMMEDIATELY followed by an opening ```hcl fence"; an "unannotated block → ignored (only counted/warned)". The fence at `pages/S14-.../index.md:235` has **no such marker** — line 234 is blank and 233 is a heading — so §6 does not read this pair at all. The two are byte-identical today (verified: `sed -n '236,288p'` of the slide `diff`s clean against the fixture), which means **adding the marker would arm the existing gate for free and pass on the first run**. Recommended alongside L6 so the `~> 5.0` → `~> 6.0` fix cannot half-land. |
 
 ## F. Scanner and policy-tool status (plan §5 #6, #7 — "Two load-bearing facts")
 
@@ -121,7 +126,7 @@ Both engines' changelogs were read independently.
 | F8 | KICS is ALIVE (Checkmarx OSS) | `pages/S14-.../index.md:80` | VERIFIED | `repos/Checkmarx/kics` → `archived: false`, `pushed_at: 2026-08-25T08:38:10Z`; latest release `v2.1.21` (`2026-07-30`). |
 | F9 | Snyk IaC is ALIVE | `pages/S14-.../index.md:88` | UNVERIFIED | No primary source reached. Snyk IaC is a commercial product with no single canonical repo whose status settles the claim; the CLI repo was not checked in this pass. **Do not cite this as sourced.** |
 | F10 | "CNCF **Graduated** OPA; Conftest wraps Rego for config" | `pages/S14-.../index.md:186` | VERIFIED | `https://www.cncf.io/projects/open-policy-agent-opa/`: "Open Policy Agent (OPA) was accepted to CNCF on March 29, 2018, moved to the Incubating maturity level on April 2, 2019, and then moved to the **Graduated** maturity level on January 29, 2021." |
-| F11 | "Sentinel — **TFC / HCP Terraform only**" | `pages/S14-.../index.md:195, 199` (+ speaker note "tied to HashiCorp's cloud product") | CONTRADICTED | HashiCorp's own Sentinel landing page, `https://developer.hashicorp.com/sentinel`, names three products: "Use **HCP Terraform** with Sentinel to check that infrastructure will comply with policies"; "Use **Vault** with Sentinel to control who can access secrets based on their role or the endpoint"; "Use **Nomad** with Sentinel to control jobs based on driver or other attributes of the job object." The *teaching point* survives — Sentinel is not a portable OpenTofu-first default — but "TFC / HCP Terraform only" is factually wrong. |
+| F11 | "Sentinel — **TFC / HCP Terraform only**" | `pages/S14-.../index.md:195, 199` (+ speaker note "tied to HashiCorp's cloud product") | CONTRADICTED | HashiCorp's own Sentinel landing page, `https://developer.hashicorp.com/sentinel`, names three products: "Use **HCP Terraform** with Sentinel to check that infrastructure will comply with policies"; "Use **Vault** with Sentinel to control who can access secrets based on their role or the endpoint"; "Use **Nomad** with Sentinel to control jobs based on driver or other attributes of the job object." Self-hosted Terraform Enterprise also carries it — `https://developer.hashicorp.com/terraform/enterprise/policy-enforcement/define-policies/custom-sentinel` serves a live page describing "how to create and manage custom policies using Sentinel policy language". The *teaching point* survives — Sentinel is not a portable OpenTofu-first default — but "TFC / HCP Terraform only" is factually wrong. |
 | F12 | The captured scanner output on the slide (`Failures: 7 (HIGH: 6, CRITICAL: 1)`, `AWS-0086/0104/0107/0132`; `Passed 5, Failed 7`, `CKV_AWS_23/24/53-56/382`) | `pages/S14-.../index.md:265-282`; `labs/day-2/14-security-scanners.md:131, 185` | VERIFIED — **reproduced** | Confirming a *version* exists says nothing about the *output* it emits, so this was executed rather than inferred. Trivy reported `Version: 0.72.0` and Checkov `3.3.0` — the exact pins — so the lab's documented commands were run verbatim against `labs/day-2/14-security-scanners/messy/`. `trivy config --severity HIGH,CRITICAL --format table --exit-code 1 .` → `Tests: 7 (SUCCESSES: 0, FAILURES: 7)` / `Failures: 7 (HIGH: 6, CRITICAL: 1)` and exactly `AWS-0086, 0087, 0091, 0093 (HIGH)`, `AWS-0104 (CRITICAL)`, `AWS-0107, 0132 (HIGH)`. `checkov -d . --framework terraform --compact --quiet` → `Passed checks: 5, Failed checks: 7, Skipped checks: 0` and exactly `CKV_AWS_53, 54, 55, 56, 24, 23, 382`. **Every count, severity and rule ID on the slide and in the lab spoiler matches byte-for-byte.** |
 | F13 | "**Facts verified 2026-07**" stamp on the field table | `pages/S14-.../index.md:44` | INCONSISTENT | The stamp is now this table's job. Every maintenance-status row above was re-checked on **2026-08-25**; the stamp still says 2026-07 and is the only staleness signal a facilitator sees. |
 
@@ -172,8 +177,8 @@ environment, so it was executed instead of assumed and is now VERIFIED at F12.)
 | # | Claim | Why unverified | What would settle it |
 | --- | --- | --- | --- |
 | U1 (F9) | Snyk IaC is "ALIVE" | No canonical primary repo checked; Snyk IaC is a commercial product whose status is not readable from a single repo flag. | Check `snyk/cli` release cadence plus Snyk's own IaC product-lifecycle page. |
-| U3 (D3) | LocalStack 4.9.2 is "the last community release that boots without `LOCALSTACK_AUTH_TOKEN`" | Only the release's existence and date were confirmed; the *rationale* is a behavioural claim about newer images. | Boot 4.10+ community without a token in the integration lane and record the result. |
-| U4 (G8) | Terramate CLI surface taught across S21–S25 | Out of this pass's budget — needs a per-command read of Terramate's CLI reference against every command the five sections teach. | A dedicated pass over `terramate.io/docs` CLI reference vs the S21–S25 command inventory. |
+| U2 (D3) | LocalStack 4.9.2 is "the last community release that boots without `LOCALSTACK_AUTH_TOKEN`" | Only the release's existence and date were confirmed; the *rationale* is a behavioural claim about newer images. | Boot 4.10+ community without a token in the integration lane and record the result. |
+| U3 (G8) | Terramate CLI surface taught across S21–S25 | Out of this pass's budget — needs a per-command read of Terramate's CLI reference against every command the five sections teach. | A dedicated pass over `terramate.io/docs` CLI reference vs the S21–S25 command inventory. |
 
 ## K. Should an automated prose check be built?
 
@@ -249,7 +254,7 @@ already implements.
 This one is not speculative: **F12 was verified this way during this pass**, and
 it took two commands. Both scanners are installed at the pinned versions, both
 reproduced the documented output byte-for-byte, and re-running them against a
-`~> 6.0` variant of the fixture produced identical findings — which is how L7
+`~> 6.0` variant of the fixture produced identical findings — which is how L6
 was cleared as safe to apply without a re-capture. The check is deterministic
 (no network: Trivy's misconfig rules are compiled in), it is offline, and it
 guards the single most learner-visible class of claim in the deck: output a
@@ -273,11 +278,11 @@ recently* — which a gate can answer offline and deterministically.
 **Cost/benefit.** Check 1 is roughly the size of the existing §10 block and
 reuses its parsing. Check 2 is a regex plus a date comparison. Check 3 is two
 subprocess calls and a grep, hung off scaffolding §9 already has. Together they
-would have caught three of the eleven defects in the correction list below —
-about 27% — and check 3 additionally *locks in* the F12 result that took this
+would have caught three of the ten defects in the correction list below —
+about 30% — and check 3 additionally *locks in* the F12 result that took this
 pass a manual run to establish.
 
-The remaining eight corrections are semantic (F11's "Sentinel TFC-only", F2's
+The remaining seven corrections are semantic (F11's "Sentinel TFC-only", F2's
 "dead tools" framing, G3's missing Terramate, G7's pre-1.0 Terragrunt framing,
 B6's CNCF gap) and are only reachable by a human reading a primary source. That
 is the honest ceiling of automation here, and it is worth being explicit about
@@ -303,16 +308,15 @@ text, and the row above that carries the citation.
 | # | File | Line | Current | Corrected | Source |
 | --- | --- | --- | --- | --- | --- |
 | L1 | `pages/S10-opentofu-differentiators/index.md` | 65 | `Current baseline: **OpenTofu 1.12.x** (supported to 2027-02-01).` | `Current baseline: **OpenTofu 1.12.x** (supported to 2027-02-01) — the workshop toolchain pins **1.10.3** (\`versions.env\`) for reproducibility.` | A1, A2, D1 |
-| L2 | `pages/S10-opentofu-differentiators/index.md` | 55 | `<KwChip>1.7</KwChip> <strong>Client-side state &amp; plan encryption</strong>` | `<KwChip>1.7</KwChip> <strong>Client-side state encryption</strong>` (plan-file coverage is documented on the current docs page but is not attributed to 1.7 in its changelog) | A3 |
-| L3 | `pages/S14-security-scanners/index.md` | 44 | `Facts verified 2026-07 — re-check maintenance status before you ship a standard.` | `Facts verified 2026-08-25 — re-check maintenance status before you ship a standard.` | F13, this table |
-| L4 | `pages/S14-security-scanners/index.md` | 146 | `<span class="kw-kicker">dead tools · don't adopt ghosts</span>` | `<span class="kw-kicker">superseded &amp; archived · don't adopt either</span>` | F2, F4 |
-| L5 | `pages/S14-security-scanners/index.md` | 156 | `- New material should not teach \`tfsec\`` | `- Still published (v1.28.14, 2025-05-02) but superseded — new material should not teach \`tfsec\`` | F2 |
-| L6 | `pages/S14-security-scanners/index.md` | 195 | `- **TFC / HCP Terraform only**` | `- **HashiCorp products only** — HCP Terraform, Vault, Nomad` | F11 |
-| L7 | `pages/S14-security-scanners/index.md` | 242 | `version = "~> 5.0"` (indented 6 spaces) | `version = "~> 6.0"` (same indent) — **must be applied to `labs/day-2/14-security-scanners/messy/main.tf:7` in the same change** (see E7: nothing enforces this, so it is on the author). **No re-capture of the F12 output is needed** — the bump was tested: both pinned scanners were re-run on a copy of the fixture carrying `~> 6.0` and emitted byte-identical findings (same 7 Trivy IDs, same 7 Checkov IDs, same counts). The provider constraint does not reach any rule. | E3, E6, E7, F12 |
-| L8 | `pages/S28-ecosystem-tooling/index.md` | 86 | `Terraform, Terragrunt, Atmos**.` (indented 2 spaces) | `Terraform, Terragrunt, Terramate, Atmos**.` (same indent) | G3 |
-| L9 | `pages/S28-ecosystem-tooling/index.md` | 88 | `- **Not** part of \`task setup\` here — any \`tofu ≥ 1.8\` runs the labs. Adopt` | `- **Not** part of \`task setup\` here — \`tofu ≥ 1.8\` runs most labs (Lab 10 needs ≥ 1.9). Adopt` | E2 |
-| L10 | `pages/S28-ecosystem-tooling/index.md` | 96 | `tfenv and tofuenv, is one binary that manages OpenTofu, Terraform, Terragrunt,` | `tfenv and tofuenv, is one binary that manages OpenTofu, Terraform, Terragrunt, Terramate,` (speaker note; line 97 already reads `and Atmos`) | G3 |
-| L11 | `pages/S01-iac/index.md` | 352 | `- Governed by the **Linux Foundation** (neutral, community)` | `- Governed by the **Linux Foundation**; a **CNCF** project since 2025-04-23 (neutral, community)` | B6 |
+| L2 | `pages/S14-security-scanners/index.md` | 44 | `Facts verified 2026-07 — re-check maintenance status before you ship a standard.` | `Facts verified 2026-08-25 — re-check maintenance status before you ship a standard.` | F13, this table |
+| L3 | `pages/S14-security-scanners/index.md` | 146 | `<span class="kw-kicker">dead tools · don't adopt ghosts</span>` | `<span class="kw-kicker">superseded &amp; archived · don't adopt either</span>` | F2, F4 |
+| L4 | `pages/S14-security-scanners/index.md` | 156 | `- New material should not teach \`tfsec\`` | `- Still published (v1.28.14, 2025-05-02) but superseded — new material should not teach \`tfsec\`` | F2 |
+| L5 | `pages/S14-security-scanners/index.md` | 195 | `- **TFC / HCP Terraform only**` | `- **HashiCorp products only** — HCP Terraform / Terraform Enterprise, Vault, Nomad` | F11 |
+| L6 | `pages/S14-security-scanners/index.md` | 242 | `version = "~> 5.0"` (indented 6 spaces) | `version = "~> 6.0"` (same indent) — **must be applied to `labs/day-2/14-security-scanners/messy/main.tf:7` in the same change** (see E7: nothing enforces this, so it is on the author). **No re-capture of the F12 output is needed** — the bump was tested: both pinned scanners were re-run on a copy of the fixture carrying `~> 6.0` and emitted byte-identical findings (same 7 Trivy IDs, same 7 Checkov IDs, same counts). The provider constraint does not reach any rule. | E3, E6, E7, F12 |
+| L7 | `pages/S28-ecosystem-tooling/index.md` | 86 | `Terraform, Terragrunt, Atmos**.` (indented 2 spaces) | `Terraform, Terragrunt, Terramate, Atmos**.` (same indent) | G3 |
+| L8 | `pages/S28-ecosystem-tooling/index.md` | 88 | `- **Not** part of \`task setup\` here — any \`tofu ≥ 1.8\` runs the labs. Adopt` | `- **Not** part of \`task setup\` here — \`tofu ≥ 1.8\` runs most labs (Lab 10 needs ≥ 1.9). Adopt` | E2 |
+| L9 | `pages/S28-ecosystem-tooling/index.md` | 96 | `tfenv and tofuenv, is one binary that manages OpenTofu, Terraform, Terragrunt,` | `tfenv and tofuenv, is one binary that manages OpenTofu, Terraform, Terragrunt, Terramate,` (speaker note; line 97 already reads `and Atmos`) | G3 |
+| L10 | `pages/S01-iac/index.md` | 352 | `- Governed by the **Linux Foundation** (neutral, community)` | `- Governed by the **Linux Foundation**; a **CNCF Sandbox** project since 2025-04-23 (neutral, community)` | B6 |
 
 ### Out-of-scope findings raised by this pass
 
