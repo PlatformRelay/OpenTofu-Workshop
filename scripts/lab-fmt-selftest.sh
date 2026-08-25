@@ -454,57 +454,86 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 10. THE WIRING. Everything above proves scripts/lab-fmt.sh is safe. NONE of it
-#     proves `task lab:fmt` — the command verify.sh actually advertises — still
-#     calls it. Reverting Taskfile.yaml's `lab:fmt` cmds to `tofu fmt -recursive`
-#     left this self-test AND verify.sh fully green while the fixture burned:
-#     verify.sh enumerates task NAMES only, never their `cmds`.
+# 10. THE WIRING, AS AN ALLOWLIST.
 #
-#     THIS CASE HAS BEEN DEFEATED TWICE. Both escapes shared ONE root cause: a
-#     line-based scan that silently read only PART of the block, then concluded
-#     from it — the exact degradation case 4 exists to forbid, committed in the
-#     case that polices it. Both were reproduced end-to-end with a `tofu` shim
-#     proving go-task really executed the destructive command while this suite
-#     scored a clean 29/29:
+#     Everything above proves scripts/lab-fmt.sh is safe. None of it proves
+#     `task lab:fmt` — the command verify.sh advertises — still calls it.
 #
-#       A. A comment at the task's own indent (column 2) TRUNCATED the block. The
-#          terminator was `^  [^[:space:]]`, which a comment matches, so awk quit
-#          mid-block. `cmds:` had already been seen, so the "extraction worked"
-#          guard was satisfied and nothing downstream knew the scan stopped.
-#              cmds:
-#                - bash scripts/lab-fmt.sh
-#            # follow-up: also normalise the docs examples
-#                - tofu fmt -recursive
+#     THIS CASE WAS DEFEATED IN THREE SUCCESSIVE ROUNDS, and the reason it kept
+#     happening is worth more than the fixes: it was a DENYLIST. It hunted for
+#     `tofu fmt` in a bounded slice of the task and passed when it found none.
+#     A denylist over an unbounded input can only ever enumerate the evasions
+#     someone has already thought of, so each round shipped green and the next
+#     round found more:
 #
-#       B. A multi-line list item HID the command on a continuation line. Only
-#          lines that START an item were kept, so a block scalar's body was
-#          invisible. `- |` is the ordinary go-task idiom, not an exotic input.
-#              cmds:
-#                - bash scripts/lab-fmt.sh
-#                - |
-#                  tofu fmt -recursive
+#       r2  `sh -c 'tofu fmt -recursive'` slipped a head-anchored pattern.
+#       r3  a column-2 comment truncated the block; a `- |` scalar hid the
+#           command on a continuation line.
+#       r4  SEVEN more. A duplicate `lab:fmt:` key (go-task last-wins, and
+#           check-yaml's SafeLoader also takes the last, so nothing else catches
+#           it — this is what "keep both sides" on a merge conflict produces, and
+#           five lanes are editing this file right now). `deps:`. `vars:`
+#           indirection — the idiom `lab:validate` twenty lines below already
+#           uses. A destructive `preconditions: sh:`. `terraform fmt` instead of
+#           `tofu fmt`. A backslash continuation splitting the token across two
+#           lines. Every one green while the fixture was destroyed.
 #
-#     So: comments are stripped from the WHOLE file first (no comment can
-#     terminate anything), the block ends at a real column-2 key or a column-0
-#     key, the cmds range is bounded by its own 4-space sibling key, and EVERY
-#     line in that range is searched — continuations included. Bounding to
-#     `cmds:` also stops a `preconditions:` entry that merely mentions tofu fmt
-#     from manufacturing a false red.
+#     The structural fault was that only the `cmds:` range was ever searched, so
+#     every OTHER key go-task executes — deps, vars, preconditions — was out of
+#     scope BY CONSTRUCTION. Fixing where the range ended, three times, never
+#     addressed that a range existed at all. Worse, bounding the scan to `cmds:`
+#     to kill a false-red is exactly what made the `preconditions:` attack
+#     invisible: the previous round's fix created this round's hole.
 #
-#     Delegation is rejected too: `- task: something-else` would move the
-#     destruction out of this range entirely, and lab:fmt has no reason to
-#     delegate.
+#     So this is now an ALLOWLIST. It does not ask "does anything dangerous
+#     appear?" — an unbounded question. It asks "is this task EXACTLY the four
+#     things it is supposed to be?", which is bounded and answerable:
 #
-#     A YAML parser is deliberately NOT pulled in — this must run on a bare
-#     runner with no package manager. Instead, where go-task IS available the
-#     AUTHORITATIVE check below asks go-task itself what it resolves the task to,
-#     which no parsing bug can evade. It is conditional because CI does not
-#     install go-task (nothing in .github/workflows/ does), so it strengthens the
-#     local signal without becoming a CI dependency.
+#       1. `lab:fmt:` is declared exactly ONCE.
+#       2. The task's key set is exactly {desc, cmds, preconditions}.
+#       3. `cmds` is exactly one line: `- bash scripts/lab-fmt.sh`.
+#       4. `preconditions` is exactly the `command -v tofu` guard.
+#
+#     Adding deps, vars, env, a second cmds, a different precondition or a second
+#     command all red — not because they are recognised as dangerous, but because
+#     they are not on the list. A maintainer with a legitimate reason to add one
+#     must consciously update this guard, which is the point. It also fixes two
+#     FALSE reds the denylist produced, for the same reason.
+#
+#     WHAT IT STILL CANNOT SEE: the allowlist bounds THIS task. It cannot police
+#     what `scripts/lab-fmt.sh` does — cases 1-9 do that — and it would not
+#     notice `Taskfile.yaml` being replaced wholesale by an `includes:` from
+#     elsewhere. Assertion 1 is a `grep -c` over the whole file, so a `lab:fmt`
+#     defined in an included Taskfile is out of reach. Named, not papered over.
+#
+#     NO go-task CROSS-CHECK. An earlier version ran `task lab:fmt --dry -v` to
+#     ask go-task itself. `--dry` does not skip `preconditions:` — it RUNS them.
+#     Measured: with a destructive precondition, `--dry` took the real fixture
+#     from 13f0af5a66fd to d0b767a2f3a9, and this self-test then printed
+#     "PASSED — 32 checks OK, 0 failures" having destroyed the thing it exists to
+#     protect, in the developer's own worktree. It was removed rather than moved
+#     into a temp copy: it was never authoritative either (it is authoritative
+#     about RESOLUTION, while the predicate applied to its output was the same
+#     denylist), and the allowlist supersedes what it did cover. A self-test that
+#     can mutate the tree it audits is not worth a second layer of assurance.
 # ---------------------------------------------------------------------------
-case_ "10. task lab:fmt is still wired to scripts/lab-fmt.sh"
+case_ "10. task lab:fmt is exactly the task it is supposed to be (allowlist)"
 TASKFILE="$ROOT/Taskfile.yaml"
-# Strip comments up front so no comment can act as a block terminator anywhere.
+
+# 1. EXACTLY ONE DECLARATION. go-task silently last-wins on a duplicate task
+#    name, so a second `lab:fmt:` anywhere in the file overrides the first while
+#    every other check happily inspects whichever one it finds. Counted on the
+#    RAW file: a duplicate is the thing being detected, so it must not be
+#    normalised away first.
+LABFMT_DECLS="$(grep -c '^  lab:fmt:[[:space:]]*$' "$TASKFILE" || true)"
+if [ "${LABFMT_DECLS:-0}" -eq 1 ]; then
+  ok "lab:fmt is declared exactly once in Taskfile.yaml"
+else
+  bad "lab:fmt is declared ${LABFMT_DECLS} times — go-task last-wins, so the effective task is not the one reviewed"
+fi
+
+# Comments stripped first so none can terminate a range; the block ends at the
+# next real column-2 key, or at a column-0 key.
 TASKFILE_NOCOMMENT="$(grep -v '^[[:space:]]*#' "$TASKFILE")"
 LABFMT_BLOCK="$(printf '%s\n' "$TASKFILE_NOCOMMENT" | awk '
   /^  lab:fmt:[[:space:]]*$/ { inblock = 1; next }
@@ -512,54 +541,61 @@ LABFMT_BLOCK="$(printf '%s\n' "$TASKFILE_NOCOMMENT" | awk '
   inblock && /^  [^[:space:]]/ { exit }
   inblock { print }
 ')"
-# Bound to the cmds list, and keep EVERY line in it — a continuation line is a
-# command too. preconditions/desc/vars siblings are excluded by the 4-space key.
+
+# 2. EXACTLY THE EXPECTED KEY SET. This is what makes the guard bounded: deps,
+#    vars, env, dotenv, includes, a second cmds — anything go-task would act on
+#    reds here without this script needing to know what it does.
+LABFMT_KEYS="$(printf '%s\n' "$LABFMT_BLOCK" | sed -n 's/^    \([A-Za-z_][A-Za-z0-9_-]*\):.*$/\1/p' | sort | tr '\n' ' ')"
+LABFMT_KEYS="${LABFMT_KEYS% }"
+LABFMT_KEYS_EXPECTED='cmds desc preconditions'
+if [ "$LABFMT_KEYS" = "$LABFMT_KEYS_EXPECTED" ]; then
+  ok "lab:fmt's keys are exactly {$LABFMT_KEYS_EXPECTED}"
+else
+  bad "lab:fmt's keys are {$LABFMT_KEYS} — expected exactly {$LABFMT_KEYS_EXPECTED}. If this addition is legitimate, update this allowlist deliberately"
+fi
+
+# 3. cmds IS EXACTLY ONE LINE, AND THAT LINE IS THE SCRIPT. One line, not one
+#    item: a `- |` block scalar is several lines under a single item head, and
+#    that is how round 3's evasion worked.
 LABFMT_CMDS="$(printf '%s\n' "$LABFMT_BLOCK" | awk '
   /^    cmds:[[:space:]]*$/ { inc = 1; next }
   inc && /^    [^[:space:]]/ { exit }
   inc { print }
-')"
-LABFMT_ITEMS="$(printf '%s\n' "$LABFMT_CMDS" | grep -cE '^[[:space:]]*-[[:space:]]' || true)"
-if [ -n "$LABFMT_BLOCK" ] && [ -n "$LABFMT_CMDS" ] && [ "${LABFMT_ITEMS:-0}" -gt 0 ]; then
-  ok "the lab:fmt cmds range was extracted from Taskfile.yaml (${LABFMT_ITEMS} item(s))"
+' | sed '/^[[:space:]]*$/d')"
+LABFMT_CMD_LINES="$(printf '%s\n' "$LABFMT_CMDS" | sed '/^$/d' | wc -l | tr -d ' ')"
+LABFMT_CMDS_NORM="$(printf '%s\n' "$LABFMT_CMDS" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+if [ "$LABFMT_CMD_LINES" = "1" ] && [ "$LABFMT_CMDS_NORM" = "- bash scripts/lab-fmt.sh" ]; then
+  ok "lab:fmt's cmds is exactly one line: '- bash scripts/lab-fmt.sh'"
 else
-  bad "could not extract lab:fmt's cmds from $TASKFILE — this case proves nothing; fix the parser"
-fi
-if printf '%s\n' "$LABFMT_CMDS" | grep -qE '^[[:space:]]*-[[:space:]]+bash scripts/lab-fmt\.sh[[:space:]]*$'; then
-  ok "a lab:fmt cmd is exactly 'bash scripts/lab-fmt.sh'"
-else
-  bad "no lab:fmt cmd invokes scripts/lab-fmt.sh — every case above is now moot"
-fi
-# Every line of the cmds range, not just item heads: `- tofu fmt -recursive`,
-# `- sh -c 'tofu fmt -recursive'` and a `- |` block scalar body are all caught.
-if printf '%s\n' "$LABFMT_CMDS" | grep -q 'tofu fmt'; then
-  bad "a lab:fmt cmd shells out to 'tofu fmt' — the S13 fixture is unprotected"
-else
-  ok "no lab:fmt cmd shells out to 'tofu fmt' (continuation lines included)"
-fi
-if printf '%s\n' "$LABFMT_CMDS" | grep -qE '^[[:space:]]*-[[:space:]]*task:'; then
-  bad "lab:fmt delegates to another task — the destructive command could live out of this range"
-else
-  ok "lab:fmt does not delegate to another task"
+  bad "lab:fmt's cmds is ${LABFMT_CMD_LINES} line(s) [$LABFMT_CMDS_NORM] — expected exactly '- bash scripts/lab-fmt.sh'"
 fi
 
-# AUTHORITATIVE CROSS-CHECK. Ask go-task what it actually resolves `lab:fmt` to,
-# instead of trusting this script's YAML parsing. `--dry` executes nothing.
-# Conditional: CI installs no go-task, so absence is a note, never a failure.
-if command -v task >/dev/null 2>&1; then
-  TASK_DRY="$( (cd "$ROOT" && task lab:fmt --dry -v 2>&1) || true)"
-  if printf '%s' "$TASK_DRY" | grep -q 'bash scripts/lab-fmt\.sh'; then
-    ok "go-task resolves lab:fmt to 'bash scripts/lab-fmt.sh' (--dry -v)"
-  else
-    bad "go-task does not resolve lab:fmt to scripts/lab-fmt.sh: $TASK_DRY"
-  fi
-  if printf '%s' "$TASK_DRY" | grep -q 'tofu fmt'; then
-    bad "go-task resolves a 'tofu fmt' command inside lab:fmt — the fixture is unprotected"
-  else
-    ok "go-task resolves no 'tofu fmt' command inside lab:fmt"
-  fi
+# 4. THE PRECONDITION IS THE TOOL CHECK, NOTHING ELSE. `preconditions: sh:` runs
+#    arbitrary shell, before cmds, every single invocation. It is as executable
+#    as cmds and must be pinned just as tightly.
+LABFMT_PRECOND_SH="$(printf '%s\n' "$LABFMT_BLOCK" | awk '
+  /^    preconditions:[[:space:]]*$/ { inp = 1; next }
+  inp && /^    [^[:space:]]/ { exit }
+  inp { print }
+' | sed -n 's/^[[:space:]]*-[[:space:]]*sh:[[:space:]]*//p' | sed 's/[[:space:]]*$//')"
+if [ "$LABFMT_PRECOND_SH" = "command -v tofu" ]; then
+  ok "lab:fmt's only precondition is 'command -v tofu'"
 else
-  ok "note: go-task not installed — skipping the authoritative --dry cross-check (CI installs none)"
+  bad "lab:fmt's precondition sh is '$LABFMT_PRECOND_SH' — expected 'command -v tofu'; preconditions run arbitrary shell on every invocation"
+fi
+
+# 5. SECONDARY, DEFENCE IN DEPTH. The allowlist above already forbids everything
+#    this finds, so it should never fire on its own — it is here to keep biting
+#    if the allowlist is ever loosened, and it is deliberately BROADER than the
+#    predicates that were evaded: both formatters, any whitespace, and `-check`
+#    (read-only) permitted. It is NOT relied upon: a backslash-split token
+#    defeats any single-line pattern, which is precisely why assertion 3 counts
+#    LINES instead of hunting for strings.
+if printf '%s\n' "$LABFMT_BLOCK" | grep -qE '(tofu|terraform)[[:space:]]+fmt' && \
+   ! printf '%s\n' "$LABFMT_BLOCK" | grep -E '(tofu|terraform)[[:space:]]+fmt' | grep -q -- '-check'; then
+  bad "lab:fmt contains a mutating '(tofu|terraform) fmt' invocation — the S13 fixture is unprotected"
+else
+  ok "lab:fmt contains no mutating '(tofu|terraform) fmt' invocation"
 fi
 
 # ---------------------------------------------------------------------------
