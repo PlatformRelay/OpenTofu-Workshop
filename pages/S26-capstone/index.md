@@ -71,47 +71,31 @@ layout: code-walkthrough
 
 # Capstone tour — naming + labels + estate
 
-```hcl {1-12|14-26|28-48|50-60}
-module "artifacts_name" {
+```hcl {none|1-4|5-8|9-14|15-19}
+module "artifacts_name" {                # + index_name, queue_name
   source        = "../../modules/naming"
-  resource_type = "aws_s3_bucket"
-  project       = var.project
-  environment   = var.environment
-  description   = "artifacts"
-  suffix        = var.artifacts_suffix
+  resource_type = "aws_s3_bucket"        # project, environment, suffix …
 }
-
 module "labels" {
-  source      = "../../modules/labels"
-  environment = var.environment
-  project     = var.project
-  service     = "colony"
-  # … criticality, owner, cost_center, taxonomy …
+  source  = "../../modules/labels"
+  service = "colony"                     # environment, criticality, owner …
 }
-
 resource "aws_s3_bucket" "artifacts" {
   bucket = module.artifacts_name.name
   tags   = module.labels.tags
 }
-
-resource "aws_dynamodb_table" "index" { /* … */ }
-resource "aws_sqs_queue" "work"       { /* … */ }
-
+resource "aws_dynamodb_table" "index" { name = module.index_name.name /* … */ }
+resource "aws_sqs_queue"      "work"  { name = module.queue_name.name /* … */ }
 check "colony_labels_complete" {
   assert {
-    condition = alltrue([
-      for k in ["environment", "criticality", "project",
-                "service", "owner", "cost-center"] :
-      contains(keys(module.labels.labels), k)
-    ])
-    error_message = "capstone label map is missing required keys"
+    condition = alltrue([for k in […] : contains(keys(module.labels.labels), k)])
   }
 }
 ```
 
 ::notes::
 
-<CodeNote at="1" label="Naming">Three naming calls compose S3 / DynamoDB / SQS names.</CodeNote>
+<CodeNote at="1" label="Naming">One <code>modules/naming</code> call per resource — <code>index_name</code> and <code>queue_name</code> repeat it.</CodeNote>
 <CodeNote at="2" label="Labels">One shared taxonomy applied to every resource.</CodeNote>
 <CodeNote at="3" label="Estate">Bucket + table + queue — small, complete colony.</CodeNote>
 <CodeNote at="4" label="Check">S15-style guard — required keys must be present.</CodeNote>
@@ -129,7 +113,7 @@ layout: code-walkthrough
 
 # PBKDF2 → AES-GCM on state and plan
 
-```hcl {1-8|10-16|18-26}
+```hcl {none|1-4|6-17|12}
 encryption {
   key_provider "pbkdf2" "passphrase" {
     passphrase = var.state_passphrase   # >= 16 chars

@@ -70,7 +70,7 @@ layout: code-walkthrough
 
 # `--changed` on every pull request
 
-```yaml {1-4|6-10|12-18|20-28}
+```yaml {none|1-4|6-8|10-16|18-21}
 # Fixed shape — labs/day-3/25-terramate-ci-cloud.md spoilers
 on:
   pull_request:

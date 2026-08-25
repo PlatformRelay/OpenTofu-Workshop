@@ -54,7 +54,7 @@ layout: code-walkthrough
 
 # Four jobs, one shared gate
 
-```yaml {1-4|6-10|12-16|18-22}
+```yaml {none|3|4|5|6}
 # Excerpt from this repository's real CI
 jobs:
   lint:                 # markdownlint on labs
