@@ -300,9 +300,16 @@ tasks:
         msg: "tofu is required. Install: brew install opentofu"
 
   lab:fmt:
-    desc: "Lab: format all OpenTofu files (tofu fmt -recursive)"
+    # Deliberately NOT `tofu fmt -recursive`. This task is the remedy verify.sh
+    # advertises when its fmt gate reds, and -recursive rewrote the one file the
+    # gate deliberately excludes: labs/day-2/13-static-analysis/messy/main.tf,
+    # the Day-2 static-analysis fixture whose misalignment IS the exercise. It
+    # was also the only non-canonical file in the tree, so -recursive's entire
+    # effect was to destroy it. scripts/lab-fmt.sh scopes to the git index minus
+    # that fixture, mirroring verify.sh §2 so detection and remediation agree.
+    desc: "Lab: format tracked OpenTofu files (git-tracked *.tf; S13 messy fixture excluded)"
     cmds:
-      - tofu fmt -recursive
+      - bash scripts/lab-fmt.sh
     preconditions:
       - sh: command -v tofu
         msg: "tofu is required. Install: brew install opentofu"
@@ -363,6 +370,10 @@ tasks:
       - bash scripts/bootstrap-selftest.sh
       # Terratest lane: docker-absent fail-fast (no daemon required).
       - bash scripts/lab-terratest-selftest.sh
+      # Regression guard: prove `task lab:fmt` — the remedy the fmt gate below
+      # advertises — still leaves the S13 messy fixture byte-identical, and still
+      # formats everything else. Runs in throwaway git repos; see the script.
+      - bash scripts/lab-fmt-selftest.sh
       - bash scripts/verify.sh
       # Regression guard: prove the slide↔lab drift ENFORCEMENT actually fails on
       # drift (incl. CRLF-authored). Runs in a throwaway temp copy; see the script.
