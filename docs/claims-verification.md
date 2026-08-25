@@ -135,7 +135,7 @@ Both engines' changelogs were read independently.
 
 | # | Claim | Where | Verdict | Evidence (primary source, checked 2026-08-25) |
 | --- | --- | --- | --- | --- |
-| E1 | `required_version = ">= 1.8"` | `labs/day-1/00-setup/versions.tf:2` (and ~20 peer files) | VERIFIED as a floor | Correct minimum for the `mock_provider`/`override_*` content (C2/C3). Note the plan's §5 cites `labs/day-1/00-setup/hello.tf:2`; the `terraform` block actually lives in `labs/day-1/00-setup/versions.tf:2` — `hello.tf` holds only the `local_file` resource. |
+| E1 | `required_version = ">= 1.8"` | `labs/day-1/00-setup/versions.tf:2` (and ~20 peer files) | VERIFIED as a floor | Correct minimum for the `mock_provider`/`override_*` content (C2/C3). Note the plan's §5 cites `labs/day-1/00-setup/hello.tf:2`; the `terraform` block actually lives in `labs/day-1/00-setup/versions.tf:2` — `hello.tf` holds only the `local_file` resource. **A gap this row does not cover, recorded here because nothing else does:** grepping `required_version` across every tracked `labs/day-1/06-variables*` file returns **nothing** — Lab 06 declares no engine guard at all, in any of its five tracked files, while `labs/day-1/10-differentiators/providers.tf:12` carries ``required_version = ">= 1.9.0"``. Both labs need 1.9 (E2), so the two failures a 1.8 learner meets are not equivalent: Lab 10 stops with a clean engine-version diagnostic, while Lab 06 fails deep in HCL with ``Invalid reference in variable validation`` and no hint the engine is the cause. **That asymmetry is what makes Lab 06 the worse of the two**, and it argues for adding a `required_version = ">= 1.9.0"` to Lab 06's fixture alongside the prose corrections — a code change, so it is filed in the out-of-scope section rather than the correction list. |
 | E2 | ">= 1.8" is a *sufficient* floor for the workshop | **Repo-wide.** The exception set is `labs/day-1/06-variables.md:63` **and** `labs/day-1/10-differentiators.md:31` — **two** Day-1 labs need ≥ 1.9, not one. Deck: `pages/S00-welcome/index.md:218`, `pages/S17-mocking/index.md:55`, `pages/S28-ecosystem-tooling/index.md:88, 99`. Prose: `README.md:68`, `docs/setup.md:33`, `docs/validation-matrix.md:58, 78`, `docs/facilitator-runbook.md:15`, `docs/rehearsal-checklist.md:29, 42`, `labs/day-3/28-ecosystem-tooling.solution.md:35-36`. Tooling: `setup/bootstrap.sh:25` and `scripts/verify.sh:92` (both `1.8`) | INCONSISTENT | **Two** Day-1 labs need ≥ 1.9, and an exhaustive sweep of every per-lab floor confirms it is exactly two. (a) `labs/day-1/10-differentiators.md:31` — "`tofu` ≥ 1.9 — provider `for_each` and `-exclude` are 1.9 features", with `required_version = ">= 1.9.0"` at `:60`. (b) `labs/day-1/06-variables.md:63` — "`tofu` ≥ 1.9 … Cross-variable validation needs 1.9+", which A5 already predicted: OpenTofu `CHANGELOG.md` @ `v1.9.0` reads "References to vars, data, etc. are now usable in variable validation". **Lab 06 is the worse failure of the two**, because `grep required_version labs/day-1/06-variables*` is empty — it declares no engine guard at all. A learner on 1.8 meets Lab 10 with a clean version diagnostic but meets Lab 06 with a raw `Invalid reference in variable validation` and no hint the engine is too old. Lab 06 is also on the Day-1 `mock ✓ (no docker)` path — the most-reached path in the workshop. So "any `tofu ≥ 1.8` runs the labs" is false twice over. |
 | E3 | `aws = "~> 6.0"` | `labs/day-1/00-setup/versions.tf:7` | VERIFIED | `repos/hashicorp/terraform-provider-aws/releases/latest` → `v6.61.0` (`2026-08-19`). `~> 6.0` resolves inside the current major. |
 | E4 | `local = "~> 2.5"` | `labs/day-1/00-setup/versions.tf:11` | VERIFIED | `repos/hashicorp/terraform-provider-local/releases/latest` → `v2.9.0` (`2026-05-13`). `~> 2.5` (≥2.5, <3.0) is satisfiable and current. |
@@ -381,8 +381,18 @@ places and gets one row ships five-sixths of the defect. Two things are asserted
    silently excluding `examples/**`, `AGENT.md`, `slides-templates.md`,
    `setup/**` and `infra/**` — all of which carry `1.8` hits. **If a bound is
    needed, state it and say why; do not smuggle it in as a list.**
-   The one bound that does apply: `.terraform/` provider caches and
+   The one *tree* bound that applies: `.terraform/` provider caches and
    `node_modules/` are excluded as untracked vendor trees.
+
+   **A second bound is unavoidable and must be stated: phrasing.** A text sweep
+   can only find the wordings it thinks to look for, and this repo states the
+   same floor at least four ways — `≥ 1.8`, `≥1.8`, `≥ **1.8**`, and
+   "1.8 or newer". No single pattern catches all four; the last one contains no
+   `≥` and defeats every `≥`-based search. Both times this sweep failed
+   (rounds 3 and 5) it failed on the *pattern* axis, not the tree axis. Where a
+   claim family is small enough to enumerate — as the per-lab floors are — the
+   honest method is to read every candidate file rather than trust a regex, and
+   that is what the {06, 10} exception set rests on.
 
 Step 2 is the one that had been missing. An earlier revision of this document
 swept `pages/**` only, which cannot satisfy a remit that says "every claim the
@@ -394,13 +404,23 @@ requiring `>= 1.9.0`, which makes that line false by this document's own
 evidence — and `docs/validation-matrix.md:78`, which is Lab 10's *own* row
 claiming ≥1.8 while the lab it indexes demands 1.9.
 
-**Sweep technique, learned by missing things.** Grep the *claim*, not a
-formatting of it. `docs/validation-matrix.md:58` reads `≥ **1.8**` with bold
-markers inside the number, so a `≥ *1\.8` pattern skips it; `labs/day-1/06-variables.md:63`
-was missed because the sweep looked for the *wrong* floor (`1.8`) and never
-asked which files assert a *different* one. Enumerate the exception set
-directly — here, `grep -rn '\`tofu\` ≥ [0-9]' labs/` returns every per-lab floor
-in one shot and makes both 1.9 labs obvious.
+**Sweep technique, learned by missing things — and the warrant is weaker than
+it looks.** Grep the *claim*, not a formatting of it.
+`docs/validation-matrix.md:58` reads `≥ **1.8**` with bold markers inside the
+number, so a `≥ *1\.8` pattern skips it. `labs/day-1/06-variables.md:63` was
+missed because the sweep hunted the *wrong* floor (`1.8`) and never asked which
+files assert a *different* one. The fix for that second failure is to enumerate
+the exception set directly rather than hunt the majority value:
+``grep -rn '`tofu` ≥ [0-9]' labs/``.
+
+**But be precise about what that command proves.** It returns **12 files, all
+under `labs/day-1/` and `labs/fixtures/` — zero from Day 2 or Day 3** — because
+Days 2 and 3 use a different phrasing (`- OpenTofu ≥1.8 (\`tofu version\`).`),
+and **Labs 16 and 17 use a third**: "OpenTofu 1.8 or newer", which carries no
+`≥` at all and is invisible to *every* `≥`-based pattern. Those two were found
+only by enumerating each lab file and reading its prerequisites. The conclusion
+still holds — the exception set really is {06, 10}, and Labs 16 and 17 really do
+need only 1.8 — but it rests on per-file enumeration, not on that grep.
 
 **Every `Current` cell is machine-checked, by a script that reads this table.**
 `scripts/claims-check.mjs` parses the rows below, extracts each code span, and
@@ -411,13 +431,51 @@ a zero exit:
 claims-check: 31 correction row(s) - 31 resolved, 0 failed, 0 skipped
 ```
 
-The script now fails — not warns — on a row whose `Current` cell has no code
-span, on a row count that drifts from `EXPECTED_ROWS`, and on any code span
-containing a backslash escape (those match the source but publish literally as
-`\|`, so un-escaping before comparing would otherwise hide a live rendering
-defect). Each of those three guards was verified by mutation: reintroducing an
-escape, deleting a row, and stripping a cell's code span each produce a
+The script fails — not warns — on: a row whose `Current` cell has no code span;
+a row count that drifts from `EXPECTED_ROWS`; a line that declares an L-id but
+does not match the row grammar (a `` ``double-backtick`` `` File cell used to
+slip past the parser entirely and ship unchecked at exit 0); and **any code span
+anywhere in this file's tables** containing a backslash escape. Each guard was
+verified by mutation, not assumed — reintroducing an escape in a `Current` cell,
+in a `Corrected` cell, and in the left-alone table; deleting a row; stripping a
+cell's code span; and swapping a File cell to double backticks each produce a
 non-zero exit.
+
+That last guard is deliberately document-wide rather than column-scoped, and
+that scoping is the lesson. Its first version checked `Current` cells only, so
+the defect simply relocated: escapes in `Corrected` cells and in the left-alone
+table kept publishing literally, and one of them collapsed a table cell to
+**empty**, silently deleting the instruction that stops a later lane hand-editing
+`infra/lab-inventory.json`. A guard scoped to where the bug was last seen is not
+a guard.
+
+### Acceptance test: read the render, not the source
+
+A source-side check cannot see this class by construction — the cell matches the
+file it quotes and still publishes wrongly. So the check of record is the built
+page:
+
+```bash
+python3 -m venv /tmp/mkdocs-venv
+/tmp/mkdocs-venv/bin/pip install -q -r docs/requirements-docs.txt
+/tmp/mkdocs-venv/bin/mkdocs build --strict
+grep -c '<td></td>' site/claims-verification/index.html   # expect 0
+grep -n -E '\\[|`]' site/claims-verification/index.html          # expect 1 line
+```
+
+`<td></td>` must be **zero**. The escape grep must return **exactly one line** —
+the sentence below, which quotes a broken escape on purpose to show what one
+looks like. Any second match is a real defect: a literal `\|` or
+backslash-backtick on the page means a
+code span was authored with a Markdown escape that Python-Markdown does not
+process. An empty `<td>` is worse: it means a row collapsed entirely and its
+guidance is gone from the published page even though the source still reads
+correctly — which is how the instruction against hand-editing
+`infra/lab-inventory.json` briefly vanished.
+
+Note `mkdocs` is not part of `task verify` or CI, and `scripts/claims-check.mjs`
+is standalone — in no gate, no `package.json` script, not in `verify.sh`. Both
+are run by hand. Saying so is part of the honesty this document is for.
 
 Phase 2 **must** re-run it before editing and again after, because line numbers
 drift as soon as any earlier correction lands.
@@ -427,13 +485,13 @@ the expected strings. That is not a stylistic choice — an earlier hand-written
 version of this check reported "23 OK" while row L5 was wrong, because the two
 lists had drifted apart and the check was no longer testing what the document
 claimed. Re-deriving from the table makes that class of false green impossible.
-Running it also surfaced two rows (L4, L15) whose `\``-escaped code spans do not
-render as intended in CommonMark, and confirmed L5's quote spans lines 134–135
-rather than sitting on 135 alone.
+Running it also surfaced two rows (L4, L15) whose backslash-escaped code spans do
+not render as intended in CommonMark, and confirmed L5's quote spans lines
+134–135 rather than sitting on 135 alone.
 
 | # | File | Line | Current | Corrected | Source |
 | --- | --- | --- | --- | --- | --- |
-| L1 | `pages/S10-opentofu-differentiators/index.md` | 65 | `Current baseline: **OpenTofu 1.12.x** (supported to 2027-02-01).` | `Current baseline: **OpenTofu 1.12.x** (supported to 2027-02-01) — the workshop toolchain pins **1.10.3** (\`versions.env\`) for reproducibility.` | A1, A2, D1 |
+| L1 | `pages/S10-opentofu-differentiators/index.md` | 65 | `Current baseline: **OpenTofu 1.12.x** (supported to 2027-02-01).` | ``Current baseline: **OpenTofu 1.12.x** (supported to 2027-02-01) — the workshop toolchain pins **1.10.3** (`versions.env`) for reproducibility.`` | A1, A2, D1 |
 | L2 | `pages/S14-security-scanners/index.md` | 44 | `Facts verified 2026-07 — re-check maintenance status before you ship a standard.` | `Facts verified 2026-08-25 — re-check maintenance status before you ship a standard.` | F13, this table |
 | L3 | `pages/S14-security-scanners/index.md` | 146 | `<span class="kw-kicker">dead tools · don't adopt ghosts</span>` | `<span class="kw-kicker">superseded &amp; archived · don't adopt either</span>` | F2, F4 |
 | L4 | `pages/S14-security-scanners/index.md` | 156 | ``- New material should not teach `tfsec` `` | ``- Still published (v1.28.14, 2025-05-02) but superseded — new material should not teach `tfsec` `` | F2 |
@@ -450,7 +508,7 @@ rather than sitting on 135 alone.
 | L15 | `pages/S28-ecosystem-tooling/index.md` | 88 | ``- **Not** part of `task setup` here — any `tofu ≥ 1.8` runs the labs. Adopt`` | ``- **Not** part of `task setup` here — `tofu ≥ 1.8` runs most labs (Labs 06 and 10 need ≥ 1.9). Adopt`` | E2 |
 | L16 | `pages/S28-ecosystem-tooling/index.md` | 99 | `workshop deliberately does not require tenv — any tofu one-point-eight or newer` (speaker note; line 100 continues `works —`, which the replacement absorbs — apply as a two-line edit and delete the now-duplicated `works —` from line 100) | `workshop deliberately does not require tenv — any tofu one-point-eight or newer runs most labs, and Labs 06 and 10 need one-point-nine —` | E2 |
 | L17 | `pages/S00-welcome/index.md` | 218 | `<KwCard heading="tofu ≥ 1.8" icon="🧊">` (indented 2 spaces) | `<KwCard heading="tofu ≥ 1.9" icon="🧊">` (same indent) — **the highest-value row in this table.** This is the "# Required toolchain" card a learner reads before installing anything; at 1.8 they satisfy it and still hard-fail Lab 10. Raising the advertised floor is simpler and safer than annotating an exception on a setup card. | E2 |
-| L18 | `pages/S17-mocking/index.md` | 55 | `blocks; the workshop’s floor remains OpenTofu <strong>1.8+</strong>.` (note the curly apostrophe ’ — match it exactly) | `blocks; \`mock_provider\` needs OpenTofu <strong>1.8+</strong>, and Labs 06 and 10 raise the workshop's floor to <strong>1.9</strong>.` | C5, E2 |
+| L18 | `pages/S17-mocking/index.md` | 55 | `blocks; the workshop’s floor remains OpenTofu <strong>1.8+</strong>.` (note the curly apostrophe ’ — match it exactly) | ``blocks; `mock_provider` needs OpenTofu <strong>1.8+</strong>, and Labs 06 and 10 raise the workshop's floor to <strong>1.9</strong>.`` | C5, E2 |
 | L19 | `pages/S01-iac/index.md` | 352 | `- Governed by the **Linux Foundation** (neutral, community)` | `- Governed by the **Linux Foundation**; a **CNCF Sandbox** project since 2025-04-23 (neutral, community)` | B6 |
 | L20 | `README.md` | 68 | the toolchain cell of the **Decks and Day 1** row: ``OpenTofu ≥1.8, Node.js ≥20, pnpm, Task, Docker`` | ``OpenTofu ≥1.9, Node.js ≥20, pnpm, Task, Docker`` — **arguably the single highest-value row here, ahead of L17.** `labs/day-1/10-differentiators/` IS a Day-1 lab and requires `>= 1.9.0`, so this line is false *by this document's own evidence*, and it sits in the repo's front door where a learner reads it before opening any deck. | E2 |
 | L21 | `docs/setup.md` | 33 | the toolchain cell of the **Decks and Day 1** row: ``OpenTofu ≥1.8, Node.js ≥20, pnpm, Task, Docker`` | Same substitution as L20 — this is the same table row mirrored into the setup guide. | E2 |
@@ -535,9 +593,11 @@ oversight.
 | `labs/day-1/11-taco-landscape.md:37` ("HCP Terraform … Sentinel + OPA") | Same disposition as `pages/S11:231,239` — a statement about what HCP Terraform offers, not about where Sentinel exists. Accurate. A `Sentinel` grep will hit it; do not "fix" it. |
 | `labs/day-2/14-security-scanners.md:327` and `.solution.md:217, 295` ("replaces the old `tfsec` habit via `trivy config`") | Same disposition as `pages/S14:221` — describes migrating off a habit rather than declaring the tool dead. Accurate; these are the only tfsec mentions outside the deck. |
 | `examples/naming-labels-demo/README.md:20` and `examples/capstone/README.md:26` ("OpenTofu **1.8+** (for `mock_provider` in tests)") | Found only once the sweep boundary stopped enumerating paths — `examples/**` was outside the previous revision's list. **Correct as written**: each is scoped to its own example's test suite, and `mock_provider` genuinely arrived in 1.8 (C2). Neither claims anything about the labs. |
-| `infra/lab-inventory.json:181` (`"pinned": "OpenTofu ≥1.8; \`:4566\`"`) | Generated mirror of `docs/validation-matrix.md:78`. **Not** a separate correction — it is the other half of the L22 trap and moves when the matrix does, via `node scripts/lab-inventory.mjs --write`. Listed so nobody hand-edits the JSON. (`:16` is Lab 00's row and is correct.) |
+| `infra/lab-inventory.json:181` — the `pinned` field reading ``OpenTofu ≥1.8; `:4566` `` | Generated mirror of `docs/validation-matrix.md:78`. **Not** a separate correction — it is the other half of the L22 trap and moves when the matrix does, via `node scripts/lab-inventory.mjs --write`. Listed so nobody hand-edits the JSON. (`:16` is Lab 00's row and is correct.) |
 | `pages/S01-iac/index.md:500`; `pages/S07-modules/index.md:209, 223` | Present-tense "Linux-Foundation-governed", same proposition as L19/L30/L31 — but these are **compressed recap and aside phrasings** where the licence contrast, not the governance body, is the point. Adding "CNCF Sandbox" to each would say the same thing five times for no added truth; L19 (the governance comparison) and L30/L31 (the lab's governance sentence) are where a reader looks it up. Recorded because **S07 appears in no Where cell**, so a phase-2 grep after applying L19 will hit three results with no guidance — this row is that guidance. |
 | `docs/validation-matrix.md:58` (`OpenTofu` row, `≥ **1.8** (setup/bootstrap.sh)` under "Canonical toolchain pins") | Same disposition as `:50` — it reports what `setup/bootstrap.sh` actually enforces, so it is a true statement about the tooling, not a claim about lab sufficiency. It becomes wrong only when `MIN_TOFU` is raised; correct it in that change (see the out-of-scope coupling note). Worth noting **why it was nearly missed twice**: the bold markers inside `≥ **1.8**` defeat a naive `≥ *1\.8` grep. |
+| `slides-templates.md:229` (`- Policy: **Sentinel** (proprietary) + OPA`, under `leftHeading: HCP Terraform`) | Same disposition as `pages/S11:131` — a feature list for HCP Terraform, not a claim about where Sentinel can run. Accurate. Recorded because this file sits in a tree the completeness assertion above names as swept, so its absence would read as an oversight rather than a decision. |
+| `pages/S11-taco-landscape/index.md:65` and `:95` (generic policy-engine lists: "A policy engine (OPA/Rego, Sentinel, …", "or Sentinel or built-in engine …") | Generic enumerations of the policy-engine category. Neither says where Sentinel runs, so neither can be wrong in the way F11 is. Recorded because a phase-2 `Sentinel` grep returns these two alongside `:131` and the three corrected sites, and an unexplained hit invites a well-meaning wrong edit. |
 | `pages/S11-taco-landscape/index.md:131` (the `Sentinel + OPA` table cell) | Same disposition as `:231, :239` and the lab mirror at `labs/day-1/11-taco-landscape.md:37`, which is already recorded — it lists what HCP Terraform offers, not where Sentinel exists. Accurate. Recorded so the deck cell and its lab mirror have matching entries. |
 | `labs/day-1/01-iac-fork.md:336` and `.solution.md:250` ("now governed by the **Linux Foundation**") | Timeline beats dated **2024-01-10**, exactly parallel to `pages/S01:319`. CNCF acceptance came 2025-04-23, so adding it to a 2024 beat would be an anachronism. The *present-tense* governance sentence two lines below each — `:338` and `:252` — is a different proposition and **does** get corrected, at L30/L31. |
 | `pages/S14-security-scanners/index.md:64, 154` (F1) | The 2023 tfsec→Trivy date is verified correct. Only the dead/ghost framing around it overstates. |
@@ -549,6 +609,14 @@ Not prose corrections — recorded so they are not lost.
 - `setup/bootstrap.sh:25` sets `MIN_TOFU="1.8"`, which understates Lab 10's real
   1.9 requirement (E2), and `scripts/verify.sh:92` preflights at the same 1.8. Whoever applies L15–L18 should raise both in the same change
   or file it separately.
+- **`labs/day-1/06-variables/` has no `required_version`.** Lab 06 needs OpenTofu
+  1.9 (E2) but declares no engine constraint, so a learner on 1.8 gets
+  `Invalid reference in variable validation` instead of a version error. Adding
+  `required_version = ">= 1.9.0"` to `labs/day-1/06-variables/main.tf` would
+  make it fail like Lab 10 does. This is a fixture change, not prose, so it is
+  out of scope for this lane — but it is the single highest-value follow-up
+  here, because it converts the workshop's most obscure failure into an
+  obvious one on its most-reached path.
 - **Raising the advertised floor to 1.9 (L20–L26) must move the enforcers too.**
   `setup/bootstrap.sh:25` sets `MIN_TOFU="1.8"` and `scripts/verify.sh:92`
   preflights `pass "tofu ${TOFU_VER} (>= 1.8)"`. If the docs say 1.9 while the

@@ -105,12 +105,21 @@ function parseLines(spec) {
 
 const doc = readFileSync(DOC, 'utf8').split('\n');
 const rows = [];
+const unparsed = [];
 for (const line of doc) {
-  const m = line.match(/^\|\s*(L\d+)\s*\|\s*`([^`]+)`\s*\|\s*([^|]+?)\s*\|(.*)$/);
-  if (!m) continue;
-  const [, id, path, lineSpec, rest] = m;
+  // Anything that *declares* itself a correction row must parse. Counting
+  // declarations separately from successful parses closes a silent-skip hole:
+  // a File cell written with ``double backticks`` used to slip past the row
+  // regex entirely, so the row never got checked and the run still exited 0.
+  if (!/^\|\s*L\d+\s*\|/.test(line)) continue;
+  const m = line.match(/^\|\s*(L\d+)\s*\|\s*(?:``\s*(.+?)\s*``|`([^`]+)`)\s*\|\s*([^|]+?)\s*\|(.*)$/);
+  if (!m) {
+    unparsed.push(line.slice(0, 90));
+    continue;
+  }
+  const [, id, pathDouble, pathSingle, lineSpec, rest] = m;
   const cells = rest.split(/\s\|\s/);
-  rows.push({ id, path, lineSpec, current: cells[0] ?? '' });
+  rows.push({ id, path: pathDouble ?? pathSingle, lineSpec, current: cells[0] ?? '' });
 }
 
 if (rows.length === 0) {
@@ -176,6 +185,39 @@ for (const row of rows) {
     }
   } else {
     ok++;
+  }
+}
+
+// RENDER FIDELITY, document-wide. The first version of this guard only looked
+// at each row's `Current` cell, so the defect simply relocated: escapes in
+// `Corrected` cells and in the left-alone table still published literally, and
+// one of them collapsed a table cell to empty, deleting real guidance from the
+// page. Scope the guard to the artifact, not to one column.
+let renderBad = 0;
+doc.forEach((line, idx) => {
+  if (!line.startsWith('|')) return;
+  for (const span of rawCodeSpans(line)) {
+    if (/\\[`|]/.test(span)) {
+      renderBad++;
+      problems.push(
+        `${DOC.split('/').pop()}:${idx + 1}: WOULD NOT RENDER - code span contains a ` +
+        `backslash escape, which Python-Markdown emits literally` +
+        `\n      span: ${JSON.stringify(span.slice(0, 80))}` +
+        `\n      fix: drop the pipe from the quote, or wrap bare backticks in ` +
+        `\`\`double backticks\`\``
+      );
+    }
+  }
+});
+failed += renderBad;
+
+if (unparsed.length) {
+  failed += unparsed.length;
+  for (const u of unparsed) {
+    problems.push(
+      `UNPARSED correction row - it declares an L-id but does not match the row ` +
+      `grammar, so it was never checked:\n      ${u}`
+    );
   }
 }
 
