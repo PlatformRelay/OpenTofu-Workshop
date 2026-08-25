@@ -363,6 +363,12 @@ tasks:
   # The "tested workshop" gate
   # -------------------------------------------------------------------------
   verify:
+    # CI PARITY IS MANUAL. .github/workflows/ci.yml's `verify-unit` job does NOT
+    # invoke `task verify` — it re-lists these scripts by hand and calls itself
+    # "the same gate developers run locally". Nothing checks that the two lists
+    # agree, so ADDING A SELF-TEST HERE ALONE LEAVES IT LOCAL-ONLY and a PR can
+    # reintroduce the regression it guards while staying green. Add it to both.
+    # scripts/lab-fmt-selftest.sh is currently in this list and NOT in ci.yml.
     desc: "Tested-workshop gate (unit lane): bootstrap contract + fmt-check + validate + tofu test + drift self-test. No Docker needed."
     cmds:
       # Keep setup/bootstrap.sh's clean-machine contract in the same canonical
