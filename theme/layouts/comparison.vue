@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useSlots } from 'vue'
+
 const props = defineProps<{
   heading?: string
   /** Panel titles, e.g. "Ingress" / "Gateway API". */
@@ -8,13 +10,25 @@ const props = defineProps<{
   leftBadge?: string
   rightBadge?: string
 }>()
+
+const slots = useSlots()
 </script>
 
+<!--
+  Two shapes are supported, and both must keep every column visible:
+
+  1. `::left::` / `::right::` — the left column is the `left` slot, and whatever
+     precedes `::left::` (kicker + H1) is the slide intro, so it belongs in the
+     header rather than inside the left panel.
+  2. default / `::right::` — no `left` slot, so the default slot *is* the left
+     column, exactly as before.
+-->
 <template>
   <div class="slidev-layout kw-comparison">
     <header class="kw-cmp-header">
       <h1 v-if="props.heading">{{ props.heading }}</h1>
       <slot name="title" />
+      <slot v-if="slots.left" />
     </header>
 
     <div class="kw-cmp-cols">
@@ -24,7 +38,8 @@ const props = defineProps<{
           <span v-if="props.leftBadge" class="kw-cmp-badge">{{ props.leftBadge }}</span>
         </header>
         <div class="kw-cmp-panel-body">
-          <slot />
+          <slot v-if="slots.left" name="left" />
+          <slot v-else />
         </div>
       </section>
 

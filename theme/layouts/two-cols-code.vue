@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useSlots } from 'vue'
 import LabCallout from '../components/LabCallout.vue'
 
 const props = defineProps<{
@@ -6,18 +7,27 @@ const props = defineProps<{
   /** Optional lab reference chip. */
   lab?: string
 }>()
+
+const slots = useSlots()
 </script>
 
+<!--
+  Same two shapes as `comparison`: with an explicit `::left::` the default slot
+  holds the kicker + H1 and belongs in the header; without one the default slot
+  is the left column itself.
+-->
 <template>
   <div class="slidev-layout kw-two-cols-code">
     <header class="kw-tcc-header">
       <h1 v-if="props.heading">{{ props.heading }}</h1>
       <slot name="title" />
+      <slot v-if="slots.left" />
     </header>
 
     <div class="kw-tcc-cols">
       <div class="kw-tcc-left">
-        <slot />
+        <slot v-if="slots.left" name="left" />
+        <slot v-else />
       </div>
       <div class="kw-tcc-right">
         <slot name="right" />
