@@ -454,7 +454,13 @@ elif [ "${#FORMAT_FILES[@]}" -eq 0 ] || tofu fmt -check "${FORMAT_FILES[@]}" >/d
     pass "all tracked .tf files outside the S13 messy fixture are canonically formatted"
   fi
 else
-  fail "unformatted files found — run 'task lab:fmt' (tofu fmt -recursive)"
+  # The parenthetical used to read "(tofu fmt -recursive)". It was removed
+  # deliberately: a bare recursive format REWRITES the deliberately-unformatted
+  # S13 teaching fixture at labs/day-2/13-static-analysis/messy/main.tf, which
+  # this very gate allowlists — so the remedy printed next to a red gate was the
+  # one command that silently destroys a lab. That fired in the wild on
+  # 2026-08-19. Name only the task target, which is being made index-scoped.
+  fail "unformatted files found — run 'task lab:fmt'"
   info "offending files:"
   tofu fmt -check "${FORMAT_FILES[@]}" 2>/dev/null | sed 's/^/    /' || true
 fi
