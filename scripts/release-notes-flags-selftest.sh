@@ -26,15 +26,17 @@ WF="$ROOT/.github/workflows/release.yml"
 # the mktemp and the rm strands the file — measured at exactly one leaked file
 # per interrupted run.
 #
-# How this script is reached TODAY (checked, not assumed — an earlier draft of
-# this comment claimed glob discovery and was simply wrong): .github/workflows/
-# ci.yml hand-enumerates three scripts in its verify-unit step —
-# bootstrap-selftest.sh, lab-terratest-selftest.sh and verify-selftest.sh — and
-# this is not one of them. It runs only because verify-selftest.sh loops over
-# release-tag-guard-selftest.sh and this file. If US-F-CIPARITY lands a
-# `scripts/*-selftest.sh` glob, it will run standalone AND nested, doubling
-# whatever it leaks; that is a reason to be correct here now, not a description
-# of the present.
+# How this script is reached, re-checked against ci.yml at each rebase because
+# the answer has now changed twice. Since US-F-CIPARITY, verify-unit DISCOVERS
+# `scripts/*-selftest.sh` by glob instead of hand-enumerating three scripts, so
+# this file runs STANDALONE in CI *and* nested inside verify-selftest.sh, which
+# still loops over release-tag-guard-selftest.sh and this one. Twice per job,
+# so anything it leaks, it leaks twice. (An earlier draft of this comment
+# asserted the glob existed before it did, and the correction asserted it did
+# not exist just as it landed — hence: check ci.yml, do not remember it.)
+#
+# Corollary of discovery: any NEW scripts/*-selftest.sh is gated by CI the
+# moment it lands, so it must be docker-free and offline.
 #
 # Hoisting to a single file plus a trap closes the signal window and deletes the
 # per-call bookkeeping outright. EXIT also covers a `set -e` death at top level,
