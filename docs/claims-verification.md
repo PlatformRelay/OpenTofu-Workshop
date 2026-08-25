@@ -31,21 +31,29 @@ row covering four separate assertions), so they are decomposed below into
 atomic, individually checkable claims. Rows are grouped by the plan's numbering
 where it maps cleanly.
 
-**Counts.** Sections A–I hold **62 rows**. One of them (E7) is a *gate-behaviour*
-check rather than a deck claim, leaving **61 atomic claims**:
+**Counts.** Sections A–I hold **62 rows**, but three of them are *reference*
+rows rather than claims the deck makes — each is annotated as such in place:
 
-- **59** are `VERIFIED` (in any of its qualified forms) / `PARTIAL` /
+- **E7** is a gate-behaviour check (is the S14 slide block drift-armed?).
+- **A10** records the 1.11.x support window, "*(not asserted in the deck)*".
+- **G5** records that `tofuenv`/`tfenv` are superseded but not archived,
+  "*(deck does not claim archived — recorded for accuracy)*".
+
+That leaves **59 atomic deck claims**:
+
+- **57** are `VERIFIED` (in any of its qualified forms) / `PARTIAL` /
   `INCONSISTENT` / `CONTRADICTED` / `INCOMPLETE` — i.e. a primary source was
   actually reached and quoted.
 - **2** are `UNVERIFIED` outright: **F9** (Snyk IaC status) and **G8** (Terramate
   CLI surface).
-- One further item appears in §J that is **not** a 62nd row: **U2** is a named
-  sub-claim living inside the otherwise-verified **D3**. The
-  `LOCALSTACK_VERSION` release's existence and date were confirmed; the
-  behavioural *rationale* in its comment was not. It is listed separately so it
-  is not silently carried by D3's verdict — but it must not be double-counted.
 
-So: **59 verified, 2 unverified, plus 1 unverified sub-claim inside a verified
+One further item appears in §J that is **not** a 63rd row: **U2** is a named
+sub-claim living inside the otherwise-verified **D3**. The `LOCALSTACK_VERSION`
+release's existence and date were confirmed; the behavioural *rationale* in its
+comment was not. It is listed separately so it is not silently carried by D3's
+verdict — but it must not be double-counted.
+
+So: **57 verified, 2 unverified, plus 1 unverified sub-claim inside a verified
 row.** §J lists all three unverified items together so silence is never mistaken
 for confirmation.
 
@@ -96,7 +104,7 @@ Both engines' changelogs were read independently.
 | --- | --- | --- | --- | --- |
 | D1 | `TOFU_VERSION=1.10.3` | `versions.env:13` | VERIFIED (pin exists) / stale | `repos/opentofu/opentofu/releases` — `v1.10.3` published `2025-07-15T14:33:31Z`. It is not the newest 1.10 patch (`v1.10.10`, `2026-05-11`), and 1.10.x predates the 1.11.x series whose stated support ended 2026-08-01 (A10). The pin is a deliberate, reproducible choice, not an error — but it is two series behind what `pages/S10:65` calls "current baseline". |
 | D2 | `GO_VERSION=1.23.6` | `versions.env:18` | VERIFIED (pin exists) / **EOL** | `repos/golang/go` git ref `refs/tags/go1.23.6` exists. `https://go.dev/doc/devel/release`: "Each major Go release is supported until there are two newer major releases", latest major listed **Go 1.27.0 (2026-08-19)** → supported series are 1.26 and 1.27. **Go 1.23 receives no security fixes.** Also newer within its own series: `go1.23.12`. |
-| D3 | `LOCALSTACK_VERSION=4.9.2` | `versions.env:23` | VERIFIED (pin exists) | `repos/localstack/localstack/releases/tags/v4.9.2` — published `2025-10-06T09:01:27Z`. Latest is `v4.14.0` (`2026-02-26`). The comment's rationale ("last community release that boots without `LOCALSTACK_AUTH_TOKEN`") was **not** re-verified in this pass — see U3. |
+| D3 | `LOCALSTACK_VERSION=4.9.2` | `versions.env:23` | VERIFIED (pin exists) | `repos/localstack/localstack/releases/tags/v4.9.2` — published `2025-10-06T09:01:27Z`. Latest is `v4.14.0` (`2026-02-26`). The comment's rationale ("last community release that boots without `LOCALSTACK_AUTH_TOKEN`") was **not** re-verified in this pass — see U2. |
 | D4 | `TERRAMATE_VERSION=0.17.1` | `versions.env:27` | VERIFIED (pin exists) | `repos/terramate-io/terramate/releases/tags/v0.17.1` — published `2026-05-26T13:24:47Z`. Latest is `v0.17.2` (`2026-07-31`). One patch behind; no correction needed. |
 | D5 | Lab pins Trivy **0.72.0** · Checkov **3.3.0** · Conftest **0.68.2** | `labs/day-2/14-security-scanners.md:8` | VERIFIED (pins exist) | `repos/aquasecurity/trivy/releases/tags/v0.72.0` → `2026-06-30`; `repos/bridgecrewio/checkov/releases/tags/3.3.0` → `2026-06-10`; `repos/open-policy-agent/conftest/releases/tags/v0.68.2` → `2026-04-15`. All three exist. Current latest: Trivy `v0.74.0` (`2026-08-14`), Checkov `3.3.13` (`2026-08-20`), Conftest `v0.69.0` (`2026-08-03`). **These three pins live only in lab prose — they are not in `versions.env` and nothing gates them.** |
 
@@ -109,8 +117,8 @@ Both engines' changelogs were read independently.
 | E3 | `aws = "~> 6.0"` | `labs/day-1/00-setup/versions.tf:7` | VERIFIED | `repos/hashicorp/terraform-provider-aws/releases/latest` → `v6.61.0` (`2026-08-19`). `~> 6.0` resolves inside the current major. |
 | E4 | `local = "~> 2.5"` | `labs/day-1/00-setup/versions.tf:11` | VERIFIED | `repos/hashicorp/terraform-provider-local/releases/latest` → `v2.9.0` (`2026-05-13`). `~> 2.5` (≥2.5, <3.0) is satisfiable and current. |
 | E5 | `random = "~> 3.7"` | `labs/day-1/00-setup/versions.tf:15` | VERIFIED | `repos/hashicorp/terraform-provider-random/releases/latest` → `v3.9.0` (`2026-05-13`). `~> 3.7` (≥3.7, <4.0) is satisfiable and current. |
-| E6 | The S14 slide fixture pins `aws = "~> 5.0"` | `pages/S14-security-scanners/index.md:242` | INCONSISTENT | One major behind E3. The AWS provider's current major is 6.x. Nothing in the scanner content depends on 5.x; Day 1 teaches 6.0 an hour earlier in the same workshop. |
-| E7 | *(gate check, not a deck claim)* Is the S14 slide's HCL block drift-checked against its fixture? | `pages/S14-.../index.md:235-289` vs `labs/day-2/14-security-scanners/messy/main.tf` | **NOT GATED** | `scripts/verify.sh` §6 only arms on a `<!-- source: PATH -->` comment "IMMEDIATELY followed by an opening ```hcl fence"; an "unannotated block → ignored (only counted/warned)". The fence at `pages/S14-.../index.md:235` has **no such marker** — line 234 is blank and 233 is a heading — so §6 does not read this pair at all. The two are byte-identical today (verified: `sed -n '236,288p'` of the slide `diff`s clean against the fixture), which means **adding the marker would arm the existing gate for free and pass on the first run**. Recommended alongside L6 so the `~> 5.0` → `~> 6.0` fix cannot half-land. |
+| E6 | The S14 slide fixture pins `aws = "~> 5.0"` | `pages/S14-security-scanners/index.md:242` | INCONSISTENT | One major behind E3. The AWS provider's current major is 6.x, and `labs/day-1/00-setup/versions.tf:7` pins `~> 6.0` an hour earlier in the same workshop. **The repo is not uniformly 6.0, though, and that is deliberate:** `labs/day-1/10-differentiators.md:67` pins `">= 5.0, < 6.0"` with the reason in a comment — "provider v6's waiters are incompatible with LocalStack community (last release 4.9.2). v5 applies clean against :4566." That pin is correct and must not be swept up by any bump (nor by a gate — see §K). S14 is different: its fixture is scan-only, never applied against LocalStack, so no waiter behaviour is in play and the bump is safe — proven, not assumed, at F12. |
+| E7 | *(gate check, not a deck claim)* Is the S14 slide's HCL block drift-checked against its fixture? | `pages/S14-.../index.md:235-289` vs `labs/day-2/14-security-scanners/messy/main.tf` | **NOT GATED** | `scripts/verify.sh` §6 only arms on a `<!-- source: PATH -->` comment "IMMEDIATELY followed by an opening ```hcl fence"; an "unannotated block → ignored (only counted/warned)". The fence at `pages/S14-.../index.md:235` has **no such marker** — line 234 is blank and 233 is a heading — so §6 does not read this pair at all. The two are byte-identical today — verified, not assumed: `sed -n '236,288p'` of the slide `diff`s clean against the 53-line fixture, and §6's fence regex explicitly tolerates the magic-move metadata this fence carries in its `{...}` highlight spec. So **adding the one-line marker arms the existing gate for free and passes on the first run.** Note the asymmetry that makes this worth doing: the *lab* copy of the same fixture (`labs/day-2/14-security-scanners.md:60`, marker at `:52`) **is** armed, so a fixture edit that skips the lab reds §6 immediately, while the same edit skipping the *slide* is silent. Two of the three copies are guarded and the learner-facing one is not. Recommended alongside L9. |
 
 ## F. Scanner and policy-tool status (plan §5 #6, #7 — "Two load-bearing facts")
 
@@ -207,7 +215,13 @@ Reading §9's body, the loop runs `trivy --version`, `checkov --version`,
 check.** No S14 content is scanned, no pinned version is compared against the
 lab's documented pin (`labs/day-2/14-security-scanners.md:8`), and the promised
 "checks run when their content is authored" never materialise — the content *is*
-authored. §9 contributes lines to the 139-check total while asserting nothing.
+authored.
+
+To be precise about what §9 costs: it does **not** inflate the 139-check total.
+Only `pass()` increments the counter (`scripts/verify.sh:45`), and §9 emits
+`info`/`warn` exclusively — so it contributes *output lines*, not *checks*. The
+defect is therefore purely one of misleading output: three lines that read as
+S14 scanner coverage on every green run, backed by nothing.
 
 This matters for the recommendation below, not as a complaint: the tool-detection
 scaffolding (`have`, graceful skip on a Day-1-only machine) is already built and
@@ -220,20 +234,33 @@ contradicted by any lab that demands a higher one. This is deterministic,
 offline, and needs no network — it is the same shape as the §10 check already
 in `verify.sh`, pointed at a different file set.
 
-The justification is empirical, not theoretical: this pass found **three defects
-that exactly this check would have caught**, all invisible to every existing
-gate.
+The justification is empirical, not theoretical — but the honest yield is
+**one solid catch and one arguable one**, not three. Scoring the check against
+this pass's own findings, strictly as specified above:
 
-- E2 — `pages/S28:88` and `setup/bootstrap.sh:25` say "≥ 1.8 runs the labs" while
-  `labs/day-1/10-differentiators.md:60` requires `>= 1.9.0`. A learner on 1.8
-  follows the setup docs and then hits a hard failure in Lab 10.
-- E6 — `pages/S14:242` pins `aws ~> 5.0` against Day 1's `~> 6.0`.
-- D1 vs A1 — `pages/S10:65` calls 1.12.x the "current baseline" while
-  `versions.env` pins `TOFU_VERSION=1.10.3` and `pages/S28:69,80,265` quotes
-  `1.10.3` verbatim. Three slides, two different "current" versions.
+- **E2 — caught.** `pages/S28:88` and `setup/bootstrap.sh:25` say "≥ 1.8 runs the
+  labs" while `labs/day-1/10-differentiators.md:60` requires `>= 1.9.0`. This is
+  squarely the floor half of the check, and it is the defect with real learner
+  cost: follow the setup docs on 1.8 and Lab 10 hard-fails.
+- **D1 vs A1 — arguable.** `pages/S10:65` calls 1.12.x the "current baseline"
+  while `versions.env` pins `TOFU_VERSION=1.10.3` and `pages/S28:69,80,265`
+  quotes `1.10.3` verbatim. The check would flag the disagreement, but the
+  correct fix (L1) is a *clarifying clause*, not making the strings agree — so a
+  strict equality gate would nag at prose that is defensible as written.
+- **E6 — NOT caught, and worth dwelling on.** `pages/S14:242` pins `aws ~> 5.0`
+  against Day 1's `~> 6.0`, but `aws` is not in `versions.env`, so the check as
+  scoped never sees it. The tempting fix — extend check 1 to *all* provider
+  constraints — must be resisted: `labs/day-1/10-differentiators.md:67`
+  deliberately pins `">= 5.0, < 6.0"` with the reason in a comment ("provider
+  v6's waiters are incompatible with LocalStack community"). A whole-repo
+  provider-version gate would red on a correct, deliberate, documented pin. That
+  is exactly the false-positive class this section argues against elsewhere, and
+  it would arrive by way of a well-intentioned scope creep.
 
-None of these needs a network call. All three are cross-file string
-disagreements inside the repo, which is precisely what a gate is good at.
+None of this needs a network call — these are cross-file string disagreements
+inside the repo, which is what a gate is good at. But the scope boundary is the
+design, not an afterthought: **`versions.env`-pinned tools plus the
+`required_version` floor, and nothing wider.**
 
 **Build check 2 — stamp staleness.** `pages/S14:44` carries "Facts verified
 2026-07". Make that stamp a first-class, machine-readable, *required* marker on
@@ -254,7 +281,7 @@ already implements.
 This one is not speculative: **F12 was verified this way during this pass**, and
 it took two commands. Both scanners are installed at the pinned versions, both
 reproduced the documented output byte-for-byte, and re-running them against a
-`~> 6.0` variant of the fixture produced identical findings — which is how L6
+`~> 6.0` variant of the fixture produced identical findings — which is how L9
 was cleared as safe to apply without a re-capture. The check is deterministic
 (no network: Trivy's misconfig rules are compiled in), it is offline, and it
 guards the single most learner-visible class of claim in the deck: output a
@@ -278,11 +305,19 @@ recently* — which a gate can answer offline and deterministically.
 **Cost/benefit.** Check 1 is roughly the size of the existing §10 block and
 reuses its parsing. Check 2 is a regex plus a date comparison. Check 3 is two
 subprocess calls and a grep, hung off scaffolding §9 already has. Together they
-would have caught three of the ten defects in the correction list below —
-about 30% — and check 3 additionally *locks in* the F12 result that took this
-pass a manual run to establish.
+would have caught **one** of the thirteen defects in the correction list below
+outright (L11/E2), plus one it would have flagged without prescribing the right
+fix (L1) — call it 1–2 of 13, not 3. Check 3 additionally *locks in* the F12
+result that took this pass a manual run to establish, and the E7 marker arms an
+already-built gate over the S14 slide.
 
-The remaining seven corrections are semantic (F11's "Sentinel TFC-only", F2's
+That is a modest yield, and stating it accurately is the point: a document whose
+job is accuracy cannot inflate its own business case. The checks are still worth
+building — E2 is a real learner-facing failure, and checks 2 and 3 guard against
+*future* drift rather than past defects, which is where their value actually
+sits.
+
+The remaining eleven or twelve corrections are semantic (F11's "Sentinel TFC-only", F2's
 "dead tools" framing, G3's missing Terramate, G7's pre-1.0 Terragrunt framing,
 B6's CNCF gap) and are only reachable by a human reading a primary source. That
 is the honest ceiling of automation here, and it is worth being explicit about
@@ -311,19 +346,22 @@ text, and the row above that carries the citation.
 | L2 | `pages/S14-security-scanners/index.md` | 44 | `Facts verified 2026-07 — re-check maintenance status before you ship a standard.` | `Facts verified 2026-08-25 — re-check maintenance status before you ship a standard.` | F13, this table |
 | L3 | `pages/S14-security-scanners/index.md` | 146 | `<span class="kw-kicker">dead tools · don't adopt ghosts</span>` | `<span class="kw-kicker">superseded &amp; archived · don't adopt either</span>` | F2, F4 |
 | L4 | `pages/S14-security-scanners/index.md` | 156 | `- New material should not teach \`tfsec\`` | `- Still published (v1.28.14, 2025-05-02) but superseded — new material should not teach \`tfsec\`` | F2 |
-| L5 | `pages/S14-security-scanners/index.md` | 195 | `- **TFC / HCP Terraform only**` | `- **HashiCorp products only** — HCP Terraform / Terraform Enterprise, Vault, Nomad` | F11 |
-| L6 | `pages/S14-security-scanners/index.md` | 242 | `version = "~> 5.0"` (indented 6 spaces) | `version = "~> 6.0"` (same indent) — **must be applied to `labs/day-2/14-security-scanners/messy/main.tf:7` in the same change** (see E7: nothing enforces this, so it is on the author). **No re-capture of the F12 output is needed** — the bump was tested: both pinned scanners were re-run on a copy of the fixture carrying `~> 6.0` and emitted byte-identical findings (same 7 Trivy IDs, same 7 Checkov IDs, same counts). The provider constraint does not reach any rule. | E3, E6, E7, F12 |
-| L7 | `pages/S28-ecosystem-tooling/index.md` | 86 | `Terraform, Terragrunt, Atmos**.` (indented 2 spaces) | `Terraform, Terragrunt, Terramate, Atmos**.` (same indent) | G3 |
-| L8 | `pages/S28-ecosystem-tooling/index.md` | 88 | `- **Not** part of \`task setup\` here — any \`tofu ≥ 1.8\` runs the labs. Adopt` | `- **Not** part of \`task setup\` here — \`tofu ≥ 1.8\` runs most labs (Lab 10 needs ≥ 1.9). Adopt` | E2 |
-| L9 | `pages/S28-ecosystem-tooling/index.md` | 96 | `tfenv and tofuenv, is one binary that manages OpenTofu, Terraform, Terragrunt,` | `tfenv and tofuenv, is one binary that manages OpenTofu, Terraform, Terragrunt, Terramate,` (speaker note; line 97 already reads `and Atmos`) | G3 |
-| L10 | `pages/S01-iac/index.md` | 352 | `- Governed by the **Linux Foundation** (neutral, community)` | `- Governed by the **Linux Foundation**; a **CNCF Sandbox** project since 2025-04-23 (neutral, community)` | B6 |
+| L5 | `pages/S14-security-scanners/index.md` | 135 | ``teach `trivy config`, not a dead binary.`` (speaker note) | ``teach `trivy config`, not the superseded binary.`` | F2 |
+| L6 | `pages/S14-security-scanners/index.md` | 169 | `Say: Say these two facts slowly — they are the workshop's "don't teach the dead` (note continues `tool" pair.` on line 170) | `Say: Say these two facts slowly — they are the workshop's "don't teach the superseded or archived` / `tool" pair.` | F2 |
+| L7 | `pages/S14-security-scanners/index.md` | 418 | `- **tfsec → Trivy**; **Terrascan → archived** — do not teach ghosts.` | `- **tfsec → Trivy** (superseded); **Terrascan → archived** — teach neither.` | F2 |
+| L8 | `pages/S14-security-scanners/index.md` | 195 | `- **TFC / HCP Terraform only**` | `- **HashiCorp products only** — HCP Terraform / Terraform Enterprise, Vault, Nomad` | F11 |
+| L9 | `pages/S14-security-scanners/index.md` | 242 | `version = "~> 5.0"` (indented 6 spaces) | `version = "~> 6.0"` (same indent) — **there are THREE copies of this pin and all three must move together**: `pages/S14-security-scanners/index.md:242`, `labs/day-2/14-security-scanners/messy/main.tf:7`, and `labs/day-2/14-security-scanners.md:60`. The third one is the trap: `labs/day-2/14-security-scanners.md:52` carries `<!-- source: labs/day-2/14-security-scanners/messy/main.tf -->`, so that block **is** armed under `verify.sh` §6 and editing the fixture without it reds the gate — `✗ drift: block in labs/day-2/14-security-scanners.md does NOT match source file`. (The slide copy at :242 is *not* armed — see E7 — which is why the fixture+slide pair alone looks safe and is not.) **Both directions were reproduced rather than reasoned about:** applying all three edits leaves `verify.sh` at `139 check(s) OK, 0 failures` with "all 82 annotated block(s) match their source files"; reverting only the lab copy immediately reds with `✗ drift: block in labs/day-2/14-security-scanners.md does NOT match source file` and `verify FAILED — 1 failure(s) across 138 check(s)`. The edits were then reverted — this lane changes no prose. **No re-capture of the F12 output is needed** — the bump was tested: both pinned scanners were re-run on a copy of the fixture carrying `~> 6.0` and emitted byte-identical findings (same 7 Trivy IDs, same 7 Checkov IDs, same counts). The provider constraint does not reach any rule. | E3, E6, E7, F12 |
+| L10 | `pages/S28-ecosystem-tooling/index.md` | 86 | `Terraform, Terragrunt, Atmos**.` (indented 2 spaces) | `Terraform, Terragrunt, Terramate, Atmos**.` (same indent) | G3 |
+| L11 | `pages/S28-ecosystem-tooling/index.md` | 88 | `- **Not** part of \`task setup\` here — any \`tofu ≥ 1.8\` runs the labs. Adopt` | `- **Not** part of \`task setup\` here — \`tofu ≥ 1.8\` runs most labs (Lab 10 needs ≥ 1.9). Adopt` | E2 |
+| L12 | `pages/S28-ecosystem-tooling/index.md` | 96 | `tfenv and tofuenv, is one binary that manages OpenTofu, Terraform, Terragrunt,` | `tfenv and tofuenv, is one binary that manages OpenTofu, Terraform, Terragrunt, Terramate,` (speaker note; line 97 already reads `and Atmos`) | G3 |
+| L13 | `pages/S01-iac/index.md` | 352 | `- Governed by the **Linux Foundation** (neutral, community)` | `- Governed by the **Linux Foundation**; a **CNCF Sandbox** project since 2025-04-23 (neutral, community)` | B6 |
 
 ### Out-of-scope findings raised by this pass
 
 Not prose corrections — recorded so they are not lost.
 
 - `setup/bootstrap.sh:25` sets `MIN_TOFU="1.8"`, which understates Lab 10's real
-  1.9 requirement (E2). Whoever applies L9 should raise this in the same change
+  1.9 requirement (E2). Whoever applies L11 should raise this in the same change
   or file it separately.
 - `versions.env:18` pins `GO_VERSION=1.23.6`, a Go series that no longer
   receives security fixes (D2). This is a toolchain decision with `verify.sh`
