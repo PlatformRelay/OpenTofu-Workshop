@@ -32,6 +32,25 @@
 #
 # Every case runs against a throwaway git repo in a temp dir. Nothing here
 # touches the real worktree except cases 7 and 10, which only READ tracked files.
+#
+# CI CONTRACT. .github/workflows/ci.yml discovers scripts/*-selftest.sh by glob
+# (US-F-CIPARITY), so this script runs on every push and a failure here reds
+# verify-unit for everyone. It must therefore never fail for environmental
+# reasons:
+#   * No network, no Docker, no package manager. External binaries used are
+#     git, tofu, awk, sed, grep, cmp, mktemp, cp, mkdir, rm, chmod — all present
+#     on a bare ubuntu-latest runner.
+#   * No git identity inherited. CI runners have no default user.email, so every
+#     throwaway repo sets user.email/user.name repo-locally and disables
+#     commit.gpgsign; a global signing key requirement would otherwise fail the
+#     commit.
+#   * No inherited hooks. See make_repo — this is a real trap, not a hypothetical.
+#   * No tofu version dependency. The multi-file mutating form `tofu fmt a b`
+#     that lab-fmt.sh relies on was verified on the CI pin (1.10.3) as well as
+#     1.12.5, and case 2 re-proves it at runtime on whatever version is present:
+#     a tofu that processed only argv[1] reds the late-sorting assertion.
+#   * No ordering or locale dependency. Nothing here sorts, and every pattern is
+#     ASCII, so LC_ALL=C discovery order is irrelevant.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -83,14 +102,27 @@ make_repo() {
   printf '%s' "$UNFORMATTED_TF" >"$r/modules/aaa-early/main.tf"
   printf '%s' "$UNFORMATTED_TF" >"$r/zzz-late/main.tf"
   git -c init.defaultBranch=main -C "$r" init -q
+  # Identity is set repo-LOCAL, never inherited: CI runners have no default
+  # user.email and `git commit` would red only there, which is the worst place
+  # to discover it.
   git -C "$r" config user.email selftest@example.invalid
   git -C "$r" config user.name 'lab-fmt selftest'
+  # Disarm inherited hooks. This repo's own README tells contributors to run
+  # `pre-commit install`, and .pre-commit-config.yaml's terraform_fmt hook
+  # rewrites .tf on commit. A developer with a GLOBAL core.hooksPath (or an
+  # init.templateDir that installs hooks) would have that hook fire inside these
+  # throwaway repos and reformat the very fixture case 1 asserts is untouched —
+  # a false red caused entirely by the tester's own machine. Belt and braces:
+  # hooksPath is neutralised here and every commit below also passes --no-verify.
+  git -C "$r" config core.hooksPath /dev/null
+  # Inherited commit.gpgsign with no key available fails the commit outright.
+  git -C "$r" config commit.gpgsign false
   case "$mode" in
     full) git -C "$r" add -A ;;
     s13)  git -C "$r" add "scripts/lab-fmt.sh" "$S13_REL" ;;
     none) : ;;
   esac
-  [ "$mode" = none ] || git -C "$r" commit -qm 'selftest fixture'
+  [ "$mode" = none ] || git -C "$r" commit -q --no-verify -m 'selftest fixture'
   printf '%s' "$r"
 }
 
@@ -308,6 +340,43 @@ if [ -f "$ROOT/$FIXTURE_PATH" ]; then
   ok "the excluded path exists in the repo: $FIXTURE_PATH"
 else
   bad "the excluded path does not exist: $FIXTURE_PATH"
+fi
+
+# THIRD WRITER. `task lab:fmt` is not the only thing that can destroy this
+# fixture: .pre-commit-config.yaml's `terraform_fmt` hook rewrites .tf on commit
+# and on the `pre-commit run --all-files` its own header documents. Its exclude
+# is owned by another lane (US-F-CIPARITY), so this assertion is CONDITIONAL —
+# it checks agreement once the exclude exists and says so plainly while it does
+# not. Hard-failing on a file this lane does not own would red CI for everyone
+# over someone else's merge order.
+PRECOMMIT="$ROOT/.pre-commit-config.yaml"
+PC_EXCLUDE=""
+if [ -f "$PRECOMMIT" ]; then
+  PC_EXCLUDE="$(awk '
+    /^[[:space:]]*-[[:space:]]*id:[[:space:]]*terraform_fmt[[:space:]]*$/ { inhook = 1; next }
+    inhook && /^[[:space:]]*-[[:space:]]*id:[[:space:]]*/ { exit }
+    inhook && /^[[:space:]]*exclude:[[:space:]]*/ { print; exit }
+  ' "$PRECOMMIT")"
+fi
+if [ -z "$PC_EXCLUDE" ]; then
+  ok "note: .pre-commit-config.yaml's terraform_fmt has no exclude yet (US-F-CIPARITY owns it) — nothing to agree with"
+else
+  # Reduce the anchored regex to a plain path with parameter expansion rather
+  # than nested sed quoting: strip the key, surrounding quotes, ^ and $ anchors,
+  # then the regex backslash escapes.
+  PC_RE="${PC_EXCLUDE#*exclude:}"
+  PC_RE="${PC_RE#"${PC_RE%%[![:space:]]*}"}"
+  PC_RE="${PC_RE%"${PC_RE##*[![:space:]]}"}"
+  PC_RE="${PC_RE#\'}"; PC_RE="${PC_RE%\'}"
+  PC_RE="${PC_RE#\"}"; PC_RE="${PC_RE%\"}"
+  PC_PATH="${PC_RE#^}"
+  PC_PATH="${PC_PATH%$}"
+  PC_PATH="${PC_PATH//\\/}"
+  if [ "$PC_PATH" = "$FIXTURE_PATH" ]; then
+    ok "the pre-commit terraform_fmt exclude names the same fixture: $PC_PATH"
+  else
+    bad "DIVERGENCE: pre-commit excludes '$PC_PATH' but the fmt scripts exclude '$FIXTURE_PATH'"
+  fi
 fi
 
 # ---------------------------------------------------------------------------
