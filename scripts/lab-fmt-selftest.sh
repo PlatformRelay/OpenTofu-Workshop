@@ -761,6 +761,19 @@ if cmp -s "$REAL_S13" "$R12/$S13_REL"; then
 else
   bad "TF_CLI_ARGS_fmt destroyed the fixture — 'tofu fmt -check' is a mutator and the unset is missing"
 fi
+# A SECOND, INDEPENDENT PROPERTY, so weakening one assertion cannot manufacture a
+# green. `cmp` above says the bytes did not move; this says the file still has the
+# property that makes it a teaching fixture at all. They fail for different
+# reasons and neither implies the other: a fixture replaced with different
+# unformatted content passes the second and fails the first, and a `cmp` quietly
+# reduced to comparing two destroyed copies passes the first and fails this.
+# `cmp` rather than shasum/md5 throughout — those split between darwin and the
+# runner, and this suite has never been executed on Linux.
+if tofu fmt -check "$R12/$S13_REL" >/dev/null 2>&1; then
+  bad "the fixture is canonically formatted after a TF_CLI_ARGS_fmt run — it has stopped being a static-analysis exercise"
+else
+  ok "the fixture is still non-canonical after a TF_CLI_ARGS_fmt run"
+fi
 # The same var must not defeat the plain -recursive case either.
 R12B="$(make_repo full 12b)"
 (cd "$R12B" && TF_CLI_ARGS="-recursive ." bash scripts/lab-fmt.sh >/dev/null 2>&1) || true
