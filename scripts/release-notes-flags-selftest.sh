@@ -24,9 +24,17 @@ WF="$ROOT/.github/workflows/release.yml"
 #
 # The window that IS real is a signal. There was no trap, so a SIGTERM between
 # the mktemp and the rm strands the file — measured at exactly one leaked file
-# per interrupted run. CI matters here because scripts/*-selftest.sh is now
-# glob-discovered by the workflow, so this script runs standalone AND nested
-# inside verify-selftest.sh, doubling every leak it does have.
+# per interrupted run.
+#
+# How this script is reached TODAY (checked, not assumed — an earlier draft of
+# this comment claimed glob discovery and was simply wrong): .github/workflows/
+# ci.yml hand-enumerates three scripts in its verify-unit step —
+# bootstrap-selftest.sh, lab-terratest-selftest.sh and verify-selftest.sh — and
+# this is not one of them. It runs only because verify-selftest.sh loops over
+# release-tag-guard-selftest.sh and this file. If US-F-CIPARITY lands a
+# `scripts/*-selftest.sh` glob, it will run standalone AND nested, doubling
+# whatever it leaks; that is a reason to be correct here now, not a description
+# of the present.
 #
 # Hoisting to a single file plus a trap closes the signal window and deletes the
 # per-call bookkeeping outright. EXIT also covers a `set -e` death at top level,
