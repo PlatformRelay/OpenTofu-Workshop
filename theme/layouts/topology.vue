@@ -31,10 +31,22 @@ const props = defineProps<{
   margin-bottom: 0.6rem;
 }
 
-/* Dotted-grid canvas so architecture boxes read as a diagram, not a list. */
+/*
+  Dotted-grid canvas so architecture boxes read as a diagram, not a list.
+
+  The canvas stacks: kicker, H1, the diagram and any trailing caption all land in
+  the DEFAULT slot, so as a flex ROW they became side-by-side siblings and a
+  trailing `<p>` printed on top of the last card (S19/S25 at their final click).
+  Column + `stretch` is what these slides assume: the grid needs the full width
+  (`center` would shrink-wrap it to max-content), and `justify-content: center`
+  keeps short content optically centred while overflowing symmetrically rather
+  than only downward — so verify height, not just width, after changing this.
+*/
 .kw-topo-canvas {
   flex: 1;
   min-height: 0;
+  flex-direction: column;
+  align-items: stretch;
   border: 1px solid var(--kw-border);
   border-radius: var(--kw-radius);
   background-color: var(--kw-bg-soft);
@@ -45,7 +57,6 @@ const props = defineProps<{
   background-size: 22px 22px;
   padding: 1.2rem;
   display: flex;
-  align-items: center;
   justify-content: center;
 }
 
