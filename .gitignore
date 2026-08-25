@@ -55,6 +55,13 @@ agent-context/
 # Local demo/reference clones (nested git repos) — facilitator rehearsal only.
 references/
 
+# Sibling git worktrees. Agent worktrees live under .claude/ (already ignored),
+# but .worktrees/ is the older convention, the directory still exists at the
+# root, and scripts/verify.sh's fmt fallback still excludes ./.worktrees/*. An
+# unignored worktree root means one `git add -A` stages another lane's entire
+# tree — including its copy of the deliberately-unformatted S13 fixture.
+/.worktrees/
+
 # Keep deck docs even if ignored globally
 !AGENTS.md
 
