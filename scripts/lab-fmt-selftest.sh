@@ -56,6 +56,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SUT="$ROOT/scripts/lab-fmt.sh"
 S13_REL='labs/day-2/13-static-analysis/messy/main.tf'
+S13_REL_DIR='labs/day-2/13-static-analysis/messy'
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
@@ -559,6 +560,49 @@ if command -v task >/dev/null 2>&1; then
   fi
 else
   ok "note: go-task not installed — skipping the authoritative --dry cross-check (CI installs none)"
+fi
+
+# ---------------------------------------------------------------------------
+# 11. SYMLINKS. The fixture exclusion is a STRING COMPARE against a path from
+#     `git ls-files`. A tracked symlink has its OWN path, which is not the
+#     fixture's path, so the compare misses; `[ -f ]` follows the link and says
+#     true; and tofu then writes THROUGH it to the fixture.
+#
+#     Reproduced against the real repo before this guard existed: a tracked
+#     labs/day-2/13-static-analysis/messy/alias.tf -> main.tf took the fixture
+#     from 13f0af5a66fd to d0b767a2f3a9 while lab-fmt.sh printed "formatted 88
+#     tracked .tf file(s); left the S13 messy fixture untouched". It destroyed
+#     the fixture AND reported that it had not — the worst pair.
+#
+#     Both halves are asserted here, because the message being honest is not a
+#     nicety: it is what a reader relies on to believe a run was safe.
+# ---------------------------------------------------------------------------
+case_ "11. a tracked symlink cannot smuggle a write through to the fixture"
+R11="$(make_repo full 11)"
+ln -s main.tf "$R11/$S13_REL_DIR/alias.tf"
+git -C "$R11" add "$S13_REL_DIR/alias.tf"
+git -C "$R11" commit -q --no-verify -m 'tracked symlink'
+if (cd "$R11" && bash scripts/lab-fmt.sh >"$TMP/out11" 2>&1); then
+  ok "lab-fmt.sh completes with a tracked symlink present"
+else
+  bad "lab-fmt.sh failed outright on a tracked symlink: $(cat "$TMP/out11")"
+fi
+if cmp -s "$REAL_S13" "$R11/$S13_REL"; then
+  ok "the fixture survives a tracked symlink pointing at it"
+else
+  bad "a tracked symlink wrote THROUGH to the fixture — the string-compare exclusion was bypassed"
+fi
+if grep -qi 'symlink' "$TMP/out11"; then
+  ok "the skipped symlink is reported by name rather than dropped in silence"
+else
+  bad "the symlink was skipped silently: $(cat "$TMP/out11")"
+fi
+# The lie is the second half of the defect. A summary claiming the fixture was
+# left untouched must not appear alongside a silently-followed link.
+if grep -q 'symlink(s) skipped' "$TMP/out11"; then
+  ok "the summary line accounts for the skipped symlink"
+else
+  bad "the summary does not mention the skipped symlink — it overstates what was checked"
 fi
 
 # ---------------------------------------------------------------------------

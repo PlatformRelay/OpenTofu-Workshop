@@ -129,9 +129,28 @@ fi
 
 FORMAT_FILES=()
 SKIPPED=0
+SKIPPED_LINKS=0
 while IFS= read -r -d '' tf_file; do
   # The one file this command exists to protect.
   [ "$tf_file" = "$S13_MESSY_FIXTURE" ] && continue
+  # A tracked SYMLINK defeats the string compare above and writes THROUGH to its
+  # target. `git ls-files` reports the link's own path, which is not the fixture
+  # path, so the exclusion misses; `[ -f ]` follows the link and reports true;
+  # and tofu then rewrites the target. Reproduced: a tracked
+  # labs/day-2/13-static-analysis/messy/alias.tf -> main.tf took the fixture from
+  # 13f0af5a66fd to d0b767a2f3a9 while this script printed "left the S13 messy
+  # fixture untouched" — destroying the fixture AND lying about it.
+  #
+  # Skipped rather than resolved-and-compared. A symlink is not source: whatever
+  # it points at is either tracked (and formatted on its own merits, under its
+  # own path, where the exclusion works) or deliberately outside scope. Resolving
+  # would also mean formatting a path outside the index via an in-index alias,
+  # which is the reach this script exists to remove. Said out loud, never silent.
+  if [ -L "$tf_file" ]; then
+    echo "lab:fmt: tracked .tf is a symlink — skipped (its target is formatted under its own path, if tracked): $tf_file" >&2
+    SKIPPED_LINKS=$((SKIPPED_LINKS + 1))
+    continue
+  fi
   # Tracked but not in the worktree: a staged deletion, sparse checkout, or the
   # skip-worktree bit. Handing tofu a missing path fails with a misleading
   # message; dropping it in silence leaves a success message asserting every
@@ -153,8 +172,7 @@ fi
 # whole list goes in one invocation.
 tofu fmt "${FORMAT_FILES[@]}"
 
-if [ "$SKIPPED" -gt 0 ]; then
-  echo "lab:fmt: formatted ${#FORMAT_FILES[@]} tracked .tf file(s); left the S13 messy fixture untouched (${SKIPPED} tracked path(s) absent from the worktree — see above)"
-else
-  echo "lab:fmt: formatted ${#FORMAT_FILES[@]} tracked .tf file(s); left the S13 messy fixture untouched"
-fi
+SUMMARY="lab:fmt: formatted ${#FORMAT_FILES[@]} tracked .tf file(s); left the S13 messy fixture untouched"
+[ "$SKIPPED" -gt 0 ] && SUMMARY="$SUMMARY (${SKIPPED} tracked path(s) absent from the worktree — see above)"
+[ "$SKIPPED_LINKS" -gt 0 ] && SUMMARY="$SUMMARY (${SKIPPED_LINKS} tracked symlink(s) skipped — see above)"
+echo "$SUMMARY"
