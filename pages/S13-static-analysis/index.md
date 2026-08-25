@@ -157,7 +157,7 @@ layout: code-walkthrough
 
 # Teach the checked-in ruleset
 
-```hcl {1-4|6-9|11-14}
+```hcl {none|1-4|6-8|10-13}
 plugin "terraform" {
   enabled = true
   preset  = "recommended"
@@ -218,7 +218,7 @@ The checked-in hooks run formatting, TFLint, **`terraform-docs`**
 
 <p v-click class="mt-5 text-sm opacity-75">Pre-commit shortens feedback; CI remains the shared authority.</p>
 
-<div v-click class="mt-3 kw-panel p-3 text-sm">
+<div v-click class="mt-3 kw-panel px-3 py-2 text-sm">
 <strong>Two more rungs on the same ladder.</strong> That one command already runs
 <strong>Gitleaks</strong> — pre-commit builds the binary for you. The
 <code>terraform_docs</code> hook is wired too, but it shells out, so it needs

@@ -18,7 +18,7 @@ const slots = useSlots()
 -->
 <template>
   <div class="slidev-layout kw-two-cols-code">
-    <header class="kw-tcc-header">
+    <header class="kw-tcc-header" :class="{ 'kw-tcc-header--intro': slots.left }">
       <h1 v-if="props.heading">{{ props.heading }}</h1>
       <slot name="title" />
       <slot v-if="slots.left" />
@@ -47,6 +47,27 @@ const slots = useSlots()
 .kw-tcc-header h1 {
   font-size: 1.5rem;
   margin-bottom: 0.6rem;
+}
+
+/* Hoisted intro: same budget problem and the same fix as `comparison` — see the
+   long note in comparison.vue. Slot children carry the slide's scope id, not
+   this component's, so the rule above cannot reach them; `:deep()` can. */
+.kw-tcc-header--intro {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: 0.75rem;
+  margin-bottom: 0.55rem;
+}
+
+.kw-tcc-header--intro :deep(p) {
+  margin: 0;
+}
+
+.kw-tcc-header--intro :deep(h1) {
+  font-size: 1.6rem;
+  line-height: 1.25;
+  margin: 0;
 }
 
 .kw-tcc-cols {
