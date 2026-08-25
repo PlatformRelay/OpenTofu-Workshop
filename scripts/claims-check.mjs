@@ -17,11 +17,31 @@
 //   | L<n> | `path` | <line-or-range> | <Current cell> | <Corrected> | <src> |
 // Every code span in the Current cell must appear verbatim within the named
 // line range, widened by WRAP_SLACK lines so a quote that wraps across two
-// source lines still resolves. Rows whose Current cell has no code span
-// (prose descriptions) are reported as SKIP, not silently passed.
+// source lines still resolves.
+//
+// Two failure modes this check learned the hard way, both now fatal:
+//
+//   * RENDER FIDELITY. To compare against source we un-escape \` and \| , but
+//     a backslash inside a code span is NOT processed by the Markdown renderer
+//     this repo publishes with (Python-Markdown via MkDocs). So a cell can
+//     match the source perfectly and still publish "\| Decks and Day 1 \|" to
+//     the reader. Un-escaping before comparing therefore HIDES a real defect.
+//     Any escape inside a code span is now an error: write the cell without
+//     pipes, or use ``double-backtick`` delimiters around bare backticks.
+//
+//   * DEGRADED GREEN. A Current cell with no code span, or a row count that
+//     silently drops because a row was deleted, both used to exit 0. Both now
+//     fail. A checker that cannot distinguish "verified" from "did not look"
+//     is the failure this whole document exists to prevent.
 //
 // Usage:  node scripts/claims-check.mjs [path/to/claims-verification.md]
-// Exit:   0 = every row resolved, 1 = at least one row failed
+// Exit:   0 = every row resolved, 1 = anything else
+//
+// Expected output when healthy:
+//   claims-check: 31 correction row(s) - 31 resolved, 0 failed, 0 skipped
+// If the row count changes because you added or removed a correction, update
+// EXPECTED_ROWS below in the same commit. That deliberate friction is the
+// point: a row must not be able to vanish quietly.
 
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
@@ -36,6 +56,24 @@ const DOC = process.argv[2]
 // side rather than demanding an exact hit. Kept tight so a stale pointer still
 // fails instead of finding its text 40 lines away.
 const WRAP_SLACK = 2;
+
+// A row must not be able to disappear without someone noticing. Bump this in
+// the same commit that adds or removes a correction row.
+const EXPECTED_ROWS = 31;
+
+/** Code spans exactly as authored, before any un-escaping. */
+function rawCodeSpans(cell) {
+  const spans = [];
+  const remainder = cell.replace(/``.+?``/g, (m) => {
+    spans.push(m.slice(2, -2));
+    return ' ';
+  });
+  remainder.replace(/`([^`]+?)`/g, (_m, inner) => {
+    spans.push(inner);
+    return '';
+  });
+  return spans.map((x) => x.trim()).filter(Boolean);
+}
 
 /** Pull code spans out of a markdown table cell, longest delimiter first. */
 function codeSpans(cell) {
@@ -98,10 +136,28 @@ for (const row of rows) {
     problems.push(`${row.id}: unparseable line spec ${JSON.stringify(row.lineSpec)}`);
     continue;
   }
+  const rawSpans = rawCodeSpans(row.current);
+  const unrenderable = rawSpans.filter((s) => /\\[`|]/.test(s));
+  if (unrenderable.length) {
+    failed++;
+    for (const s of unrenderable) {
+      problems.push(
+        `${row.id}: WOULD NOT RENDER - code span contains a backslash escape, ` +
+        `which Python-Markdown emits literally` +
+        `\n      cell: ${JSON.stringify(s)}` +
+        `\n      fix: drop the pipe from the quote, or use \`\`double backticks\`\` ` +
+        `around bare backticks`
+      );
+    }
+    continue;
+  }
   const spans = codeSpans(row.current);
   if (spans.length === 0) {
-    skipped++;
-    problems.push(`${row.id}: SKIP - Current cell has no code span to check`);
+    failed++;
+    problems.push(
+      `${row.id}: NO CODE SPAN in the Current cell - nothing to verify. ` +
+      `Quote the source text so this row is checkable.`
+    );
     continue;
   }
   const src = readFileSync(abs, 'utf8').split('\n');
@@ -121,6 +177,14 @@ for (const row of rows) {
   } else {
     ok++;
   }
+}
+
+if (rows.length !== EXPECTED_ROWS) {
+  failed++;
+  problems.push(
+    `row count is ${rows.length}, expected ${EXPECTED_ROWS} - a correction row was ` +
+    `added or removed. If deliberate, update EXPECTED_ROWS in this script.`
+  );
 }
 
 for (const p of problems) console.log(`  ${p}`);
