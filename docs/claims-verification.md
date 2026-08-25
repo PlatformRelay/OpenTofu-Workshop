@@ -153,7 +153,7 @@ Both engines' changelogs were read independently.
 | # | Claim | Where | Verdict | Evidence (primary source, checked 2026-08-25) |
 | --- | --- | --- | --- | --- |
 | E1 | `required_version = ">= 1.8"` | `labs/day-1/00-setup/versions.tf:2` (and ~20 peer files) | VERIFIED as a floor | Correct minimum for the `mock_provider`/`override_*` content (C2/C3). Note the plan's §5 cites `labs/day-1/00-setup/hello.tf:2`; the `terraform` block actually lives in `labs/day-1/00-setup/versions.tf:2` — `hello.tf` holds only the `local_file` resource. **A gap this row does not cover, recorded here because nothing else does:** grepping `required_version` across every tracked `labs/day-1/06-variables*` file returns **nothing** — Lab 06 declares no engine guard at all, in any of its five tracked files, while `labs/day-1/10-differentiators/providers.tf:12` carries ``required_version = ">= 1.9.0"``. Both labs need 1.9 (E2), so the two failures a 1.8 learner meets are not equivalent: Lab 10 stops with a clean engine-version diagnostic, while Lab 06 fails deep in HCL with ``Invalid reference in variable validation`` and no hint the engine is the cause. **That asymmetry is what makes Lab 06 the worse of the two**, and it argues for adding a `required_version = ">= 1.9.0"` to Lab 06's fixture alongside the prose corrections — a code change, so it is filed in the out-of-scope section rather than the correction list. |
-| E2 | ">= 1.8" is a *sufficient* floor for the workshop | **Repo-wide.** The exception set is `labs/day-1/06-variables.md:63` **and** `labs/day-1/10-differentiators.md:31` — **two** Day-1 labs need ≥ 1.9, not one. Deck: `pages/S00-welcome/index.md:218`, `pages/S17-mocking/index.md:55`, `pages/S28-ecosystem-tooling/index.md:88, 99`. Prose: `README.md:68`, `docs/setup.md:33`, `docs/validation-matrix.md:58, 78`, `docs/facilitator-runbook.md:15`, `docs/rehearsal-checklist.md:29, 42`, `labs/day-3/28-ecosystem-tooling.solution.md:35-36`. Tooling: `setup/bootstrap.sh:25` and `scripts/verify.sh:92` (both `1.8`) | INCONSISTENT | **Two** Day-1 labs need ≥ 1.9, and an exhaustive sweep of every per-lab floor confirms it is exactly two. (a) `labs/day-1/10-differentiators.md:31` — "`tofu` ≥ 1.9 — provider `for_each` and `-exclude` are 1.9 features", with `required_version = ">= 1.9.0"` at `:60`. (b) `labs/day-1/06-variables.md:63` — "`tofu` ≥ 1.9 … Cross-variable validation needs 1.9+", which A5 already predicted: OpenTofu `CHANGELOG.md` @ `v1.9.0` reads "References to vars, data, etc. are now usable in variable validation". **Lab 06 is the worse failure of the two**, because `grep required_version labs/day-1/06-variables*` is empty — it declares no engine guard at all. A learner on 1.8 meets Lab 10 with a clean version diagnostic but meets Lab 06 with a raw `Invalid reference in variable validation` and no hint the engine is too old. Lab 06 is also on the Day-1 `mock ✓ (no docker)` path — the most-reached path in the workshop. So "any `tofu ≥ 1.8` runs the labs" is false twice over. |
+| E2 | ">= 1.8" is a *sufficient* floor for the workshop | **Repo-wide.** The exception set is `labs/day-1/06-variables.md:63` **and** `labs/day-1/10-differentiators.md:31` — **two** Day-1 labs need ≥ 1.9, not one. Deck: `pages/S00-welcome/index.md:218`, `pages/S17-mocking/index.md:55`, `pages/S28-ecosystem-tooling/index.md:88, 99`. Prose: `README.md:68`, `docs/setup.md:33`, `docs/validation-matrix.md:58, 78`, `docs/facilitator-runbook.md:15`, `docs/rehearsal-checklist.md:29, 42`, `labs/day-3/28-ecosystem-tooling.solution.md:35-36`. Tooling: `setup/bootstrap.sh:25` and `scripts/verify.sh:433` (both `1.8`) | INCONSISTENT | **Two** Day-1 labs need ≥ 1.9, and an exhaustive sweep of every per-lab floor confirms it is exactly two. (a) `labs/day-1/10-differentiators.md:31` — "`tofu` ≥ 1.9 — provider `for_each` and `-exclude` are 1.9 features", with `required_version = ">= 1.9.0"` at `:60`. (b) `labs/day-1/06-variables.md:63` — "`tofu` ≥ 1.9 … Cross-variable validation needs 1.9+", which A5 already predicted: OpenTofu `CHANGELOG.md` @ `v1.9.0` reads "References to vars, data, etc. are now usable in variable validation". **Lab 06 is the worse failure of the two**, because `grep required_version labs/day-1/06-variables*` is empty — it declares no engine guard at all. A learner on 1.8 meets Lab 10 with a clean version diagnostic but meets Lab 06 with a raw `Invalid reference in variable validation` and no hint the engine is too old. Lab 06 is also on the Day-1 `mock ✓ (no docker)` path — the most-reached path in the workshop. So "any `tofu ≥ 1.8` runs the labs" is false twice over. |
 | E3 | `aws = "~> 6.0"` | `labs/day-1/00-setup/versions.tf:7` | VERIFIED | `repos/hashicorp/terraform-provider-aws/releases/latest` → `v6.61.0` (`2026-08-19`). `~> 6.0` resolves inside the current major. |
 | E4 | `local = "~> 2.5"` | `labs/day-1/00-setup/versions.tf:11` | VERIFIED | `repos/hashicorp/terraform-provider-local/releases/latest` → `v2.9.0` (`2026-05-13`). `~> 2.5` (≥2.5, <3.0) is satisfiable and current. |
 | E5 | `random = "~> 3.7"` | `labs/day-1/00-setup/versions.tf:15` | VERIFIED | `repos/hashicorp/terraform-provider-random/releases/latest` → `v3.9.0` (`2026-05-13`). `~> 3.7` (≥3.7, <4.0) is satisfiable and current. |
@@ -501,8 +501,9 @@ defect, not a new exception to add — `scripts/render-inventory.py` will name i
 with its line number.
 
 **Why an inventory and not a count.** The previous revision of this section said
-"expect 1 line" and was measured, honestly, at exactly 1 — while
-`docs/claims-verification.md:418` was broken on the very page being measured.
+"expect 1 line" and was measured, honestly, at exactly 1 — while a line in this
+very file (`:418` **as that revision was numbered** — the number is historical
+and does not point anywhere today) was broken on the page being measured.
 The one permitted exception absorbed the new defect: a count cannot tell a
 sanctioned backslash from a fresh one. That is also why the illustrative escape
 that used to justify the "1" has been removed rather than carved out — an
@@ -630,14 +631,14 @@ oversight.
 | `pages/S14-security-scanners/index.md:88` (F9) | UNVERIFIED is not "wrong". No source was reached on Snyk IaC's status, so there is nothing to correct toward. Correcting on an unsourced hunch is the exact failure this document exists to prevent. |
 | `pages/S21-stacks` … `pages/S25-terramate-ci` (G8) | Same reasoning as F9: the Terramate CLI surface was never checked, so no correction can be justified. |
 | `pages/S11-taco-landscape/index.md:231, 239` | Surfaced by the deck-wide `Sentinel` grep and **correctly left alone**: these say Sentinel policy *on HCP Terraform* is Terraform-only, i.e. a statement about which engine HCP Terraform runs. That is a different claim from F11's "Sentinel exists only in TFC", and it is accurate. A phase-2 lane grepping `Sentinel.*only` will hit it — do not "fix" it. |
-| `pages/S19-testing-cicd/index.md:94` ("OpenTofu ≥ 1.8 preflight") | Accurate description of what the gate does: `scripts/verify.sh:92-95` really does `pass "tofu ${TOFU_VER} (>= 1.8)"` / `fail "… is below the required 1.8"`. It reports the gate's threshold, not a claim about lab sufficiency. (That the threshold *itself* understates Lab 10 is a separate finding — see below.) |
+| `pages/S19-testing-cicd/index.md:94` ("OpenTofu ≥ 1.8 preflight") | Accurate description of what the gate does: `scripts/verify.sh:432-435` really does `pass "tofu ${TOFU_VER} (>= 1.8)"` / `fail "… is below the required 1.8"`. It reports the gate's threshold, not a claim about lab sufficiency. (That the threshold *itself* understates Lab 10 is a separate finding — see below.) |
 | `pages/S14-security-scanners/index.md:164` ("Do not pick a dead tool as your standard") | Sits in the `::right::` / Terrascan column, which genuinely **is** archived (F4). "Dead" is correct here. Only the tfsec-scoped uses (L3–L7) overstate. |
 | `pages/S14-security-scanners/index.md:221` ("replaces the tfsec habit") | Accurate as written — it describes migrating off a habit, not declaring the tool dead. |
 | `versions.env:13, 18, 23, 27` (D1–D4) and `labs/day-2/14-security-scanners.md:8` (D5) | Pins, not prose. Deliberately untouched by this docs-only lane; carried in the out-of-scope section below. |
 | `labs/day-1/00-setup/versions.tf:2` and ~20 peers (E1) | The `>= 1.8` floor is *correct* for the content it guards. Only the claim that it suffices for **every** lab is wrong, and that is E2's business (L15–L18). |
 | `labs/day-3/28-ecosystem-tooling.md:98` ("any `tofu ≥ 1.8` **works here**") | **Considered and deliberately kept.** Unlike L15/L26, this sentence is scoped to the lab the reader is currently in — Lab 28 genuinely runs on 1.8. It makes no claim about "the labs" collectively, so it is true as written. Flagged here because a phase-2 grep for `tofu ≥ 1.8` will hit it two lines from a sentence that IS being corrected. |
 | The per-lab prerequisite lines (`tofu` ≥ N) in ~18 labs across Days 1–3 | Each states the floor for *its own* lab and each is correct — the floors are not uniform, and that is deliberate: Lab 07 says ≥ 1.6, Lab 09 says ≥ 1.7, most say ≥ 1.8, and **two say ≥ 1.9** — `labs/day-1/06-variables.md:63` ("Cross-variable validation needs 1.9+") and `labs/day-1/10-differentiators.md:31` (provider `for_each` / `-exclude`). Both are on Day 1. These per-lab lines are the reason the aggregate defect stayed invisible: the pattern is overwhelmingly correct, and only the *aggregate* claims (L15–L18, L20–L26) overreach. Do not sweep them. |
-| `docs/validation-matrix.md:50` ("macOS / Linux + OpenTofu ≥1.8") | Describes the environment the `verify.sh` unit lane is validated on, and `scripts/verify.sh:92` really does preflight at 1.8 — so it reports the gate's actual threshold. It becomes wrong only when that threshold is raised, which is the out-of-scope toolchain item below; correct it in that change, not this one. |
+| `docs/validation-matrix.md:50` ("macOS / Linux + OpenTofu ≥1.8") | Describes the environment the `verify.sh` unit lane is validated on, and `scripts/verify.sh:433` really does preflight at 1.8 — so it reports the gate's actual threshold. It becomes wrong only when that threshold is raised, which is the out-of-scope toolchain item below; correct it in that change, not this one. |
 | `docs/validation-matrix.md:67` (`day-1/00-setup` row, "OpenTofu ≥1.8") | Correct for Lab 00, which is a `local_file` exercise. Unlike L22 this row indexes a lab that really does run on 1.8. |
 | `labs/day-1/11-taco-landscape.md:37` ("HCP Terraform … Sentinel + OPA") | Same disposition as `pages/S11:231,239` — a statement about what HCP Terraform offers, not about where Sentinel exists. Accurate. A `Sentinel` grep will hit it; do not "fix" it. |
 | `labs/day-2/14-security-scanners.md:327` and `.solution.md:217, 295` ("replaces the old `tfsec` habit via `trivy config`") | Same disposition as `pages/S14:221` — describes migrating off a habit rather than declaring the tool dead. Accurate; these are the only tfsec mentions outside the deck. |
@@ -656,7 +657,7 @@ oversight.
 Not prose corrections — recorded so they are not lost.
 
 - `setup/bootstrap.sh:25` sets `MIN_TOFU="1.8"`, which understates Lab 10's real
-  1.9 requirement (E2), and `scripts/verify.sh:92` preflights at the same 1.8.
+  1.9 requirement (E2), and `scripts/verify.sh:433` preflights at the same 1.8.
   Phase 2 applied L15–L18 and filed this separately rather than raising them;
   the coupling bullet below records why and what it costs.
 - **`labs/day-1/06-variables/` has no `required_version`.** Lab 06 needs OpenTofu
@@ -670,7 +671,7 @@ Not prose corrections — recorded so they are not lost.
   path.
 - **Raising the advertised floor to 1.9 (L20–L26) must move the enforcers too —
   and phase 2 did NOT do that.** `setup/bootstrap.sh:25` still sets
-  `MIN_TOFU="1.8"` and `scripts/verify.sh:92` still preflights
+  `MIN_TOFU="1.8"` and `scripts/verify.sh:433` still preflights
   `pass "tofu ${TOFU_VER} (>= 1.8)"`. Phase 2 shipped the docs half of that
   coupling and stopped, deliberately: raising the enforcers is a shell change
   with a selftest literal behind it — `scripts/verify-selftest.sh:1741` asserts
@@ -683,7 +684,10 @@ Not prose corrections — recorded so they are not lost.
   enforcers' *actual* threshold, not lab sufficiency (see the left-alone
   table). This is now the top follow-up: bump `MIN_TOFU`, the `verify.sh`
   preflight and its selftest literal together, then correct those three
-  locations in the same change.
+  locations in the same change. **Every `scripts/verify.sh` line number in
+  this file was re-derived at phase 2**: phase 1 cited `:92`, which four
+  `fix(verify)` commits had since pushed to `:433` — a rotted pointer in a
+  document whose thesis is that a rotted pointer is worse than none.
 - `versions.env:18` pins `GO_VERSION=1.23.6`, a Go series that no longer
   receives security fixes (D2). This is a toolchain decision with `verify.sh`
   §10 consumers behind it (CI literals, `setup/terratest/Dockerfile`,
