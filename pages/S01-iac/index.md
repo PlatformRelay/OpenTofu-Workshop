@@ -399,7 +399,7 @@ Then: "Here are the three headliners you literally cannot write in Terraform."
 # Three things you can't write in Terraform
 
 <div class="kw-cols-3 mt-4">
-  <KwCard heading="State & plan encryption" kind="state" variant="accent">
+  <KwCard heading="State & plan encryption" kind="encryption" variant="accent">
     <strong>1.7.</strong> Client-side encryption of state and plan files —
     <code>terraform { encryption {} }</code>, key providers, <code>fallback</code>
     to migrate. You'll <strong>build it yourself</strong> later today (S05).
