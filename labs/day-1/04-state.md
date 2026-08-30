@@ -1,10 +1,10 @@
-# Lab 04 — read and steer state (list / show / mv / rm + a plaintext secret)
+# Lab 04 — read and steer state (list / show / mv / rm, drift + a plaintext secret)
 
 | | |
 | --- | --- |
-| **Section** | S04 — State *(red line: **apply** a config with a secret → **inspect** state → **grep the plaintext secret** out of the file → **migrate** the backend → **break→fix** with `state rm`)* |
+| **Section** | S04 — State *(red line: **apply** a config with a secret → **inspect** state → **grep the plaintext secret** out of the file → **migrate** the backend → **break→fix** with `state rm` → **drift**: mutate the rendered file out-of-band and watch `plan` reconcile)* |
 | **Environment** | `mock ✓ (no docker)` — no cloud, no Docker; uses the `random` + `local` providers only |
-| **Estimated time** | 20 min |
+| **Estimated time** | 25 min |
 
 ## Objective
 
@@ -17,7 +17,10 @@ it. That exposure is exactly what **S05 (state encryption)** closes.
 Along the way you'll **migrate** the state to a new local path with
 `tofu init -migrate-state` (the same mechanic you'd use to move to S3, no cloud
 required), and run a **break→fix**: `tofu state rm` *forgets* a resource so the
-next `plan` wants to recreate it — then `apply` reconciles.
+next `plan` wants to recreate it — then `apply` reconciles. Finally you'll
+**experience drift**: change the rendered manifest behind OpenTofu's back —
+edit it, then delete it — and read the reconciling `plan` that steers reality
+back to your config.
 
 You run **tracked files**, not heredocs — what you apply is exactly what CI
 verified. The config lives in this repo at `labs/day-1/04-state/`:
@@ -486,6 +489,141 @@ state entry and you lose the value. (The `db_password` was untouched — it was
 never `rm`'d — so it kept its value.)
 </details>
 
+---
+
+## Step 7 — Drift: the world changes behind OpenTofu's back
+
+Step 6 broke the **memory** (`state rm`). **Drift** is the opposite failure:
+state is fine, but someone changes the **actual** — a "quick fix" applied
+straight to the artifact, never through OpenTofu. That is the third corner of
+the desired/state/actual triangle from the S04 slides. Cause some drift on
+purpose: bump the replica count in the **rendered manifest**, by hand, behind
+OpenTofu's back.
+
+```bash
+sed -i.drift 's/REPLICAS=2/REPLICAS=6/' out/checkout.env && rm out/checkout.env.drift
+cat out/checkout.env
+tofu plan
+```
+
+**Task (break — the drift *is* the break):** You edited the file, not the
+config. Does `tofu plan` even notice? What does it propose — and whose replica
+count wins, yours or the config's?
+
+<details><summary>Solution / expected output — the reconciling plan, verbatim</summary>
+
+`plan` notices immediately — the **refresh** reads the real file back before
+diffing:
+
+```console
+$ tofu plan
+random_pet.env: Refreshing state... [id=fleet-kite]
+random_password.session: Refreshing state... [id=none]
+local_file.manifest: Refreshing state... [id=b4c6c02cb83ba415916d5b90aeac748a47d67227]
+
+OpenTofu used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+OpenTofu will perform the following actions:
+
+  # local_file.manifest will be created
+  + resource "local_file" "manifest" {
+      + content              = <<-EOT
+            SERVICE_NAME=checkout
+            SERVICE_TIER=standard
+            REPLICAS=2
+            ENVIRONMENT=staging
+            RELEASE=fleet-kite
+        EOT
+      + content_base64sha256 = (known after apply)
+      + content_base64sha512 = (known after apply)
+      + content_md5          = (known after apply)
+      + content_sha1         = (known after apply)
+      + content_sha256       = (known after apply)
+      + content_sha512       = (known after apply)
+      + directory_permission = "0777"
+      + file_permission      = "0777"
+      + filename             = "./out/checkout.env"
+      + id                   = (known after apply)
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+```
+
+Read the diff closely — it is the whole lesson:
+
+- The refresh compared **actual** (your edited file) against **state** (the
+  recorded content) and caught the mismatch. That comparison *is* drift
+  detection — nobody told OpenTofu about your edit.
+- The proposed `content` says **`REPLICAS=2`** — the *config's* value, not your
+  `6`. The plan reconciles **actual back to desired**; it never negotiates.
+  Your hand-edit is scheduled for deletion.
+- The action is `+ create` rather than `~ update`: the `local` provider treats
+  a changed checksum as "the artifact I made is gone" and drops the resource
+  from the refreshed state, so the reconciliation is a rebuild. A provider that
+  can patch attributes in place (tags on a cloud VM, say) would show
+  `~ update in-place` under a `# … has changed outside of OpenTofu` note —
+  same instinct, gentler surgery.
+
+The second drift flavour — **deletion** — is even more direct. Run
+`rm out/checkout.env` and `tofu plan` again: it produces this **same** plan.
+Refresh finds no file at all, state drops the resource, and the reconciliation
+is `1 to add`. For this provider, hand-edited and missing collapse into the
+same answer: rebuild from desired.
+</details>
+
+Now **fix** it — reconciling drift is just an `apply`:
+
+```bash
+tofu apply -auto-approve
+cat out/checkout.env
+tofu plan
+```
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ tofu apply -auto-approve
+...
+Plan: 1 to add, 0 to change, 0 to destroy.
+local_file.manifest: Creating...
+local_file.manifest: Creation complete after 0s [id=b4c6c02cb83ba415916d5b90aeac748a47d67227]
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+db_password = <sensitive>
+manifest_path = "./out/checkout.env"
+
+$ cat out/checkout.env
+SERVICE_NAME=checkout
+SERVICE_TIER=standard
+REPLICAS=2
+ENVIRONMENT=staging
+RELEASE=fleet-kite
+
+$ tofu plan
+...
+No changes. Your infrastructure matches the configuration.
+```
+
+`REPLICAS=2` is back — the hand-edit is gone, and the follow-up `plan` is a
+no-op: desired == state == actual again. Two details worth savouring:
+
+- The re-created file has the **same id** (`b4c6c02c…`) as before the drift:
+  for `local_file` the id *is* the content's SHA-1 hash, and the content is
+  back to exactly what the config declares.
+- Contrast with Step 6: this time `random_pet.env` kept its name
+  (`fleet-kite`) and `db_password` kept its value, because **state never forgot
+  anything** — only reality drifted. `state rm` costs you generated values;
+  repairing drift does not.
+
+This is why state exists: without the recorded content, OpenTofu could not have
+told your 2 a.m. hotfix apart from its own work.
+</details>
+
 ## Expected observations
 
 - **State is the map** from config addresses (`random_pet.env`) to real
@@ -499,6 +637,10 @@ never `rm`'d — so it kept its value.)
   local path; the same flow moves you to S3) after a `yes` prompt.
 - `state rm` then `apply` demonstrates that state — not config — is what preserves
   generated values across runs.
+- **Drift** is an out-of-band change to the real world (`out/checkout.env`
+  edited or deleted by hand). The **refresh** phase of `tofu plan` catches it,
+  and the plan reconciles **actual back to desired** — the config's values win,
+  and the fix is a plain `apply`.
 
 ## Cleanup / panic reset
 

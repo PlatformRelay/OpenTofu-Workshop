@@ -173,8 +173,8 @@ in the [README](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/REA
 
 - **Tier:** `core` (always in the cut) · `recommended` (keep if time) · `optional` (cut first).
 - **Canonical cut:** [slides-3day.md](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/slides-3day.md) — serve with `task dev:3day`.
-- **Day totals (slides + labs, unrehearsed planning estimates)** against a 390 min/day budget, from `canonicalDayTotals()`: **Day 1 = 780 (535 + 245), +390 over** · **Day 2 = 360 (180 + 180), 30 under** · **Day 3 = 400 (200 + 200), +10 over**. Published in the [README](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/README.md#published-day-totals) and the [runbook](facilitator-runbook.md#live-cut-order).
-- **Day 1 and Day 3 do not fit.** The README fit plan compresses Day-1 *slide* time from 665 to 400; the 245 minutes of Day-1 labs sit on top, so a fit-plan Day 1 is still 645 of slides + labs. Apply it before facilitating, and plan the overflow.
+- **Day totals (slides + labs, unrehearsed planning estimates)** against a 390 min/day budget, from `canonicalDayTotals()`: **Day 1 = 785 (535 + 250), +395 over** · **Day 2 = 360 (180 + 180), 30 under** · **Day 3 = 400 (200 + 200), +10 over**. Published in the [README](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/README.md#published-day-totals) and the [runbook](facilitator-runbook.md#live-cut-order).
+- **Day 1 and Day 3 do not fit.** The README fit plan compresses Day-1 *slide* time from 665 to 400; the 250 minutes of Day-1 labs sit on top, so a fit-plan Day 1 is still 650 of slides + labs. Apply it before facilitating, and plan the overflow.
 
 ## Section map (S00–S28)
 
@@ -226,7 +226,7 @@ S18 (Day 2) and S25, S27 and S28 (Day 3) — gives that day's published total ab
 | S03 | The core workflow | 60 | 20 |
 | S06 | Variables, validation & types | 50 | 25 |
 | S15 | Validation, preconditions & checks | 50 | 30 |
-| S04 | State | 50 | 20 |
+| S04 | State | 50 | 25 |
 | S05 | State encryption | 60 | 25 |
 | S07 | Modules | 60 | 35 |
 | S08 | Naming & labelling module | 65 | 30 |

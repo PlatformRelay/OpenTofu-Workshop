@@ -105,7 +105,7 @@
       "tools": "None",
       "pinned": "`random` + `local` providers",
       "validationState": "unrun",
-      "estimatedDurationMin": 20,
+      "estimatedDurationMin": 25,
       "automationTier": "mock-only",
       "cleanupCommand": "cd labs/day-1/04-state"
     },

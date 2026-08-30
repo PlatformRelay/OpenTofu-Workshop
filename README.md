@@ -128,22 +128,22 @@ Slides **and** labs for the canonical three-day cut, computed from
 planning estimates** derived from section frontmatter, never rehearsal timings,
 and the facilitator budget is 390 min/day:
 
-- **Day 1 slides+labs: 780 min (planned)** — 535 slides + 245 labs, **+390 over** budget.
+- **Day 1 slides+labs: 785 min (planned)** — 535 slides + 250 labs, **+395 over** budget.
 - **Day 2 slides+labs: 360 min (planned)** — 180 slides + 180 labs, 30 under budget.
 - **Day 3 slides+labs: 400 min (planned)** — 200 slides + 200 labs, **+10 over** budget.
 
 Two of the three days do not fit: plan the overflow rather than discovering it
 mid-morning. The [fit plan](#day-1-fit-plan) below brings Day-1 **slide** time
 down to 400 — a separate, slides-only deck-runtime figure that is itself 10
-minutes over the budget. The 245 minutes of Day-1 lab time sit on top of it and
+minutes over the budget. The 250 minutes of Day-1 lab time sit on top of it and
 the fit plan does not touch them.
 
 ### Day 1 fit plan
 
 This plan compresses **slide time only**. It starts at **665 minutes** of slide
 time across all thirteen Day-1 sections (`dayOneSupersetSlidesTotal()`) and ends
-at **400** (`dayOneFitTotal()`). Day-1 lab time — 245 minutes — is untouched, so
-a fit-plan delivery still runs **645 minutes** of slides+labs against a 390
+at **400** (`dayOneFitTotal()`). Day-1 lab time — 250 minutes — is untouched, so
+a fit-plan delivery still runs **650 minutes** of slides+labs against a 390
 budget. Be precise about what the plan now buys. Since S01 grew to carry the
 design-principles and alternatives beats, the compressed **deck alone** is 10
 minutes over the whole-day budget, so the plan no longer makes even the deck fit
@@ -178,7 +178,7 @@ section's length, so it left the Day-1 planning total and every row above
 untouched — only the order of rows 4–12 moved. The total moved later, and for a
 different reason: S01 grew from 40 to 50 minutes when the design-principles and
 alternatives beats were added, taking the planning total to 780 and the fit-plan
-target to 400.
+target to 400; the Lab-04 drift step later added 5 lab minutes, taking it to 785.
 
 Skipping S09 and S10 carries a known, accepted cost: a learner on the canonical
 cut **never sees `for_each` taught** — neither S09's `count` vs `for_each`

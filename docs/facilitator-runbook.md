@@ -115,20 +115,20 @@ the
 
 | Day | Slides | Labs | Slides+labs (planned) | Against the 390 budget |
 | --- | ---: | ---: | ---: | --- |
-| 1 | 535 | 245 | **780** | **+390 over** |
+| 1 | 535 | 250 | **785** | **+395 over** |
 | 2 | 180 | 180 | 360 | 30 under |
 | 3 | 200 | 200 | **400** | **+10 over** |
 
 **Day 1 and Day 3 do not fit.** Say so when you plan the delivery: the honest
-statement is "Day 1 is 390 over a one-day budget", not "Day 1 fits once you apply
+statement is "Day 1 is 395 over a one-day budget", not "Day 1 fits once you apply
 the fit plan". These are **unrehearsed planning estimates** from section
 frontmatter and lab headers — no rehearsal has timed them, so treat them as a
 budget, not a stopwatch.
 
 The README fit plan's **400 is a different figure**: it is Day-1 **slide**
-runtime only (`dayOneFitTotal()`), compressed from 665. Day-1 lab time (245) is
-untouched by it, so a fit-plan Day 1 still runs **645** of slides+labs. Use 400
-to check the deck against the day; use 780 to plan the day itself. Note that 400
+runtime only (`dayOneFitTotal()`), compressed from 665. Day-1 lab time (250) is
+untouched by it, so a fit-plan Day 1 still runs **650** of slides+labs. Use 400
+to check the deck against the day; use 785 to plan the day itself. Note that 400
 does not fit either: since S01 grew, the compressed deck is 10 minutes over the
 390 budget before a single lab runs.
 
@@ -152,8 +152,8 @@ Cut optional → recommended → compress core. Never drop S08 or S15's blocking
 and S05 changed no section's length, so it left the planning total and every
 fit-plan row exactly as they were before the reorder — only the order changed.
 What did move the total was S01 growing 40→50 minutes to carry the
-design-principles and alternatives beats: Day 1 is now **780** planned, and the
-fit-plan slide target is **400**.
+design-principles and alternatives beats, plus Lab 04 growing 20→25 to add the
+drift step: Day 1 is now **785** planned, and the fit-plan slide target is **400**.
 
 **Accepted cost of the canonical cut: `for_each` is never taught.** S09 and S10
 are both skipped, which removes S09's `count` vs `for_each` lesson (and
@@ -283,7 +283,7 @@ share of the day. **3-day cut** = compress / skip from the fit plan or `hide:` i
 | S03 | Core workflow | core | 60 → **45** | 20 | Compress | Read a plan line: `+` / `~` / `-` and “known after apply”? | One lifecycle run when compressed |
 | S06 | Variables & types | core | 50 → **35** | 25 | Compress | Break a validation on purpose — which phase fails? | Precedence variants follow-up when compressed |
 | S15 | Preconditions & checks | core | 50 → **35** | 30 | Compress | Which guards fail at plan vs apply? What is `check` for? | Keep one blocking condition + `check` |
-| S04 | State | core | 50 → **35** | 20 | Compress | Why is `terraform.tfstate` a secret store even when the CLI redacts? | Backend migration is follow-up when compressed |
+| S04 | State | core | 50 → **35** | 25 | Compress | Why is `terraform.tfstate` a secret store even when the CLI redacts? | Backend migration is follow-up when compressed |
 | S05 | State encryption | core | 60 → **45** | 25 | Compress | Prove ciphertext on disk; what does `enforced = true` change? | PBKDF2 lab key handling; fallback migrate |
 | S07 | Modules | core | 60 → **50** | 35 | Compress | What is the module contract (inputs/outputs)? Demo registry/OCI only | No registry network on runnable path |
 | S08 | Naming & labelling | core | **65** | 30 | Keep | Mock plan green, then LocalStack apply — validation enforces convention? | Step 4 needs LocalStack; panic-reset safe |

@@ -328,7 +328,7 @@ S05."
 ---
 layout: lab
 lab: labs/day-1/04-state.md
-duration: 20 min
+duration: 25 min
 env: 'mock ✓ (no docker)'
 ---
 
@@ -338,7 +338,8 @@ env: 'mock ✓ (no docker)'
 `state list`, `state show` (watch the secret get redacted), and — the payoff —
 **`grep` the plaintext secret out of `terraform.tfstate`**. Migrate the state to
 a new local path with `tofu init -migrate-state`, then **break** it with
-`state rm` and reconcile with `apply`.
+`state rm` and reconcile with `apply`. Finally, **drift**: edit the rendered
+file behind OpenTofu's back and read the plan that steers it back.
 
 Every task and question has a `<details>` spoiler; panic reset is `tofu destroy`
 plus `rm` — nothing cloud, nothing to leak.
@@ -350,8 +351,10 @@ the inventory, state show to watch the CLI redact the password, and the payoff �
 the same password out of the raw terraform.tfstate as plaintext, the "oh, it really is
 sitting there" moment. Then you migrate the state to a new local path with tofu init
 -migrate-state — the real backend mechanic, cloud-free — and finally the break-fix:
-state rm forgets a resource, plan wants to recreate it, and apply reconciles. Every
-task and question has a spoiler; panic reset is destroy plus rm. (~20 min, matches the
+state rm forgets a resource, plan wants to recreate it, and apply reconciles. The
+closer is drift: learners edit the rendered file by hand, and the refresh catches it —
+the reconcile slide's fourth step, experienced live. Every
+task and question has a spoiler; panic reset is destroy plus rm. (~25 min, matches the
 lab duration)
 Then: regroup for the recap.
 -->

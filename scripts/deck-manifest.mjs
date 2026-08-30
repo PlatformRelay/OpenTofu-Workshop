@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 export const sectionTimings = {
-  S00: [40, 20], S01: [50, 20], S02: [50, 20], S03: [60, 20], S04: [50, 20],
+  S00: [40, 20], S01: [50, 20], S02: [50, 20], S03: [60, 20], S04: [50, 25],
   S05: [60, 25], S06: [50, 25], S15: [50, 30], S07: [60, 35], S08: [65, 30],
   S09: [50, 30], S10: [45, 25], S11: [35, 20],
   S12: [20, 20], S13: [30, 30], S14: [35, 35], S16: [35, 35], S17: [30, 30],
