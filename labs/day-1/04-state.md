@@ -993,7 +993,8 @@ Do you want to copy existing state to the new backend?
   New      (type "local"): /tmp/.../2-local.tfstate
 
   Do you want to overwrite the state in the new backend with the previous state?
-  Enter "yes" to copy and "no" to start with an empty state.
+  Enter "yes" to copy and "no" to start with the existing state in the newly
+  configured "local" backend.
 
   Enter a value: yes
 
