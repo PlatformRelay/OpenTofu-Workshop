@@ -350,7 +350,7 @@ run "build_unit_plan" {
 
   assert {
     condition     = aws_sns_topic.events.name == module.events_name.name
-    error_message = "the topic must take its name from the naming module, not a literal"
+    error_message = "the topic name must match the naming module's composed output"
   }
 
   assert {
@@ -368,9 +368,32 @@ run "build_unit_plan" {
 }
 ```
 
-Assessment commands and their green output (captured on OpenTofu **1.12.5**):
+Assessment commands and their green output (captured on OpenTofu **1.12.5**).
+The re-init comes first — the new `module "events_name"` call is not in the
+module manifest of the previous init, and `validate`/`tofu test` fail with
+`Error: Module not installed` without it:
 
 ```console
+$ tofu -chdir=examples/capstone init -backend=false -no-color
+Initializing modules...
+- events_name in ../../modules/naming
+
+Initializing provider plugins...
+- Reusing previous version of hashicorp/random from the dependency lock file
+- Reusing previous version of hashicorp/aws from the dependency lock file
+- Using previously-installed hashicorp/random v3.9.0
+- Using previously-installed hashicorp/aws v5.100.0
+
+OpenTofu has been successfully initialized!
+
+You may now begin working with OpenTofu. Try running "tofu plan" to see
+any changes that are required for your infrastructure. All OpenTofu commands
+should now work.
+
+If you ever set or change modules or backend configuration for OpenTofu,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.
+
 $ tofu -chdir=examples/capstone fmt -check -diff
 $ tofu -chdir=examples/capstone validate -no-color
 Success! The configuration is valid.
@@ -393,11 +416,13 @@ Success! 3 passed, 0 failed.
 
 With the extension in place `tofu -chdir=examples/capstone plan` reports
 **8 to add** (the shipped 6, plus your topic and its naming `random_id`).
-The three likely failure modes and their real diagnoses (unknown
-`resource_type` → naming-module precondition; unset `events_suffix` →
-`Unknown condition run` at plan; hand-written `tags` literal →
+The four likely failure modes and their real diagnoses (skipped re-init →
+`Error: Module not installed` from `validate`/`tofu test`; unknown
+`resource_type` → naming-module precondition; unset `events_suffix` → two
+`Unknown condition run` errors at plan; hand-written `tags` literal →
 `Check block assertion failed` in `tofu test`) are spoilered in the lab's
-Part B gallery — the fix for each is in the contract itself.
+Part B gallery — the fix for each is in the contract itself or in the B3
+command list.
 
 Cleanup is a plain remove, because both authored files are untracked:
 

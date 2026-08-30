@@ -27,7 +27,7 @@ run "build_unit_plan" {
 
   assert {
     condition     = aws_sns_topic.events.name == module.events_name.name
-    error_message = "the topic must take its name from the naming module, not a literal"
+    error_message = "the topic name must match the naming module's composed output"
   }
 
   assert {

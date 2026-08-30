@@ -508,6 +508,10 @@ timed budget** — run it as homework, or in-room only when the day is ahead of
 schedule. The default consume track above stays the timed-delivery default.
 
 There is no output to copy: acceptance is **gate-green, not byte-matching**.
+Be honest about what that means: the gates check *values*, not provenance — a
+hardcoded name that happens to equal the composed one, or a hand-typed
+seven-key tags map, still greens them — so gate-green is a self-assessment,
+not a proctored proof.
 One valid implementation is tracked at
 [`examples/capstone-build/`](../../examples/capstone-build/) — compare with it
 only *after* your gates pass.
@@ -655,7 +659,7 @@ run "build_unit_plan" {
 
   assert {
     condition     = aws_sns_topic.events.name == module.events_name.name
-    error_message = "the topic must take its name from the naming module, not a literal"
+    error_message = "the topic name must match the naming module's composed output"
   }
 
   assert {
@@ -677,11 +681,16 @@ run "build_unit_plan" {
 
 ### B3 — judge it with the existing gates
 
-No new gate machinery: the commands that judged the shipped colony judge your
-extension. From the repo root:
+First, one **mandatory re-init**: your new `module "events_name"` call is not
+in the module manifest that the Step 2 init wrote, so `validate` and
+`tofu test` refuse with `Error: Module not installed` until you re-run init
+(that is Failure 1 in the B4 gallery). After that, no new gate machinery: the
+commands that judged the shipped colony judge your extension. From the repo
+root:
 
 ```bash
 export TF_VAR_state_passphrase='a-long-demo-passphrase-1234'
+tofu -chdir=examples/capstone init -backend=false -no-color
 tofu -chdir=examples/capstone fmt -check -diff
 tofu -chdir=examples/capstone validate -no-color
 tofu -chdir=examples/capstone test -filter=tests/build.tftest.hcl -no-color
@@ -694,14 +703,35 @@ place. (`task verify` also picks your files up automatically: its sweep
 validates every root by filesystem, and runs every non-integration
 `*.tftest.hcl` it finds — including yours.)
 
-**Task:** all four commands green, plus one observation — what does
-`tofu -chdir=examples/capstone plan -no-color` count now?
+**Task:** the re-init plus all four gate commands green, plus one
+observation — what does `tofu -chdir=examples/capstone plan -no-color` count
+now?
 
 <details><summary>Solution / expected output</summary>
 
 Spoilers captured on OpenTofu **1.12.5**:
 
 ```console
+$ tofu -chdir=examples/capstone init -backend=false -no-color
+Initializing modules...
+- events_name in ../../modules/naming
+
+Initializing provider plugins...
+- Reusing previous version of hashicorp/random from the dependency lock file
+- Reusing previous version of hashicorp/aws from the dependency lock file
+- Using previously-installed hashicorp/random v3.9.0
+- Using previously-installed hashicorp/aws v5.100.0
+
+OpenTofu has been successfully initialized!
+
+You may now begin working with OpenTofu. Try running "tofu plan" to see
+any changes that are required for your infrastructure. All OpenTofu commands
+should now work.
+
+If you ever set or change modules or backend configuration for OpenTofu,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.
+
 $ tofu -chdir=examples/capstone test -filter=tests/build.tftest.hcl -no-color
 tests/build.tftest.hcl... pass
   run "build_unit_plan"... pass
@@ -729,12 +759,37 @@ Plan: 8 to add, 0 to change, 0 to destroy.
 
 </details>
 
-### B4 — break → fix gallery: the three likely failures
+### B4 — break → fix gallery: the four likely failures
 
 Each failure below is the gate doing its job — the diagnosis *is* the teaching
 moment. Reproduce any you did not hit naturally.
 
-**Failure 1 — a `resource_type` the naming profile does not know** (e.g. you
+**Failure 1 — gates run against the old init: `Module not installed`**: you
+authored `module "events_name"` but skipped the B3 re-init, so `validate` and
+`tofu test` refuse before judging anything — every learner hits this once.
+
+<details><summary>Diagnosis / fix</summary>
+
+```console
+$ tofu -chdir=examples/capstone validate -no-color
+
+Error: Module not installed
+
+  on colony_events.tf line 19:
+  19: module "events_name" {
+
+This module is not yet installed. Run "tofu init" to install all modules
+required by this configuration.
+```
+
+**Fix:** `tofu -chdir=examples/capstone init -backend=false -no-color` — a
+`module` call is resolved at init, not at plan, so every new or changed
+`module` block needs a re-init before any command that loads the
+configuration. The error names its own fix.
+
+</details>
+
+**Failure 2 — a `resource_type` the naming profile does not know** (e.g. you
 typo `aws_ssm_parameter`): the naming module's output precondition refuses to
 compose a name.
 
@@ -759,7 +814,7 @@ instead of silently composing a junk name.
 
 </details>
 
-**Failure 2 — no fixed suffix in the test**: leave `events_suffix` unset and
+**Failure 3 — no fixed suffix in the test**: leave `events_suffix` unset and
 the name is `(known after apply)`, so plan-time assertions cannot evaluate.
 
 <details><summary>Diagnosis / fix</summary>
@@ -773,7 +828,22 @@ Error: Unknown condition run
     │ module.events_name.name is a string
 
 Condition expression could not be evaluated at this time.
+
+Error: Unknown condition run
+
+  on tests/build.tftest.hcl line 28, in run "build_unit_plan":
+  28:     condition     = aws_sns_topic.events.name == module.events_name.name
+    ├────────────────
+    │ aws_sns_topic.events.name is a string
+    │ module.events_name.name is a string
+
+Condition expression could not be evaluated at this time.
+
+Failure! 0 passed, 1 failed.
 ```
+
+Both plan-time name assertions go unknown at once; the taxonomy assertions
+still evaluate, because the mocked tags map is plan-known.
 
 **Fix:** pin `events_suffix = "f7a9"` (any 2–8 lowercase alphanumerics) in the
 run's `variables` block — the same reason `tests/unit.tftest.hcl` pins
@@ -782,7 +852,7 @@ plan-known.
 
 </details>
 
-**Failure 3 — a hand-written `tags` literal instead of `module.labels.tags`**:
+**Failure 4 — a hand-written `tags` literal instead of `module.labels.tags`**:
 your own guardrail catches the taxonomy hole during `tofu test`.
 
 <details><summary>Diagnosis / fix</summary>
