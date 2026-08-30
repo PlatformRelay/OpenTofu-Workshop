@@ -116,8 +116,9 @@ backend-s3.tf.off  backend.tf  main.tf  terraform.tfvars
 ```
 
 `main.tf`, `backend.tf` and `terraform.tfvars` are tracked in the repo — plus
-`backend-s3.tf.off`, the Stretch's inert S3 variant (OpenTofu only reads `*.tf`,
-so a `.off` file is invisible to every step until you activate it). Everything
+`backend-s3.tf.off`, the Stretch's inert S3 variant (OpenTofu only loads
+config from `*.tf`, `*.tf.json` and `*.tofu` files, and `.off` matches none of
+them, so the file is invisible to every step until you activate it). Everything
 below runs against these exact files. (`.gitignore` is present too; `ls` hides
 dotfiles by default.)
 </details>
@@ -756,7 +757,10 @@ backend block below fails on an unsupported argument, and dropping the
 > Console output in the spoilers is from a real run of this stretch on
 > `tofu v1.12.5` against `localstack/localstack:4.9.2`. Generated names, ids,
 > lock IDs, request IDs, and `user@host` values will differ on your machine —
-> and your pet name will match *your* Step-2 value, not this run's.
+> and your pet name will match *your* Step-2 value, not this run's. The
+> `Lock Info` block's `Version:` line stamps the tofu that *took* the lock, so
+> it reads `1.12.5` here; on the workshop pin you will see `1.10.3` (or
+> whatever your `tofu version` says).
 
 #### S-1 — Swap the backend, break first
 

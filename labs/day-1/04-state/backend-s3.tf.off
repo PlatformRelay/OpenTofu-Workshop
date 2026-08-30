@@ -1,5 +1,6 @@
-# STRETCH VARIANT — inert while the name ends in ".off" (OpenTofu only reads
-# *.tf). Activate it by parking the local backend and copying this file in:
+# STRETCH VARIANT — inert while the name ends in ".off" (OpenTofu only loads
+# *.tf / *.tf.json / *.tofu, and ".off" matches none of them). Activate it by
+# parking the local backend and copying this file in:
 #
 #   mv backend.tf backend.tf.off
 #   cp backend-s3.tf.off backend-s3.tf

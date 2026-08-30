@@ -27,8 +27,9 @@ backend-s3.tf.off  backend.tf  main.tf  terraform.tfvars
 ```
 
 `main.tf`, `backend.tf` and `terraform.tfvars` are tracked in the repo — plus
-`backend-s3.tf.off`, the Stretch's inert S3 variant (OpenTofu only reads `*.tf`,
-so a `.off` file is invisible to every step until you activate it). Everything
+`backend-s3.tf.off`, the Stretch's inert S3 variant (OpenTofu only loads
+config from `*.tf`, `*.tf.json` and `*.tofu` files, and `.off` matches none of
+them, so the file is invisible to every step until you activate it). Everything
 below runs against these exact files. (`.gitignore` is present too; `ls` hides
 dotfiles by default.)
 
@@ -875,10 +876,11 @@ For the S3 stretch specifically: after S-2 the bucket lists
 S-3 the bucket additionally lists `day-1/04-state/terraform.tfstate.tflock` and
 the second actor's `tofu plan` fails with `Error acquiring the state lock` plus
 a `Lock Info` dossier (ID, Path, `Operation: OperationTypeApply`, `Who:
-user@host`); after the holder approves, the `.tflock` object is absent and the
-second plan succeeds; after S-4, `tofu state list` prints all three addresses
-from the local backend again and the panic reset leaves `git status --short .`
-empty.
+user@host`, and a `Version:` line stamping the lock-taker's tofu — `1.12.5` in
+the capture, your own version live); after the holder approves, the `.tflock`
+object is absent and the second plan succeeds; after S-4, `tofu state list`
+prints all three addresses from the local backend again and the panic reset
+leaves `git status --short .` empty.
 
 ### Explanation
 
