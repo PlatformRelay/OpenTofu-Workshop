@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Questions & open-ended discussion
+    url: https://github.com/PlatformRelay/OpenTofu-Workshop/discussions
+    about: Ask a question or float an idea that isn't ready to be an issue yet.
+  - name: Report a security vulnerability
+    url: https://github.com/PlatformRelay/OpenTofu-Workshop/security/advisories/new
+    about: Report vulnerabilities privately via a GitHub security advisory (see SECURITY.md), not a public issue.

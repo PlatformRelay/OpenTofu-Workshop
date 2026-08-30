@@ -1,0 +1,27 @@
+name: Idea / improvement
+description: Suggest an improvement to a lab, slide, doc, or the workshop as a whole.
+title: "[idea] <one-line summary>"
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Two quick fields and you're done. If your idea is still open-ended —
+        "would X be worth covering?" — a
+        [Discussion](https://github.com/PlatformRelay/OpenTofu-Workshop/discussions)
+        is the better place to think out loud.
+  - type: textarea
+    id: idea
+    attributes:
+      label: What's the idea?
+      description: What would you add or change, and where (lab/slide/doc if it applies)?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why does it help learners?
+      description: What gets easier, clearer, or less error-prone for someone taking the workshop?
+    validations:
+      required: true

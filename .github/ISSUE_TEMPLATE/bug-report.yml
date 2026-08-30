@@ -1,0 +1,57 @@
+name: Bug report
+description: Something in the workshop is broken or wrong — a lab step, slide, command, or doc.
+title: "[bug] <where>: <one-line summary>"
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this — broken steps are exactly
+        what we want to hear about. A rough report is far better than no report.
+  - type: input
+    id: where
+    attributes:
+      label: Where is it?
+      description: >-
+        The lab, slide, or doc where you hit the problem — a file path and step
+        number is ideal, but "day 2, the tofu test lab" works too.
+      placeholder: "e.g. labs/day-2/16-tofu-test.md, step 4"
+    validations:
+      required: true
+  - type: textarea
+    id: expected-vs-actual
+    attributes:
+      label: Expected vs actual
+      description: >-
+        What did you expect to happen, and what happened instead? If a command
+        failed, paste what you ran and the output you got.
+      placeholder: |
+        Expected: `tofu plan` shows 2 resources to add.
+        Actual: provider error — <paste output>
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      description: Where were you running the lab?
+      options:
+        - "Host tools (no Docker)"
+        - "LocalStack (Docker)"
+        - "LocalStack (k8s route)"
+        - "Just reading (no lab run)"
+        - "Not sure"
+    validations:
+      required: true
+  - type: textarea
+    id: toolchain-versions
+    attributes:
+      label: Toolchain versions (optional)
+      description: >-
+        If you have the repo cloned, `task preflight` prints a version report —
+        paste it here. Otherwise the versions of OpenTofu / Docker you used are
+        plenty.
+      render: text
+    validations:
+      required: false

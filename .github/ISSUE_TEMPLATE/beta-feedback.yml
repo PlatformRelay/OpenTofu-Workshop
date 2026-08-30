@@ -1,5 +1,7 @@
 name: Beta feedback
-description: Report feedback on a workshop section or lab from a beta run or rehearsal.
+description: >-
+  Structured feedback on a section or lab from a beta run or rehearsal (for
+  facilitators and test cohorts). Just hit a bug? Use the bug report form instead.
 title: "[beta] <section/lab>: <one-line summary>"
 labels:
   - beta-feedback
