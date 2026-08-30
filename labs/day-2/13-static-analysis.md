@@ -216,7 +216,7 @@ From the repository root, inspect the real hooks that reuse these tools:
 
 ```bash
 cd ../../../..
-rg -n 'terraform_fmt|terraform_tflint|PCT_TFPATH' .pre-commit-config.yaml
+grep -nE 'terraform_fmt|terraform_tflint|PCT_TFPATH' .pre-commit-config.yaml
 ```
 
 **Task:** Why does the configuration mention `PCT_TFPATH`?

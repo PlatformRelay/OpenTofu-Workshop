@@ -53,8 +53,8 @@ output "pipeline_fixture" {
 From the repository root, list the jobs and the unit-lane entrypoint:
 
 ```bash
-rg -n '^  [a-z].*:|^    name:|scripts/verify|localstack:' .github/workflows/ci.yml
-rg -n 'fmt -check|UNIT LANE|integration' scripts/verify.sh | head -n 20
+grep -nE '^  [a-z].*:|^    name:|scripts/verify|localstack:' .github/workflows/ci.yml
+grep -nE 'fmt -check|UNIT LANE|integration' scripts/verify.sh | head -n 20
 ```
 
 **Task:** Name the four CI jobs and say which script the unit job runs.
@@ -178,7 +178,7 @@ unit lane. Grepping the fixture should show `verify.sh` and must not show a
 bare `tofu fmt -recursive` gate:
 
 ```bash
-rg -n 'verify\.sh|tofu fmt' labs/day-2/19-testing-cicd/.github/workflows/pipeline.yml
+grep -nE 'verify\.sh|tofu fmt' labs/day-2/19-testing-cicd/.github/workflows/pipeline.yml
 ```
 
 </details>
@@ -201,7 +201,7 @@ fixture — that is intentional; the real file is the source of truth.
 A minimal check from the repository root:
 
 ```bash
-rg -n 'verify-unit:|verify-integration:|localstack/localstack:4.9.2|scripts/verify.sh' \
+grep -nE 'verify-unit:|verify-integration:|localstack/localstack:4.9.2|scripts/verify.sh' \
   labs/day-2/19-testing-cicd/.github/workflows/pipeline.yml
 ```
 
