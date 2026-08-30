@@ -253,12 +253,22 @@ gh repo fork PlatformRelay/OpenTofu-Workshop --clone
 
 GitHub only executes workflows that sit in the repository-root
 `.github/workflows/`. The lab fixture lives under `labs/day-2/…` precisely so
-it can never run by accident. **In your fork clone**, copy the fixture you
-repaired in Steps 4–5 to the root, on a branch:
+it can never run by accident. **In your fork clone**, copy the fixture to the
+root, on a branch:
 
 ```bash
 git switch -c lab19-fork-run
 cp labs/day-2/19-testing-cicd/.github/workflows/pipeline.yml .github/workflows/pipeline.yml
+```
+
+The fresh fork clone carries the tracked **starter** fixture — your Steps 4–5
+repair lives only in your original workshop checkout, and the cleanup above
+restored even that. Re-apply the Steps 4–5 edits to the root copy you just
+made (`.github/workflows/pipeline.yml`): replace the planted
+`tofu fmt -recursive` unit job with the `verify.sh` delegation, and add the
+`verify-integration` job. Then stage the repaired copy:
+
+```bash
 git add .github/workflows/pipeline.yml
 git status --short
 ```
@@ -269,8 +279,8 @@ git status --short
 A  .github/workflows/pipeline.yml
 ```
 
-One staged file; the fixture under `labs/` stays untouched — the workflow now
-exists in both places on this branch, and only the root copy can run.
+One staged file; the starter under `labs/` stays untouched — the repaired
+workflow now lives at the repository root, and only the root copy can run.
 
 </details>
 
@@ -371,16 +381,25 @@ git status --short
 ```
 
 If you ran the copy step inside this workshop checkout instead of a fork
-clone, remove the stray root copy as well:
+clone, remove the stray root copy as well — and unstage it: the copy step ran
+`git add`, so a bare `rm` would leave an `AD` index entry that a later plain
+`git commit` would turn into a tracked root workflow:
 
 ```bash
+git rm -f --cached --ignore-unmatch .github/workflows/pipeline.yml
 rm -f .github/workflows/pipeline.yml
 git status --short -- .github/workflows
 ```
 
 <details><summary>Solution / expected cleanup</summary>
 
-Both `git status --short` commands print nothing: the branch is gone, the
+In a fork clone, both `git status --short` commands print nothing. Inside
+this workshop checkout, the staged copy survives the branch switch, so the
+**first** status still shows `A  .github/workflows/pipeline.yml` — then the
+removal block clears it: `git rm --cached` echoes
+`rm '.github/workflows/pipeline.yml'` as it drops the index entry
+(`--ignore-unmatch` makes it a silent no-op on a re-run), and the final
+status prints nothing. Either way you end clean: the branch is gone, the
 repository-root `.github/workflows/` holds only the tracked real workflows,
 and the lab fixture under `labs/day-2/19-testing-cicd/` is still pristine.
 
@@ -453,6 +472,8 @@ on the fork's **Actions** tab — forks start with them disabled):
 ```bash
 git switch -c lab19-fork-run
 cp labs/day-2/19-testing-cicd/.github/workflows/pipeline.yml .github/workflows/pipeline.yml
+# fresh fork clone = tracked starter fixture: re-apply the Steps 4–5 repair
+# to this root copy before staging (verify.sh unit job + verify-integration)
 git add .github/workflows/pipeline.yml
 node scripts/supply-chain-policy.mjs
 git commit -m "lab19 stretch: run the assembled pipeline on my fork"
@@ -462,8 +483,9 @@ gh pr create --repo YOUR-USER/OpenTofu-Workshop --base main --head lab19-fork-ru
 ```
 
 Cleanup: close the PR, delete the branch (or the whole fork), and remove any
-stray root copy made inside the workshop checkout
-(`rm -f .github/workflows/pipeline.yml`).
+stray root copy made inside the workshop checkout — unstaging it too, since
+the copy step staged it (`git rm -f --cached --ignore-unmatch
+.github/workflows/pipeline.yml && rm -f .github/workflows/pipeline.yml`).
 
 ### Expected state / output
 
