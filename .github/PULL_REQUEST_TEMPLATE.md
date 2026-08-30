@@ -1,3 +1,7 @@
+> **Small fix?** (typo, broken link, wrong command) Delete this whole template and
+> describe the change in one sentence — see the
+> [fast path](../CONTRIBUTING.md#small-fix-fast-path).
+
 ## What & why
 
 <!-- One or two sentences: what changed, and why. Link an issue/Discussion if there is one. -->
