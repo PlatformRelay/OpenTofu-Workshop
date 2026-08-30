@@ -7,8 +7,10 @@ spoilers were captured on OpenTofu **1.12.5**.
 ## Guided solutions
 
 Work from the tracked workdir `labs/day-1/09-best-practices/` unless a step says
-otherwise. The workdir holds two canonical files: `main.tf` (the `for_each` +
-`moved` end state) and `bundle.tf` (the `dynamic` end state).
+otherwise. The workdir holds four canonical files: `main.tf` (the `for_each` +
+`moved` end state), `bundle.tf` (the `dynamic` end state), `rename.tf` (the
+post-rename end state with its `moved` paper trail), and `retire.tf` (the
+post-retirement end state — a lone `removed` block).
 
 ### Step 0 — Enter the tracked workdir
 
@@ -21,13 +23,16 @@ ls -a
 
 ```console
 $ ls -a
-.  ..  .gitignore  bundle.tf  main.tf
+.  ..  .gitignore  bundle.tf  main.tf  rename.tf  retire.tf
 ```
 
 `main.tf` is the `for_each` end state; `bundle.tf` is the `dynamic` end state
-re-derived by hand in Steps 7–8. Every `.tf` in a directory is part of the
-module, so `bundle.tf`'s data source shows up in plans from the start — harmless
-until Step 6, then the point.
+re-derived by hand in Steps 7–8; `rename.tf` and `retire.tf` are Part B's
+refactoring end states. Every `.tf` in a directory is part of the module, so
+`bundle.tf`'s data source and `rename.tf`'s release-notes resource show up in
+plans from the start — harmless until Steps 6 and 10, then the point
+(`retire.tf`'s `removed` block matches nothing in fresh state and is a no-op
+until Step 12 gives it history).
 
 </details>
 
@@ -59,23 +64,26 @@ $ tofu apply -auto-approve
 data.archive_file.bundle: Reading...
 data.archive_file.bundle: Read complete after 0s [id=624f9bc013ee78d910d2745bf26135683eeb9ea8]
 ...
-Plan: 3 to add, 0 to change, 0 to destroy.
+Plan: 4 to add, 0 to change, 0 to destroy.
 
 Changes to Outputs:
   + bundle_sha256 = "98817fde81e5659f696dcd4e2fc4a0ee7a9add23359b83f09e5cdec82e2763a6"
 ...
-Apply complete! Resources: 3 added, 0 changed, 0 destroyed.
+Apply complete! Resources: 4 added, 0 changed, 0 destroyed.
 
 $ tofu state list
 data.archive_file.bundle
 local_file.manifest[0]
 local_file.manifest[1]
 local_file.manifest[2]
+local_file.release_notes
 ```
 
-Three instances, addressed by their **sorted-key index**: `[0]`=checkout,
-`[1]`=payments, `[2]`=search — a *position*, not an identity. The extra
-`data.archive_file.bundle` entry is `bundle.tf`'s data source riding along.
+Three manifest instances, addressed by their **sorted-key index**:
+`[0]`=checkout, `[1]`=payments, `[2]`=search — a *position*, not an identity.
+The extra entries ride along: `data.archive_file.bundle` is `bundle.tf`'s data
+source, `local_file.release_notes` is `rename.tf`'s artifact (Part B's
+workbench).
 
 </details>
 
@@ -145,6 +153,7 @@ data.archive_file.bundle
 local_file.manifest["checkout"]
 local_file.manifest["payments"]
 local_file.manifest["search"]
+local_file.release_notes
 ```
 
 Every instance is reported as `has moved to` — a pure state rename, nothing on
@@ -438,6 +447,204 @@ Do not apply; `rm receipts.tf` and `tofu plan` returns `No changes`.
 
 ---
 
+### Step 10 — Time-travel to the legacy layout (and replay `state rm`)
+
+Forget the release notes imperatively, observe the half-done retirement, then
+install the temporary legacy forms of `rename.tf` (resource at address
+`local_file.notes`, no `moved` block) and `retire.tf` (managed
+`local_file.build_info` plus the `build_info_path` output) from the
+participant lab, and apply.
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ tofu state rm local_file.release_notes
+Removed local_file.release_notes
+Successfully removed 1 resource instance(s).
+
+$ ls out/RELEASE.md
+out/RELEASE.md
+
+$ tofu plan
+...
+  # local_file.release_notes will be created
+...
+Plan: 1 to add, 0 to change, 0 to destroy.
+```
+
+`state rm` forgets without destroying (the file survives), but the config
+still declares the resource, so the next plan re-creates it — the imperative
+tool does half the retirement and leaves the config edit as a separate,
+unreviewed step.
+
+After installing both temporary legacy files:
+
+```console
+$ tofu apply -auto-approve
+...
+  # local_file.build_info will be created
+  # local_file.notes will be created
+...
+Plan: 2 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + build_info_path = "./out/build-info.env"
+...
+Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
+
+$ tofu state list
+data.archive_file.bundle
+local_file.build_info
+local_file.manifest["checkout"]
+local_file.manifest["payments"]
+local_file.manifest["search"]
+local_file.notes
+```
+
+The "before" is live: release notes at the legacy `local_file.notes` address
+(the create rewrote `out/RELEASE.md` with identical bytes), build metadata
+managed at `local_file.build_info`.
+
+</details>
+
+---
+
+### Step 11 — Rename: destroy/create without `moved`, no-op with it
+
+Rename the block label `notes` → `release_notes` in the temporary `rename.tf`
+and plan (**no apply**); then append the `moved` block by hand, plan, and
+converge via `git checkout -- rename.tf` before applying.
+
+<details><summary>Solution / expected output</summary>
+
+Without `moved`:
+
+```console
+$ tofu plan
+...
+  # local_file.notes will be destroyed
+  # (because local_file.notes is not in configuration)
+...
+  # local_file.release_notes will be created
+...
+Plan: 1 to add, 0 to change, 1 to destroy.
+```
+
+With the hand-written `moved { from = local_file.notes  to =
+local_file.release_notes }`:
+
+```console
+$ tofu plan
+...
+  # local_file.notes has moved to local_file.release_notes
+    resource "local_file" "release_notes" {
+        id                   = "8b2a534a4b1a8f4c5e7dfbc2fe70ce23bc58dfcf"
+        # (10 unchanged attributes hidden)
+    }
+
+Plan: 0 to add, 0 to change, 0 to destroy.
+```
+
+Converge and commit the move:
+
+```console
+$ git diff -- rename.tf
+...(comment lines only)...
+$ git checkout -- rename.tf
+$ tofu apply -auto-approve
+  # local_file.notes has moved to local_file.release_notes
+...
+Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
+```
+
+`tofu state list` now shows `local_file.release_notes`; the unchanged `id`
+across the move is the proof it is the same object under a new address.
+
+</details>
+
+---
+
+### Step 12 — Retire with `removed`: forget, don't destroy
+
+In the temporary `retire.tf`: delete the resource block (plan errors on the
+dangling output), delete the output too (plan proposes a destroy — no apply),
+then write the `removed` block — minimal form first, then with
+`lifecycle { destroy = false }` — and converge via `git checkout -- retire.tf`
+before applying.
+
+<details><summary>Solution / expected output</summary>
+
+Resource deleted, output still present:
+
+```console
+$ tofu plan
+...
+│ Error: Reference to undeclared resource
+│
+│   on retire.tf line 5, in output "build_info_path":
+│    5:   value = local_file.build_info.filename
+│
+│ There is no managed resource "local_file" "build_info" definition in the root
+│ module.
+```
+
+Output deleted as well — plain code deletion means destroy:
+
+```console
+$ tofu plan
+...
+  # local_file.build_info will be destroyed
+  # (because local_file.build_info is not in configuration)
+...
+Plan: 0 to add, 0 to change, 1 to destroy.
+```
+
+Minimal `removed { from = local_file.build_info }`:
+
+```console
+$ tofu plan
+...
+│ Warning: Missing lifecycle from the removed block
+...
+  # local_file.build_info will be removed from the OpenTofu state but will not be destroyed
+  . resource "local_file" "build_info" {
+...
+Plan: 0 to add, 0 to change, 0 to destroy, 1 to forget.
+```
+
+Adding `lifecycle { destroy = false }` keeps the identical forget plan and
+silences the warning (while `destroy = true` would flip the same block to
+`1 to destroy`). Converge and apply:
+
+```console
+$ git checkout -- retire.tf
+$ tofu apply -auto-approve
+...
+Apply complete! Resources: 0 added, 0 changed, 0 destroyed, 1 forgotten.
+
+$ tofu state list
+data.archive_file.bundle
+local_file.manifest["checkout"]
+local_file.manifest["payments"]
+local_file.manifest["search"]
+local_file.release_notes
+
+$ cat out/build-info.env
+BUILD_CHANNEL=stable
+
+$ tofu plan
+...
+No changes. Your infrastructure matches the configuration.
+```
+
+State no longer holds `build_info`, the artifact is intact on disk, and the
+follow-up plan is clean — the applied `removed` block stays as inert,
+reviewable history.
+
+</details>
+
+---
+
 ## Expected state / output
 
 - **Step 2 vs Step 4:** the identical middle-element removal planned
@@ -459,7 +666,18 @@ Do not apply; `rm receipts.tf` and `tofu plan` returns `No changes`.
 - **Step 9:** `Error: Invalid count argument` suggesting
   `-exclude=local_file.receipt`; the structural fix planned
   `4 to add, 0 to change, 0 to destroy`.
-- **Cleanup:** `Destroy complete! Resources: 3 destroyed.` and an empty
+- **Step 10:** `state rm` printed `Removed local_file.release_notes` with the
+  file surviving on disk; the follow-up plan wanted to re-create it; the
+  legacy layout applied `2 to add`.
+- **Step 11:** the plain rename planned `1 to add, 0 to change, 1 to destroy`
+  without `moved` and `0 to add, 0 to change, 0 to destroy` with it — the
+  moved instance keeping its `id`.
+- **Step 12:** the dangling reference errored (`Reference to undeclared
+  resource`); plain deletion planned `1 to destroy`; the `removed` block
+  planned `0 to destroy, 1 to forget` and applied as `1 forgotten`, with
+  `out/build-info.env` intact and `tofu state list` no longer showing
+  `build_info`.
+- **Cleanup:** `Destroy complete! Resources: 4 destroyed.` and an empty
   `git status --short`.
 
 ## Explanation
@@ -478,7 +696,17 @@ is scoped to the block (named after the label) rather than being the resource's
 `each`. And because a plan must fully enumerate instances before apply, a
 fan-out width that depends on an unapplied resource's computed attribute cannot
 be planned — deriving width from configuration removes the dependency, so the
-single-pass plan succeeds.
+single-pass plan succeeds. Part B extends the same identity model to the two
+refactoring verbs: a rename creates a *new* address, so without help the
+reconciliation sees one resource gone and another born — destroy plus create —
+while a `moved` block edits the address-to-object binding in state, leaving the
+object (and its `id`) untouched. Deleting configuration means "this object
+should not exist," which is why plain deletion plans a destroy; a `removed`
+block replaces that meaning with "stop tracking this object," a distinct
+**forget** action that leaves the real artifact alone, and its
+`lifecycle.destroy` boolean is the explicit, reviewable record of which of the
+two meanings you chose — the property `tofu state rm`, an immediate unplanned
+state edit, cannot offer.
 
 ## Troubleshooting and recovery
 
@@ -501,9 +729,10 @@ git status --short labs/day-1/09-best-practices                  # expect: no ou
 No cloud resources are created in this lab, so there is nothing to bill or
 leak. The generated state / `.terraform` / rendered `out/` files (including
 `bundle.zip`) and the scratch `receipts.tf` are gitignored; the panic reset
-leaves the tracked `main.tf` and `bundle.tf` exactly as CI verified them. The
-`.terraform.lock.hcl` removed here is the *untracked* one this lab's init
-generates in its own workdir — never a tracked lockfile.
+leaves the tracked `main.tf`, `bundle.tf`, `rename.tf`, and `retire.tf`
+exactly as CI verified them. The `.terraform.lock.hcl` removed here is the
+*untracked* one this lab's init generates in its own workdir — never a tracked
+lockfile.
 
 > The `find … -delete` sweep is shell-agnostic: a raw `terraform.tfstate.*`
 > glob aborts under zsh's `nomatch` when no such file exists, and `tofu` can
@@ -513,6 +742,16 @@ generates in its own workdir — never a tracked lockfile.
 Re-enter `labs/day-1/09-best-practices/` and replay from the failing step once
 the environment is clean. For provider or module download errors, run
 `tofu init -upgrade` in the workdir and retry `tofu plan`.
+
+Part B specifics: `Error: Removed resource block still exists` means the
+`resource "local_file" "build_info"` block is still declared next to the
+`removed` block — delete the resource block (the `removed` block replaces it,
+it cannot coexist with it). If you applied the `destroy = true` variant (or
+Attempt 1's deletion) by accident, `out/build-info.env` is gone from disk;
+nothing of value is lost — restore the temporary Step 10 `retire.tf`, run
+`tofu apply -auto-approve` to re-create it, and replay Step 12. If you
+`state rm`'d the wrong address in Step 10, `tofu plan` will simply offer to
+re-create it — apply and continue.
 
 ## Stretch solution
 
@@ -525,8 +764,9 @@ the environment is clean. For provider or module download errors, run
   (`local_file.manifest[0]` → `local_file.service_env["checkout"]`).
 - **Name the iterator explicitly:** add `iterator = svc` to the `dynamic` block
   and switch references to `svc.key` / `svc.value.replicas`.
-- **Contrast with `removed`:** reason through `removed {}` +
-  `lifecycle { destroy = false }` versus deleting a `for_each` key.
+- **Retire a whole module:** reason through `removed { from = module.checkout }`
+  against Lab 07's fan-out — one forget per resource inside the instance, with
+  the module block and every output reference deleted in the same diff.
 
 Example verification from the workdir:
 
@@ -546,8 +786,12 @@ replacement: for `local_file` it actually plans `must be replaced` — read the
 output change. The chained `moved` stretch plans `0 to add, 0 to change,
 0 to destroy` with `has moved to` lines for the renamed addresses. The
 `iterator = svc` stretch plans `No changes` — naming the iterator does not
-change the expansion. After `git checkout -- main.tf bundle.tf`, `tofu plan`
-returns `No changes`.
+change the expansion. The module-retirement stretch is reasoning-only against
+Lab 07's workdir: the tally would read `N to forget` (one per resource in the
+instance), zero to destroy, and any surviving reference to the module's
+outputs would fail at plan time the same way Step 12's dangling output
+reference did. After `git checkout -- main.tf bundle.tf`, `tofu plan` returns
+`No changes`.
 
 ### Explanation
 
