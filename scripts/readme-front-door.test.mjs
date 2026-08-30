@@ -91,6 +91,20 @@ test('README contributing section names the small-fix fast path', () => {
   )
 })
 
+// DOC-4: the section library is S00–S28 (syllabus, slides.md); the README and
+// beta-limitations used to undersell it as S00–S26.
+for (const file of ['README.md', 'docs/beta-limitations.md']) {
+  test(`${file} claims the full S00\u2013S28 library, never S00\u2013S26`, () => {
+    const content = readFileSync(resolve(ROOT, file), 'utf8')
+    assert.doesNotMatch(
+      content,
+      /S00`?[\u2013-]`?S26/,
+      `${file} must not undersell the section library as S00\u2013S26`,
+    )
+    assert.match(content, /S00`?[\u2013-]`?S28/, `${file} must claim the S00\u2013S28 library`)
+  })
+}
+
 test('README has no controlled-beta warning', () => {
   const readme = readFileSync(resolve(ROOT, 'README.md'), 'utf8')
   assert.doesNotMatch(

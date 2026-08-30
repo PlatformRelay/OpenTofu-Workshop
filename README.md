@@ -50,7 +50,7 @@ For the standard learner route:
    [LocalStack setup and troubleshooting guide](setup/localstack.md).
 
 > [!NOTE]
-> All three days are authored: sections **S00–S26** and their labs, plus the
+> All three days are authored: sections **S00–S28** and their labs, plus the
 > capstone, are shipped (not stubs). Optional sections stay skippable via the
 > cut-order / `hide:` toggles. The section library is a deliberate **superset**
 > that runs longer than three days — read
@@ -127,7 +127,7 @@ several deliberately different cuts.
 | Deck | Purpose | Local fallback |
 | --- | --- | --- |
 | [Three-day cut](slides-3day.md) | Canonical learner and facilitator route; pre-boiled for standard delivery | `task dev:3day` |
-| [Full superset](slides.md) | Every section S00–S26; use it to compose a custom delivery, not as the default learner route | `task dev` |
+| [Full superset](slides.md) | Every section S00–S28; use it to compose a custom delivery, not as the default learner route | `task dev` |
 | [Template gallery](slides-templates.md) | Contributor-facing design-system and slide-pattern reference; not a workshop cut | `task dev:templates` |
 
 Sections live in `pages/SNN-topic/index.md` and decks compose them with `src:`
@@ -137,7 +137,7 @@ cut.
 ## Scope and timing (known issue)
 
 > [!WARNING]
-> This repository is a **content superset**: the section library (`S00`–`S26`)
+> This repository is a **content superset**: the section library (`S00`–`S28`)
 > is deliberately **larger than fits in three days**, and even the canonical
 > three-day cut overflows on two of the three days against a **390 min/day**
 > budget (6.5 h, ~50/50 explain-then-run). That is a deliberate design choice

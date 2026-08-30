@@ -4,7 +4,7 @@ Honest leftovers for facilitators — not a release blocker, and **not** a pacin
 contract. Room tempo depends on the presenter, the audience, and which optional
 sections you keep.
 
-- **The section library is a content superset** — `S00`–`S26` is deliberately
+- **The section library is a content superset** — `S00`–`S28` is deliberately
   larger than fits in three days, and the canonical three-day cut overflows too.
   Against a **390 min/day** budget (6.5 h), the planned slides+labs totals are
   **Day 1 = 790 — 400 over**, Day 2 = 360, and **Day 3 = 400 — 10 over**. Use the
