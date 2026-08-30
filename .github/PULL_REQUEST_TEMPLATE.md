@@ -1,6 +1,6 @@
 > **Small fix?** (typo, broken link, wrong command) Delete this whole template and
 > describe the change in one sentence — see the
-> [fast path](../CONTRIBUTING.md#small-fix-fast-path).
+> [fast path](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/CONTRIBUTING.md#small-fix-fast-path).
 
 ## What & why
 

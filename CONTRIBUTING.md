@@ -53,7 +53,8 @@ on stock macOS:
 Note: CI has no path filters, so a docs-only PR still runs the full job matrix (HCL
 validation, deck builds, shell tests, …) — but those jobs run against code you didn't
 touch and pass on their own. The jobs that actually exercise a prose change are
-**lint**, **link-check**, and **pages-contract**; those three are the ones to watch.
+**lint**, **link-check**, **lab-contract**, and **pages-contract**; those four are
+the ones to watch.
 
 ## Substantive changes: the full contract
 
