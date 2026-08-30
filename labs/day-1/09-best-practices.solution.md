@@ -1,11 +1,14 @@
-# Lab 09 — count vs for_each, and refactor without replacement (S09) — solutions
+# Lab 09 — count vs for_each, dynamic blocks, and refactor without replacement (S09) — solutions
 
 Use this companion after attempting the participant lab. Compare state and meaning
-rather than copying ephemeral resource names, IDs, or timestamps literally.
+rather than copying ephemeral resource names, IDs, or timestamps literally. All
+spoilers were captured on OpenTofu **1.12.5**.
 
 ## Guided solutions
 
-Work from the tracked workdir `labs/day-1/09-best-practices/` unless a step says otherwise.
+Work from the tracked workdir `labs/day-1/09-best-practices/` unless a step says
+otherwise. The workdir holds two canonical files: `main.tf` (the `for_each` +
+`moved` end state) and `bundle.tf` (the `dynamic` end state).
 
 ### Step 0 — Enter the tracked workdir
 
@@ -14,20 +17,17 @@ cd labs/day-1/09-best-practices
 ls -a
 ```
 
-**Task:** Confirm `main.tf` (and its `.gitignore`) are already present — you author
-nothing; you only edit and revert.
-
----
-
 <details><summary>Solution / expected output</summary>
 
 ```console
 $ ls -a
-.  ..  .gitignore  main.tf
+.  ..  .gitignore  bundle.tf  main.tf
 ```
 
-`main.tf` is the `for_each` end state. `.gitignore` keeps generated
-state / `.terraform` / the rendered `out/` directory out of version control.
+`main.tf` is the `for_each` end state; `bundle.tf` is the `dynamic` end state
+re-derived by hand in Steps 7–8. Every `.tf` in a directory is part of the
+module, so `bundle.tf`'s data source shows up in plans from the start — harmless
+until Step 6, then the point.
 
 </details>
 
@@ -35,43 +35,9 @@ state / `.terraform` / the rendered `out/` directory out of version control.
 
 ### Step 1 — Start from `count`: apply three services
 
-To see the trap you have to start where most configs start — a `count` fan-out.
-**Temporarily** replace `main.tf` with the `count` form. Copy this whole block over
-the file:
-
-```hcl
-# TEMPORARY (Step 1 starting point) — the count form, addressed by INDEX.
-terraform {
-  required_providers {
-    local = { source = "hashicorp/local" }
-  }
-}
-
-variable "services" {
-  type = list(object({
-    name     = string
-    replicas = number
-  }))
-  default = [
-    { name = "checkout", replicas = 2 },
-    { name = "payments", replicas = 4 },
-    { name = "search", replicas = 3 },
-  ]
-}
-
-# count-based fan-out: instances are addressed by INDEX (manifest[0], [1], [2]).
-resource "local_file" "manifest" {
-  count = length(var.services)
-
-  filename = "${path.module}/out/${var.services[count.index].name}.env"
-  content  = <<-EOT
-    SERVICE_NAME=${var.services[count.index].name}
-    REPLICAS=${var.services[count.index].replicas}
-  EOT
-}
-```
-
-Then init and apply:
+**Temporarily** replace `main.tf` with the `count` form from the participant lab
+(map of services, `sort(keys(var.services))` flattened into an ordered list,
+`count = length(local.service_names)`), then:
 
 ```bash
 tofu init
@@ -79,35 +45,37 @@ tofu apply -auto-approve
 tofu state list
 ```
 
-**Task:** How many resources apply, and how are the three instances **addressed**
-in state?
-
----
-
 <details><summary>Solution / expected output</summary>
 
 ```console
 $ tofu init
 ...
 - Installed hashicorp/local v2.9.0 (signed, key ID 0C0AF313E5FD9F80)
+- Installed hashicorp/archive v2.8.0 (signed, key ID 0C0AF313E5FD9F80)
 ...
 OpenTofu has been successfully initialized!
 
 $ tofu apply -auto-approve
+data.archive_file.bundle: Reading...
+data.archive_file.bundle: Read complete after 0s [id=624f9bc013ee78d910d2745bf26135683eeb9ea8]
 ...
 Plan: 3 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + bundle_sha256 = "98817fde81e5659f696dcd4e2fc4a0ee7a9add23359b83f09e5cdec82e2763a6"
 ...
 Apply complete! Resources: 3 added, 0 changed, 0 destroyed.
 
 $ tofu state list
+data.archive_file.bundle
 local_file.manifest[0]
 local_file.manifest[1]
 local_file.manifest[2]
 ```
 
-Three instances, **addressed by their list index**: `manifest[0]` is checkout,
-`[1]` is payments, `[2]` is search. The index — a *position*, not an identity — is
-the whole problem you are about to hit.
+Three instances, addressed by their **sorted-key index**: `[0]`=checkout,
+`[1]`=payments, `[2]`=search — a *position*, not an identity. The extra
+`data.archive_file.bundle` entry is `bundle.tf`'s data source riding along.
 
 </details>
 
@@ -115,28 +83,8 @@ the whole problem you are about to hit.
 
 ### Step 2 — The `count` trap: remove the middle element
 
-A teammate deprecates the `payments` service and deletes its line. Under `count`,
-deleting the **middle** entry doesn't just remove one instance — it renumbers every
-entry after it. **Temporarily** delete the `payments` line from the `count` form's
-`default` list so it reads:
-
-```hcl
-  default = [
-    { name = "checkout", replicas = 2 },
-    { name = "search", replicas = 3 },
-  ]
-```
-
-Then plan — **do not apply**:
-
-```bash
-tofu plan
-```
-
-**Task:** You removed **one** service. How many resources does the plan destroy,
-and *which* ones? Did the instance you actually removed even survive?
-
----
+Delete the `payments` line from the temporary form's `default` map, then
+`tofu plan` — **do not apply**.
 
 <details><summary>Solution / expected output</summary>
 
@@ -144,34 +92,25 @@ and *which* ones? Did the instance you actually removed even survive?
 $ tofu plan
 ...
   # local_file.manifest[1] must be replaced
+-/+ resource "local_file" "manifest" {
+      ~ content              = <<-EOT # forces replacement
+          - SERVICE_NAME=payments
+          - REPLICAS=4
+          + SERVICE_NAME=search
+          + REPLICAS=3
+        EOT
+      ~ filename             = "./out/payments.env" -> "./out/search.env" # forces replacement
+...
   # local_file.manifest[2] will be destroyed
   # (because index [2] is out of range for count)
 ...
 Plan: 1 to add, 0 to change, 2 to destroy.
 ```
 
-You removed **one** service but the plan is `1 to add, 0 to change, **2 to
-destroy**`. Because indices shift, `manifest[1]` — formerly *payments* — is now
-recomputed as *search* and **must be replaced** (its `filename` and `content`
-change, and `local_file` is immutable), while `manifest[2]` is **destroyed** for
-being out of range. The service you *kept*, `search`, gets churned; the index is a
-position, not an identity. **Do not apply** — revert `payments` back into the list
-first:
-
-```hcl
-  default = [
-    { name = "checkout", replicas = 2 },
-    { name = "payments", replicas = 4 },
-    { name = "search", replicas = 3 },
-  ]
-```
-
-```console
-$ tofu apply -auto-approve
-No changes. Your infrastructure matches the configuration.
-
-Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
-```
+One service removed, **two destroyed**: the sorted keys shift down, so `[1]` is
+recomputed as *search* and replaced (immutable resource), while `[2]` falls out
+of range. The kept service gets churned. Revert `payments` into the map and
+`tofu apply -auto-approve` reports `No changes`.
 
 </details>
 
@@ -179,28 +118,12 @@ Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
 
 ### Step 3 — Refactor to `for_each` **without replacement** using `moved`
 
-Now fix the design. Restore the tracked canonical `main.tf` — the `for_each` end
-state with the three `moved` blocks:
-
 ```bash
 git checkout -- main.tf
-```
-
-`for_each` addresses instances by a **stable key** (`manifest["payments"]`) instead
-of a shifting index. But switching a resource from `count` to `for_each` normally
-looks like a *different* resource to OpenTofu — the addresses changed
-(`manifest[0]` → `manifest["checkout"]`) — so without help it would destroy all
-three and recreate them. The three `moved` blocks tell OpenTofu that each old
-address **is** the new one: rename in state, touch nothing real.
-
-```bash
 tofu plan
+tofu apply -auto-approve
+tofu state list
 ```
-
-**Task:** The addresses all changed from index to key. How many resources does the
-plan add, change, or destroy — and what does OpenTofu report instead?
-
----
 
 <details><summary>Solution / expected output</summary>
 
@@ -212,57 +135,31 @@ $ tofu plan
   # local_file.manifest[2] has moved to local_file.manifest["search"]
 ...
 Plan: 0 to add, 0 to change, 0 to destroy.
-```
 
-**`0 to add, 0 to change, 0 to destroy`** — every instance is reported as
-`has moved to`, a pure state rename. Nothing on disk is recreated. That is the
-entire point of a `moved` block: it decouples "I renamed/re-keyed this in my code"
-from "I want to rebuild this in the world."
-
-Apply it to commit the state move:
-
-```console
 $ tofu apply -auto-approve
-  # local_file.manifest[0] has moved to local_file.manifest["checkout"]
-  # local_file.manifest[1] has moved to local_file.manifest["payments"]
-  # local_file.manifest[2] has moved to local_file.manifest["search"]
-
+...
 Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
 
 $ tofu state list
+data.archive_file.bundle
 local_file.manifest["checkout"]
 local_file.manifest["payments"]
 local_file.manifest["search"]
 ```
 
-State is now **keyed by name**, and no file was rewritten.
+Every instance is reported as `has moved to` — a pure state rename, nothing on
+disk recreated. `moved` decouples "I re-keyed this in code" from "rebuild it in
+the world."
 
 </details>
 
 ---
 
-### Step 4 — Prove the fix: remove the same middle element under `for_each`
+### Step 4 — Prove the fix, then mis-key the map
 
-Repeat Step 2's deletion, but on the keyed config. **Temporarily** delete the
-`payments` line from the `default` map so it reads:
-
-```hcl
-  default = {
-    checkout = { replicas = 2 }
-    search   = { replicas = 3 }
-  }
-```
-
-Then plan — **do not apply**:
-
-```bash
-tofu plan
-```
-
-**Task:** Same removal as Step 2. Compare the plan: how many are destroyed now, and
-is `search` touched at all?
-
----
+Delete the `payments` entry from the keyed map and plan — **do not apply**.
+Then, with `payments` still deleted, append the temporary mis-keyed output from
+the participant lab and plan again.
 
 <details><summary>Solution / expected output</summary>
 
@@ -275,27 +172,31 @@ $ tofu plan
 Plan: 0 to add, 0 to change, 1 to destroy.
 ```
 
-**`0 to add, 0 to change, 1 to destroy`** — only `manifest["payments"]`, keyed by
-the name you removed, is destroyed. `checkout` and `search` are **not in the plan
-at all**: their keys never moved, so their identity is stable. Compare with Step 2's
-`1 to add, 2 to destroy` for the *identical* removal — that is the whole `count` vs
-`for_each` decision in two plans.
-
-Revert the deletion before moving on:
-
-```hcl
-  default = {
-    checkout = { replicas = 2 }
-    payments = { replicas = 4 }
-    search   = { replicas = 3 }
-  }
-```
+Surgical: only the removed key is destroyed; `checkout` and `search` aren't in
+the plan at all. With the leftover lookup appended:
 
 ```console
+$ tofu plan
+...
+╷
+│ Error: Invalid index
+│
+│   on main.tf line 54, in output "payments_replicas":
+│   54:   value = var.services["payments"].replicas
+│     ├────────────────
+│     │ var.services is map of object with 2 elements
+│
+│ The given key does not identify an element in this collection value.
+╵
+```
+
+Keys are exact, case-sensitive strings; a mis-keyed lookup fails loudly at
+**plan** time with file, line, and collection size. Fix both edits at once:
+
+```console
+$ git checkout -- main.tf
 $ tofu apply -auto-approve
 No changes. Your infrastructure matches the configuration.
-
-Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
 ```
 
 </details>
@@ -304,85 +205,8 @@ Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
 
 ### Step 5 — Break → fix: an edit that silently forces a re-create
 
-Not every replacement is as loud as deleting a resource. `local_file` is
-**immutable**: change the *filename* and OpenTofu can't edit the file in place — it
-must destroy the old one and create a new one. Say you "tidy up" the extension from
-`.env` to `.conf`. **Temporarily** change that one line in `main.tf`:
-
-```hcl
-  filename = "${path.module}/out/${each.key}.conf"
-```
-
-Then plan — **do not apply**:
-
-```bash
-tofu plan
-```
-
-**Task:** You changed one word. What does the plan want to do to the **whole
-fleet**, and which line does OpenTofu flag as the cause?
-
-**Fix:** the change was cosmetic and not worth a fleet rebuild — revert it.
-
-```bash
-git checkout -- main.tf
-tofu plan
-```
-
-## Expected observations
-
-- **`count` addresses by index.** Removing a middle element renumbers every later
-  instance; for an immutable resource that means `must be replaced` +
-  `will be destroyed` — Step 2 removed one service and planned `2 to destroy`.
-- **`for_each` addresses by key.** The identical removal touches only the removed
-  key — Step 4 planned `1 to destroy`, and the surviving instances weren't in the
-  plan at all. Prefer `for_each` whenever instances have a stable identity.
-- **`moved` refactors state, not infrastructure.** Switching `count` → `for_each`
-  with `moved` blocks planned `0 to add, 0 to change, 0 to destroy`, every instance
-  reported `has moved to` — a state rename, nothing rebuilt.
-- **`plan` is the safety gate.** A cosmetic `filename` edit planned `3 to destroy`
-  with `# forces replacement` on the offending line — caught before apply. Read the
-  action counts and the `forces replacement` annotations every time.
-
-## Cleanup / panic reset
-
-Destroy the (local-only) resources and remove every generated artifact — no
-residue, `git status` clean:
-
-```bash
-cd labs/day-1/09-best-practices
-tofu destroy -auto-approve                              # tear down the three local_file instances
-git checkout -- main.tf                                 # undo any temporary Step 1-5 edits
-rm -rf .terraform .terraform.lock.hcl out
-find . -maxdepth 1 -name 'terraform.tfstate*' -delete   # sweep any state/backup files safely
-git status --short .                                    # expect: no output
-```
-
-No cloud resources are created in this lab, so there is nothing to bill or leak.
-The generated state / `.terraform` / rendered `out/` files are gitignored; the
-panic reset leaves the tracked `main.tf` exactly as CI verified it.
-
-> The `find … -delete` sweep is shell-agnostic: a raw `terraform.tfstate.*` glob
-> aborts under zsh's `nomatch` when no such file exists, and `tofu` can leave
-> timestamped `.backup` files behind. `find` matches zero-or-more without erroring.
-> `git checkout -- main.tf` is the belt-and-braces revert for the temporary edits
-> in Steps 1, 2, 4, and 5.
-
-## Stretch (optional)
-
-- **`for_each` over the objects, not just keys.** The map values here carry only
-  `replicas`. Add a `tier` field and reference `each.value.tier` in the manifest —
-  see how `for_each`'s `each.value` gives you the whole object, where `count` gave
-  you only an index into a separate list.
-- **Chain two `moved` blocks.** Rename the resource *and* re-key it in one refactor
-  (e.g. `local_file.manifest[0]` → `local_file.service_env["checkout"]`) and
-  confirm the plan is still `0 to destroy`. `moved` blocks compose — a resource can
-  travel several renames across releases and stay a single object in state.
-- **Contrast with `removed`.** On the slides you saw the `removed` block: it drops a
-  resource from state *without* destroying the real object (the safe successor to
-  `state rm`). Reason about when you'd reach for `removed` versus simply deleting a
-  `for_each` key — the difference is whether you want the underlying object gone or
-  merely un-managed.
+Change the `filename` extension to `.conf` in `main.tf`, plan, read the
+replacement signals, then revert with `git checkout -- main.tf`.
 
 <details><summary>Solution / expected output</summary>
 
@@ -399,25 +223,216 @@ $ tofu plan
 Plan: 3 to add, 0 to change, 3 to destroy.
 ```
 
-`Plan: 3 to add, 0 to change, **3 to destroy**` — a one-word cosmetic change wants
-to destroy and recreate **every** instance. OpenTofu tells you exactly why on the
-changed line: **`# forces replacement`**. This is the everyday version of the trap:
-the plan caught it before any file was deleted. Reading `plan` output — and never
-`-auto-approve`-ing a surprise `must be replaced` / `forces replacement` — is the
-practice this whole section is about.
+A one-word cosmetic change wants to rebuild the whole fleet, and
+`# forces replacement` names the exact attribute. After
+`git checkout -- main.tf`, `tofu plan` is a clean `No changes`.
 
 </details>
+
+---
+
+### Step 6 — Meet the `dynamic` block
+
+```bash
+tofu output bundle_sha256
+unzip -l out/bundle.zip
+unzip -p out/bundle.zip checkout.env
+```
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ tofu output bundle_sha256
+"98817fde81e5659f696dcd4e2fc4a0ee7a9add23359b83f09e5cdec82e2763a6"
+
+$ unzip -l out/bundle.zip
+Archive:  out/bundle.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+       11  00-00-1980 00:00   checkout.env
+       11  00-00-1980 00:00   payments.env
+       11  00-00-1980 00:00   search.env
+---------                     -------
+       33                     3 files
+
+$ unzip -p out/bundle.zip checkout.env
+REPLICAS=2
+```
+
+One zip entry per `var.services` key, each stamped out by one iteration of
+`dynamic "source"`. The iterator is named after the **label** (`source.key` /
+`source.value`), not `each`.
+
+</details>
+
+---
+
+### Step 7 — The copy-paste bundle, and what it silently forgets
+
+Replace `bundle.tf` with the three literal `source {}` blocks from the
+participant lab and plan; then add the temporary `billing` service to the map in
+`main.tf` and plan again.
 
 <details><summary>Solution / expected output</summary>
 
 ```console
 $ tofu plan
+data.archive_file.bundle: Reading...
+data.archive_file.bundle: Read complete after 0s [id=624f9bc013ee78d910d2745bf26135683eeb9ea8]
+
 No changes. Your infrastructure matches the configuration.
 ```
 
-Reverting the extension restores `main.tf` to the tracked canonical form, and the
-plan is a clean **`No changes`**. `git diff` now shows nothing — you end exactly
-where CI verified.
+The literal blocks expand to exactly what the `dynamic` block generated (same
+entries, sorted-key order), so the zip is byte-identical — `dynamic` is pure
+authoring-time sugar. With `billing` added:
+
+```console
+$ tofu plan
+...
+  # local_file.manifest["billing"] will be created
+...
+Plan: 1 to add, 0 to change, 0 to destroy.
+```
+
+`for_each` picked up the new service; the hand-copied bundle **did not** — and
+there is *no* output change, diff, or warning saying so. The deploy bundle would
+ship without `billing.env`. Copy-paste config fails silently because the same
+data lives in two places and only one is wired to change.
+
+</details>
+
+---
+
+### Step 8 — Write the `dynamic` block yourself
+
+Replace the literal blocks with a `dynamic "source"` block using `each.*` first
+(the deliberate break), plan, read both errors, then fix `each.` → `source.` and
+plan again. Finally revert `billing`, diff, and adopt the canonical file.
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ tofu plan
+...
+╷
+│ Error: Reference to "each" in context without for_each
+│
+│   on bundle.tf line 9, in data "archive_file" "bundle":
+│    9:       filename = "${each.key}.env"
+│
+│ The "each" object can be used only in "module" or "resource" blocks, and
+│ only when the "for_each" argument is set.
+╵
+╷
+│ Error: each.value cannot be used in this context
+│
+│   on bundle.tf line 10, in data "archive_file" "bundle":
+│   10:       content  = "REPLICAS=${each.value.replicas}\n"
+│
+│ A reference to "each.value" has been used in a context in which it is
+│ unavailable, such as when the configuration no longer contains the value in
+│ its "for_each" expression. Remove this reference to each.value in your
+│ configuration to work around this error.
+╵
+```
+
+(The errors repeat once per element.) `each` exists only for resource/module
+`for_each`; a `dynamic` block's iterator is named after its **label** (or an
+explicit `iterator =`). After the fix:
+
+```console
+$ tofu plan
+...
+  # local_file.manifest["billing"] will be created
+...
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  ~ bundle_sha256 = "98817fde81e5659f696dcd4e2fc4a0ee7a9add23359b83f09e5cdec82e2763a6" -> "4b92d23124397dce475949b4e71bab753cd17a52a1219635869ce00f7768c78e"
+
+$ unzip -l out/bundle.zip
+Archive:  out/bundle.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+       11  00-00-1980 00:00   billing.env
+       11  00-00-1980 00:00   checkout.env
+       11  00-00-1980 00:00   payments.env
+       11  00-00-1980 00:00   search.env
+---------                     -------
+       44                     4 files
+```
+
+Now one map entry updates both fan-outs in a single plan. Converge:
+
+```console
+$ git checkout -- main.tf
+$ git diff -- bundle.tf
+...(comment lines only — your TEMPORARY header vs the tracked one)...
+$ git checkout -- bundle.tf
+$ tofu plan
+...
+No changes. Your infrastructure matches the configuration.
+```
+
+</details>
+
+---
+
+### Step 9 — Fan-out width unknown at plan time
+
+Create the temporary scratch `receipts.tf` from the participant lab (gitignored)
+and plan; try the suggested `-exclude` workaround; then apply the structural fix
+and delete the scratch file.
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ tofu plan
+...
+Plan: 1 to add, 0 to change, 0 to destroy.
+╷
+│ Error: Invalid count argument
+│
+│   on receipts.tf line 11, in resource "local_file" "receipt":
+│   11:   count    = length(local_file.audit.content_sha256)
+│
+│ The "count" value depends on resource attributes that cannot be determined
+│ until apply, so OpenTofu cannot predict how many instances will be created.
+│
+│ To work around this, use the planning option -exclude=local_file.receipt to
+│ first apply without this object, and then apply normally to converge.
+╵
+```
+
+A plan is a complete promise: a width that is `(known after apply)` cannot be
+planned, and `for_each` applies the same rule to its keys. The two-pass
+workaround (needs ≥ 1.9):
+
+```console
+$ tofu plan -exclude=local_file.receipt
+...
+  # local_file.audit will be created
+...
+Plan: 1 to add, 0 to change, 0 to destroy.
+╷
+│ Warning: Resource targeting is in effect
+...
+```
+
+The structural fix — `count = length(var.services)` — plans in one pass:
+
+```console
+$ tofu plan
+...
+  # local_file.audit will be created
+  # local_file.receipt[0] will be created
+  # local_file.receipt[1] will be created
+  # local_file.receipt[2] will be created
+Plan: 4 to add, 0 to change, 0 to destroy.
+```
+
+Do not apply; `rm receipts.tf` and `tofu plan` returns `No changes`.
 
 </details>
 
@@ -425,84 +440,121 @@ where CI verified.
 
 ## Expected state / output
 
-- **`count` addresses by index.** Removing a middle element renumbers every later
-  instance; for an immutable resource that means `must be replaced` +
-  `will be destroyed` — Step 2 removed one service and planned `2 to destroy`.
-- **`for_each` addresses by key.** The identical removal touches only the removed
-  key — Step 4 planned `1 to destroy`, and the surviving instances weren't in the
-  plan at all. Prefer `for_each` whenever instances have a stable identity.
-- **`moved` refactors state, not infrastructure.** Switching `count` → `for_each`
-  with `moved` blocks planned `0 to add, 0 to change, 0 to destroy`, every instance
-  reported `has moved to` — a state rename, nothing rebuilt.
-- **`plan` is the safety gate.** A cosmetic `filename` edit planned `3 to destroy`
-  with `# forces replacement` on the offending line — caught before apply. Read the
-  action counts and the `forces replacement` annotations every time.
-
-Representative console output from the inline spoilers above applies when your
-toolchain versions match the lab pin.
+- **Step 2 vs Step 4:** the identical middle-element removal planned
+  `1 to add, 2 to destroy` under `count` but `0 to add, 1 to destroy` under
+  `for_each` — the surviving instances appear in the `count` plan and are absent
+  from the `for_each` plan.
+- **Step 3:** the `count` → `for_each` migration planned and applied
+  `0 to add, 0 to change, 0 to destroy` with three `has moved to` lines;
+  `tofu state list` ends keyed (`manifest["checkout"]` …).
+- **Step 4 break:** `Error: Invalid index … The given key does not identify an
+  element in this collection value`, naming file and line.
+- **Step 5:** `Plan: 3 to add, 0 to change, 3 to destroy` with
+  `# forces replacement` on each `filename` line; clean `No changes` after
+  revert.
+- **Steps 6–8:** `bundle_sha256` output `98817fde…` with 3 zip entries; the
+  static regression planned `No changes`; the silent-forget break planned
+  `1 to add` with **no** bundle output change; the fixed dynamic form planned
+  `1 to add` **plus** `~ bundle_sha256 … -> 4b92d231…` and a 4-entry zip.
+- **Step 9:** `Error: Invalid count argument` suggesting
+  `-exclude=local_file.receipt`; the structural fix planned
+  `4 to add, 0 to change, 0 to destroy`.
+- **Cleanup:** `Destroy complete! Resources: 3 destroyed.` and an empty
+  `git status --short`.
 
 ## Explanation
 
-OpenTofu reconciles declared configuration against stored state on every plan and
-apply, so the commands above succeed only when the tracked HCL, provider plugins,
-and backend settings match what the lab authored. Each step therefore wires inputs
-(outputs, variables, modules, or data sources) before the resources that consume
-them, because the graph must be acyclic at evaluation time.
-
-When a step reads remote or emulated cloud APIs (LocalStack or mock providers), the
-provider block binds credentials and endpoints first; resources then call those APIs
-and persist returned attributes into state. That is why init/plan/apply ordering
-matters and why re-running apply without changes reports zero additions.
+OpenTofu reconciles declared configuration against stored state on every plan
+and apply, and an instance's **address is its identity** in that reconciliation.
+`count` derives addresses from positions, so removing a middle element re-keys
+every later instance and — because `local_file` is immutable — forces
+destroy+recreate; `for_each` derives addresses from map keys, so the same
+removal touches one instance. `moved` blocks edit the address-to-object binding
+directly in state, which is why the migration plans as zero actions. A `dynamic`
+block is expansion sugar evaluated before the provider sees the config — the
+provider receives identical nested blocks whether they were literal or
+generated, which is why the regression planned `No changes` and why the iterator
+is scoped to the block (named after the label) rather than being the resource's
+`each`. And because a plan must fully enumerate instances before apply, a
+fan-out width that depends on an unapplied resource's computed attribute cannot
+be planned — deriving width from configuration removes the dependency, so the
+single-pass plan succeeds.
 
 ## Troubleshooting and recovery
 
-If a step fails mid-lab, prefer the documented panic reset before editing tracked files by hand:
-
-Destroy the (local-only) resources and remove every generated artifact — no
-residue, `git status` clean:
+If a step fails mid-lab, prefer the documented panic reset before editing
+tracked files by hand. All commands run from the **repo root**, so this block
+recovers you from any half-finished step, wherever you are:
 
 ```bash
-cd labs/day-1/09-best-practices
-tofu destroy -auto-approve                              # tear down the three local_file instances
-git checkout -- main.tf                                 # undo any temporary Step 1-5 edits
-rm -rf .terraform .terraform.lock.hcl out
-find . -maxdepth 1 -name 'terraform.tfstate*' -delete   # sweep any state/backup files safely
-git status --short .                                    # expect: no output
+cd "$(git rev-parse --show-toplevel)"
+tofu -chdir=labs/day-1/09-best-practices destroy -auto-approve   # tear down the local_file instances
+git checkout -- labs/day-1/09-best-practices                     # undo any temporary step edits
+rm -f labs/day-1/09-best-practices/receipts.tf                   # drop the Step 9 scratch file (untracked)
+rm -rf labs/day-1/09-best-practices/.terraform \
+       labs/day-1/09-best-practices/.terraform.lock.hcl \
+       labs/day-1/09-best-practices/out
+find labs/day-1/09-best-practices -maxdepth 1 -name 'terraform.tfstate*' -delete
+git status --short labs/day-1/09-best-practices                  # expect: no output
 ```
 
-No cloud resources are created in this lab, so there is nothing to bill or leak.
-The generated state / `.terraform` / rendered `out/` files are gitignored; the
-panic reset leaves the tracked `main.tf` exactly as CI verified it.
+No cloud resources are created in this lab, so there is nothing to bill or
+leak. The generated state / `.terraform` / rendered `out/` files (including
+`bundle.zip`) and the scratch `receipts.tf` are gitignored; the panic reset
+leaves the tracked `main.tf` and `bundle.tf` exactly as CI verified them. The
+`.terraform.lock.hcl` removed here is the *untracked* one this lab's init
+generates in its own workdir — never a tracked lockfile.
 
-> The `find … -delete` sweep is shell-agnostic: a raw `terraform.tfstate.*` glob
-> aborts under zsh's `nomatch` when no such file exists, and `tofu` can leave
-> timestamped `.backup` files behind. `find` matches zero-or-more without erroring.
-> `git checkout -- main.tf` is the belt-and-braces revert for the temporary edits
-> in Steps 1, 2, 4, and 5.
+> The `find … -delete` sweep is shell-agnostic: a raw `terraform.tfstate.*`
+> glob aborts under zsh's `nomatch` when no such file exists, and `tofu` can
+> leave timestamped `.backup` files behind. `find` matches zero-or-more without
+> erroring.
 
-Re-enter `labs/day-1/09-best-practices/` and replay from the failing step once the environment is clean. For provider or module download errors, run `tofu init -upgrade` in the workdir and retry `tofu plan`.
+Re-enter `labs/day-1/09-best-practices/` and replay from the failing step once
+the environment is clean. For provider or module download errors, run
+`tofu init -upgrade` in the workdir and retry `tofu plan`.
 
 ## Stretch solution
 
 ### Commands / manifest
 
-- **`for_each` over the objects, not just keys.** The map values here carry only
-- **Chain two `moved` blocks.** Rename the resource *and* re-key it in one refactor
-- **Contrast with `removed`.** On the slides you saw the `removed` block: it drops a
+- **`for_each` over the objects:** add `tier = string` to the map's object type,
+  give each service a `tier`, then reference `each.value.tier` in the manifest
+  content *and* `source.value.tier` in the bundle content.
+- **Chain two `moved` blocks:** rename *and* re-key in one refactor
+  (`local_file.manifest[0]` → `local_file.service_env["checkout"]`).
+- **Name the iterator explicitly:** add `iterator = svc` to the `dynamic` block
+  and switch references to `svc.key` / `svc.value.replicas`.
+- **Contrast with `removed`:** reason through `removed {}` +
+  `lifecycle { destroy = false }` versus deleting a `for_each` key.
 
 Example verification from the workdir:
 
 ```bash
 cd labs/day-1/09-best-practices
 tofu plan
+tofu apply -auto-approve
+tofu state list
+git checkout -- main.tf bundle.tf
 ```
 
 ### Expected state / output
 
-When the stretch applies cleanly, `tofu plan` afterward shows no further changes and stretch-specific outputs appear in state as described in the spoiler blocks above.
+The `tier` stretch plans `3 to change` (content is mutable-adjacent here via
+replacement: for `local_file` it actually plans `must be replaced` — read the
+`# forces replacement` marker and decide consciously) plus a `bundle_sha256`
+output change. The chained `moved` stretch plans `0 to add, 0 to change,
+0 to destroy` with `has moved to` lines for the renamed addresses. The
+`iterator = svc` stretch plans `No changes` — naming the iterator does not
+change the expansion. After `git checkout -- main.tf bundle.tf`, `tofu plan`
+returns `No changes`.
 
 ### Explanation
 
-Stretch tasks extend the same exercise with additional constraints or outputs; they
-remain optional because they reuse the core method and only deepen the analysis once
-the guided path already converged.
+The stretches deepen the same identity model: `each.value`/`source.value` carry
+whole objects, so widening the object type flows one input change through both
+fan-out levels; `moved` blocks compose because each edits the address binding,
+not the object; and an explicit `iterator` only renames the expansion-time
+symbol, so the provider-visible config — and therefore the plan — is unchanged.
+They stay optional because they reuse the converged end state rather than
+advancing it.
