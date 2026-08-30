@@ -88,8 +88,8 @@ title "OpenTofu Workshop · verify (unit lane)"
 # 0. Single-run guard + temp lifetime (US-F-GATEHYG)
 #
 #    WHY A LOCK AT ALL: since US-C-GATE this gate is STATEFUL in the worktree.
-#    Section 3 runs `tofu init -backend=false` IN PLACE in every day-1/day-3 lab
-#    workdir, writing labs/**/.terraform/. Nothing serialized that, so two
+#    Section 3 runs `tofu init -backend=false` IN PLACE in every swept day-1/
+#    day-2/day-3 lab workdir, writing labs/**/.terraform/. Nothing serialized that, so two
 #    overlapping runs in the same checkout populate the same provider cache
 #    directories and shred each other's. The damage does not surface where it
 #    was done — it surfaces later, as
@@ -219,7 +219,7 @@ refuse_concurrent_run() {
   # be, and `rm -rf .verify.lock` typed from labs/day-1/03-core-workflow removes
   # nothing at all while looking like it worked.
   info "lock:   $VERIFY_LOCK_DIR"
-  info "why: this gate runs 'tofu init' IN PLACE in every day-1/day-3 lab workdir,"
+  info "why: this gate runs 'tofu init' IN PLACE in every swept day-1/2/3 lab workdir,"
   info "     so two runs here would write the same labs/**/.terraform/ and corrupt"
   info "     each other's provider cache. The damage would surface later as an init"
   info "     failure in a directory that varies by timing — i.e. as a fake flake."
@@ -443,9 +443,9 @@ else
 fi
 
 # Collect module/example dirs that actually contain Terraform/OpenTofu code,
-# plus day-2 lab workdirs that ship *.tftest.hcl (audit TEST-A2), plus EVERY
-# day-1/day-3 lab workdir that holds .tf (US-C-GATE — see the recursive scan
-# below for why those two days are swept recursively while day-2 is not).
+# plus EVERY lab workdir under days 1/2/3 that holds .tf (US-C-GATE for days
+# 1/3; US-E-D2SWEEP folded day-2 into the same recursive scan — see the WHY
+# block below for the two intentionally-broken day-2 fixtures it excludes).
 # nullglob makes empty globs vanish instead of expanding to a literal '*'.
 shopt -s nullglob
 CODE_DIRS=()
@@ -457,17 +457,7 @@ for base in modules examples; do
     [ "${#tf[@]}" -gt 0 ] && CODE_DIRS+=("${d%/}")
   done
 done
-# Day-2 labs: discover workdirs that contain both *.tf and *.tftest.hcl
-# (top-level or under tests/). Integration-named suites are filtered later.
-for d in labs/day-2/*/; do
-  [ -d "$d" ] || continue
-  tf=("$d"*.tf)
-  [ "${#tf[@]}" -gt 0 ] || continue
-  lab_tests=("$d"*.tftest.hcl "$d"tests/*.tftest.hcl)
-  [ "${#lab_tests[@]}" -gt 0 ] && CODE_DIRS+=("${d%/}")
-done
-
-# Day-1 / Day-3 lab workdirs (US-C-GATE).
+# Day-1 / Day-2 / Day-3 lab workdirs (US-C-GATE, extended by US-E-D2SWEEP).
 #
 # WHY THIS EXISTS: these two days shipped ZERO semantic validation. A dangling
 # reference in a Day-1 lab was caught only INDIRECTLY, by the §6 drift gate
@@ -476,21 +466,39 @@ done
 # and the gate goes green over structurally broken HCL, which the learner then
 # meets as a failing `tofu plan`. Nothing in CI ran `task lab:validate`.
 #
-# WHY RECURSIVE, unlike the day-2 loop above: Day-3's runnable roots are NESTED,
-# never at the top of the lab dir — Terramate stacks live at
-# labs/day-3/NN-topic/stacks/<name>/ and the Terragrunt comparison at
-# .../terragrunt-style/units/<name>/. A top-level-only scan would validate 1 of
-# the 15 Day-3 roots. Day-1 nests too (07-modules/modules/service-manifest, a
-# child module; 02-hcl-blocks/greeting). Child modules are validated as roots as
-# well: it costs ~1s, and it keeps them covered even when no parent references
-# them. `**/` matches zero or more directories, so top-level roots are included.
+# WHY DAY-2 IS IN THIS SWEEP TOO (US-E-D2SWEEP): day-2 used to have its own
+# loop that only picked workdirs shipping *.tftest.hcl (audit TEST-A2), which
+# left 18-terratest-cost/, 18-terratest-cost/cost/ and 19-testing-cicd/fixture/
+# fmt-only — with audit TEST-1, lab 18 had ZERO semantic gates (audit TEST-2).
+# Sweeping .tf directly subsumes that loop: every dir it found (12, 16, 17)
+# holds .tf, and §3/§4 below still run each discovered dir's *.tftest.hcl, so
+# tftest execution is unchanged — only validate coverage widened.
 #
-# NO EXCLUSIONS: all 28 discovered roots init and validate standalone today
-# (Day-3's generated _providers.tf/_backend.tf are committed, so no
-# `terramate generate` is needed first). The one intentionally-broken fixture in
-# the repo — labs/day-2/13-static-analysis/messy, whose `default = "payments"`
-# for a list(string) even fails `init` — is Day-2 and has no *.tftest.hcl, so it
-# stays out of this loop exactly as before.
+# WHY RECURSIVE: Day-3's runnable roots are NESTED, never at the top of the
+# lab dir — Terramate stacks live at labs/day-3/NN-topic/stacks/<name>/ and
+# the Terragrunt comparison at .../terragrunt-style/units/<name>/. A
+# top-level-only scan would validate 1 of the 15 Day-3 roots. Day-1 nests too
+# (07-modules/modules/service-manifest, a child module; 02-hcl-blocks/greeting),
+# and so does Day-2: 18-terratest-cost/cost/ (the Infracost stretch fixture)
+# and 19-testing-cicd/fixture/ are runnable roots below the lab dir. Child
+# modules are validated as roots as well: it costs ~1s, and it keeps them
+# covered even when no parent references them. `**/` matches zero or more
+# directories, so top-level roots are included.
+#
+# EXACTLY TWO EXCLUSIONS, BY PATH, both intentionally-broken teaching fixtures:
+#   labs/day-2/13-static-analysis/messy/   — its `default = "payments"` for a
+#       list(string) fails even `tofu init`; S13 exists to let learners point
+#       tflint at broken HCL (the fmt gate allowlists the same file, see
+#       S13_MESSY_FIXTURE below);
+#   labs/day-2/14-security-scanners/messy/ — S14's deliberately insecure
+#       scanner fodder; validating it green would teach nothing and any red is
+#       noise, not rot.
+# Prefix match, not exact-dir: anything a story later nests UNDER messy/ is
+# fixture too. BY PATH, not by count or by "fails validate": an exclusion that
+# keys on breakage would silently swallow real rot in a real lab. Every OTHER
+# discovered root inits and validates standalone today (Day-3's generated
+# _providers.tf/_backend.tf are committed, so no `terramate generate` is
+# needed first).
 #
 # ASYMMETRY WITH §2, ON PURPOSE: the fmt scan is scoped to the git INDEX so a
 # sibling worktree or untracked file cannot red a clean tree. This scan is a
@@ -502,7 +510,7 @@ done
 # is not a reason to stop validating it. CI checkouts have no ignored scratch.
 declare -A LAB_DIR_SEEN=()
 shopt -s globstar
-for base in labs/day-1 labs/day-3; do
+for base in labs/day-1 labs/day-2 labs/day-3; do
   [ -d "$base" ] || continue
   for tf_path in "$base"/**/*.tf; do
     [ -f "$tf_path" ] || continue
@@ -511,6 +519,12 @@ for base in labs/day-1 labs/day-3; do
     # this the check COUNT grows between two consecutive runs of an unchanged
     # tree — a gate whose result depends on whether it has run before.
     case "$d" in */.terraform | */.terraform/*) continue ;; esac
+    # The two intentionally-broken teaching fixtures — see EXACTLY TWO
+    # EXCLUSIONS above for why these paths, why prefix, and why nothing else.
+    case "$d" in
+      labs/day-2/13-static-analysis/messy | labs/day-2/13-static-analysis/messy/* | \
+      labs/day-2/14-security-scanners/messy | labs/day-2/14-security-scanners/messy/*) continue ;;
+    esac
     [ -n "${LAB_DIR_SEEN[$d]+set}" ] && continue
     LAB_DIR_SEEN["$d"]=1
     CODE_DIRS+=("$d")
@@ -651,7 +665,7 @@ fi
 # ---------------------------------------------------------------------------
 heading "Validate & test (modules · examples · labs/day-1 · labs/day-2 · labs/day-3)"
 if [ "${#CODE_DIRS[@]}" -eq 0 ]; then
-  warn "no modules/* / examples/* / labs/day-1|day-3 / labs/day-2 tftest roots with .tf files yet — nothing to validate."
+  warn "no modules/* / examples/* / labs/day-1|day-2|day-3 roots with .tf files yet — nothing to validate."
   info "This is expected before lab content is authored. (pass)"
 else
   # init's output used to go straight to /dev/null, so the failure branch below

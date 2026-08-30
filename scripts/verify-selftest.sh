@@ -73,6 +73,12 @@
 #         with every annotated block in sync (the §6 drift gate CANNOT see this)
 #    21c. labs/day-3/**/stacks/<name>/ with an undeclared reference → exit !=0 AND
 #         the nested dir named (pins RECURSIVE discovery; day-3 has no top-level roots)
+#   day-2 lab workdir sweep (US-E-D2SWEEP / section 3 CODE_DIRS):
+#    21d. broken .tf in a NESTED day-2 workdir with no *.tftest.hcl → exit !=0 AND
+#         the nested dir named (day-2 sweep ARMED and recursive, not tftest-gated)
+#    21e. validate-broken .tf planted in 14-security-scanners/messy/ AND in a
+#         subdir of it → exit 0 while a swept sibling's "…: validate" line shows
+#         the sweep ran (messy/ excluded BY PATH PREFIX, not by silent no-op)
 #   §5 smoke-check scope (US-F-R4):
 #    22. prose mentioning modules/does-not-exist → exit 0 (NOT a shared-code ref)
 #    23. missing path in HCL source = "…modules/…" → exit !=0 AND path named (ARMED)
@@ -188,7 +194,7 @@ bad()  { printf '  [FAIL] %s\n' "$*"; fail_n=$((fail_n + 1)); }
 #
 # so the RETURN trap was cleared while it was still the only thing that would
 # ever have fired, and NOTHING removed the tree. Every case leaks a full repo
-# copy: ~44 cases per run, each a few MB with provider caches, and the dev host
+# copy: ~46 cases per run, each a few MB with provider caches, and the dev host
 # had accumulated thousands. CI runners have finite disk; this is how they fill.
 #
 # The replacement is two layers, deliberately:
@@ -964,6 +970,45 @@ m_lab_validate_day3_nested_broken() {
   plant_lab_validate_root "$1" "$DAY3_VALIDATE_DIR" broken
 }
 
+# Day-2 lab workdir sweep (US-E-D2SWEEP / section 3 CODE_DIRS).
+#
+# The hole these cases close: after US-C-GATE, day-2 was STILL the odd one out —
+# its discovery loop only picked workdirs that also shipped *.tftest.hcl, so
+# 18-terratest-cost/, 18-terratest-cost/cost/ and 19-testing-cicd/fixture/ got
+# fmt-only treatment (audit TEST-2). The sweep must be recursive (18's cost/
+# fixture and 19's fixture/ are NESTED, exactly like day-3's stacks) and must
+# exclude the two intentionally-broken teaching fixtures BY PATH:
+# labs/day-2/13-static-analysis/messy/ (fails even `tofu init`) and
+# labs/day-2/14-security-scanners/messy/.
+DAY2_SWEEP_DIR="labs/day-2/99-d2sweep-selftest"
+DAY2_SWEEP_NESTED_DIR="labs/day-2/99-d2sweep-selftest/fixture"
+DAY2_MESSY_14_DIR="labs/day-2/14-security-scanners/messy"
+
+# A broken .tf in a NESTED day-2 workdir with NO *.tftest.hcl anywhere near it.
+# Nested on purpose: a top-level-only day-2 sweep would leave this case green
+# while 18-terratest-cost/cost/ and 19-testing-cicd/fixture/ stayed uncovered.
+m_day2_sweep_nested_broken() {
+  plant_lab_validate_root "$1" "$DAY2_SWEEP_NESTED_DIR" broken
+}
+
+# Exclusion-LAYER probe, not just an inclusion outcome. Three plants in ONE run:
+#   (a) a clean swept sibling → its "…: validate" pass line proves the day-2
+#       sweep is ARMED in this very run (a bare green would also be produced by
+#       a sweep that never ran);
+#   (b) a validate-broken .tf planted directly in 14-security-scanners/messy/
+#       (init-clean, so only `tofu validate` could red on it);
+#   (c) a validate-broken .tf in a SUBDIR of that messy/ dir, pinning that the
+#       exclusion is a PATH PREFIX, not an exact-directory match.
+# The sandbox also always carries the real 13-static-analysis/messy/main.tf,
+# which fails `tofu init` outright — so if EITHER messy path leaks into the
+# sweep, this case (and half the suite) goes red. Expected: still green.
+m_day2_messy_excluded() {
+  local root="$1"
+  plant_lab_validate_root "$root" "$DAY2_SWEEP_DIR" clean
+  plant_lab_validate_root "$root" "$DAY2_MESSY_14_DIR" broken
+  plant_lab_validate_root "$root" "$DAY2_MESSY_14_DIR/deeper" broken
+}
+
 # The init FAILURE branch used to print nothing but "init failed", and the one
 # message it hides is the provider-cache signature that this project has twice
 # misdiagnosed as a flake. Stub `init` for one lab dir to emit exactly that
@@ -1722,6 +1767,8 @@ run_case "day-2 lab integration tftest deferred" pass "labs/day-2/99-lab-tftest-
 run_case "day-1 lab workdir validated" pass "$DAY1_VALIDATE_DIR: validate" m_lab_validate_day1_clean "$VALIDATE_SCOPE_HEADING"
 run_case "day-1 dangling reference armed" fail "$DAY1_VALIDATE_DIR: validate" m_lab_validate_day1_broken "$VALIDATE_SCOPE_HEADING"
 run_case "day-3 nested stack dangling reference armed" fail "$DAY3_VALIDATE_DIR: validate" m_lab_validate_day3_nested_broken "$VALIDATE_SCOPE_HEADING"
+run_case "day-2 nested workdir without tftest swept and armed" fail "$DAY2_SWEEP_NESTED_DIR: validate" m_day2_sweep_nested_broken "$VALIDATE_SCOPE_HEADING"
+run_case "day-2 messy fixtures excluded by path prefix" pass "$DAY2_SWEEP_DIR: validate" m_day2_messy_excluded "$VALIDATE_SCOPE_HEADING"
 run_case "init failure names BOTH provider-cache causes" fail "a COLD or partial provider cache" m_init_provider_cache_failure "no package for registry.opentofu.org" "another process writing .terraform/"
 # `also` pins the SURVIVAL half: exit non-zero alone would also be produced by
 # the silent death this case exists to forbid. Reaching the summary proves the
@@ -1783,7 +1830,7 @@ else
 fi
 
 printf '\n### temp + lock hygiene sweeps (US-F-GATEHYG) ###\n'
-check_all_case_tmp_cleaned "run_case" "$RUN_CASE_TMP_TRACE" 40
+check_all_case_tmp_cleaned "run_case" "$RUN_CASE_TMP_TRACE" 42
 check_all_case_tmp_cleaned "lock scenarios" "$LOCK_SANDBOX_TMP_TRACE" 5
 check_no_case_left_lock
 
