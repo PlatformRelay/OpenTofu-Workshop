@@ -1,6 +1,7 @@
 terraform {
   required_providers {
-    local = { source = "hashicorp/local" }
+    local   = { source = "hashicorp/local" }
+    archive = { source = "hashicorp/archive" }
   }
 }
 
@@ -32,8 +33,8 @@ resource "local_file" "manifest" {
 
 # Refactor without replacement: tell OpenTofu each old count-indexed instance is
 # the same object as its new keyed address. Plan resolves to a no-op state move,
-# not a destroy+recreate. Order matches the original list: 0=checkout, 1=payments,
-# 2=search.
+# not a destroy+recreate. Indices follow the count form's sorted key order:
+# 0=checkout, 1=payments, 2=search.
 moved {
   from = local_file.manifest[0]
   to   = local_file.manifest["checkout"]
