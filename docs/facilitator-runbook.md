@@ -154,7 +154,11 @@ fit-plan row exactly as they were before the reorder — only the order changed.
 What did move the total was S01 growing: 40→50 minutes to carry the
 design-principles and alternatives beats, then 50→55 to carry the OpenTofu
 differentiators teaser, plus Lab 04 growing 20→25 to add the drift step. Day 1
-is now **790** planned, and the fit-plan slide target is **400**.
+is now **790** planned, and the fit-plan slide target is **400**. The
+Terraform→OpenTofu migration beat (two slides after the teaser) was absorbed
+into S01's existing 55 planned minutes rather than growing them again — with
+the fork timeline moved to pre-reading, the block carries it; watch the clock
+there when delivering uncompressed.
 
 **Accepted cost of the canonical cut: `for_each` is never taught.** S09 and S10
 are both skipped, which removes S09's `count` vs `for_each` lesson (and
@@ -283,7 +287,7 @@ share of the day. **3-day cut** = compress / skip from the fit plan or `hide:` i
 | ID | Topic | Tier | Full (fit plan) | Lab | 3-day cut | Checkpoint (ask before moving on) | Watch-outs |
 | --- | --- | --- | ---: | ---: | --- | --- | --- |
 | S00 | Welcome & setup | core | 40 → **25** | 20 | Compress | Can everyone `tofu apply` local + reach LocalStack health? | First LocalStack boot; Docker not running |
-| S01 | Infrastructure as Code | core | 55 → **30** | 20 | Compress | Declarative vs imperative — what does the plan give you that a script doesn’t? | Fork timeline is pre-reading when compressed; keep the six design principles, the differentiators teaser and the alternatives beat |
+| S01 | Infrastructure as Code | core | 55 → **30** | 20 | Compress | Declarative vs imperative — what does the plan give you that a script doesn’t? | Fork timeline is pre-reading when compressed; keep the six design principles, the differentiators teaser, the migration beat and the alternatives beat |
 | S02 | HCL & building blocks | core | 50 → **35** | 20 | Compress | Name the six block types; which one alone mutates the world? | Reference wiring; `.tofu` vs `.tf` aside |
 | S03 | Core workflow | core | 60 → **45** | 20 | Compress | Read a plan line: `+` / `~` / `-` and “known after apply”? | One lifecycle run when compressed |
 | S06 | Variables & types | core | 50 → **35** | 25 | Compress | Break a validation on purpose — which phase fails? | Precedence variants follow-up when compressed |

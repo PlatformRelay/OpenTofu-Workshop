@@ -20,7 +20,7 @@ const sectionDefinitions = [
   {
     id: 'S01', slug: 'iac', title: 'Infrastructure as Code', tier: 'core', day: 1, canonical: true,
     status: 'authored', fitAction: 'compress', compressedSlides: 30,
-    fitPlan: 'COMPRESS S01 55→30 (-25); fork timeline pre-read, retain why IaC + design principles + differentiators teaser + alternatives + governance.',
+    fitPlan: 'COMPRESS S01 55→30 (-25); fork timeline pre-read, retain why IaC + design principles + differentiators teaser + migration beat + alternatives + governance.',
   },
   {
     id: 'S02', slug: 'hcl-basics', title: 'HCL & building blocks', tier: 'core', day: 1, canonical: true,

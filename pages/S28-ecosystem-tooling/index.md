@@ -98,7 +98,10 @@ and Atmos, and resolves the wanted version per project — from arguments or a
 version file like dot-opentofu-version. Be explicit about the boundary: this
 workshop deliberately does not require tenv — any tofu one-point-eight or newer
 runs most labs, and Labs 06 and 10 need one-point-nine — so the takeaway is a
-pattern to carry to work, not a new setup step.
+pattern to carry to work, not a new setup step. If the room saw the canonical
+cut: S01's migration beat already named tenv as the engine manager for running
+Terraform and OpenTofu side by side during a switch — this slide is that
+pointer's promised depth, so extend the beat rather than re-teach it.
 (~4 min)
 Then: "Second friction — module docs that lie."
 -->

@@ -386,9 +386,9 @@ simply doesn't have.
 <!--
 Say: Head off the assumption that OpenTofu is just a licence-clean copy. That was
 true at 1.6; from 1.7 onward the feature sets have diverged, and several OpenTofu
-features have no Terraform equivalent at all. The HCL and the plan/apply workflow
-stay drop-in compatible — you lose nothing — but you gain capabilities Terraform's
-CLI doesn't offer. The next two slides are the teaser; S10 is the deep dive. (~1 min)
+features have no Terraform equivalent at all. Compatibility is tested, not vowed
+— the docs scope it to "most Terraform code will work without modification"; the
+migration beat right after the teaser demos it. S10 is the deep dive. (~1 min)
 Then: "Here are the three headliners you literally cannot write in Terraform."
 -->
 
@@ -471,6 +471,126 @@ click: today's baseline is 1.12.x, supported into 2027; the workshop pins 1.10.3
 for reproducibility. This slide is deliberately a teaser — S10 is the deep dive
 with a lab that runs the 1.9 pair on LocalStack; it's skipped in the 3-day cut,
 so point the room at it as follow-up. (~2 min)
+Then: "Sold? Most of you arrive from Terraform — here's what switching actually takes."
+-->
+
+---
+layout: two-cols-code
+heading: Arriving from Terraform — the switch, demoed
+---
+
+A workdir built and applied by **Terraform v1.15.8** — then, in the *same*
+directory, OpenTofu takes over. Captured output, **OpenTofu v1.12.5**:
+
+```text
+$ terraform apply -auto-approve
+...
+Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
+
+$ tofu init
+...
+OpenTofu has been successfully initialized!
+
+$ tofu plan
+random_pet.env: Refreshing state... [id=up-treefrog]
+
+No changes. Your infrastructure matches the configuration.
+```
+
+::right::
+
+<div class="mt-4">
+  <KwCard heading="What init just did" kind="state" variant="ok">
+    Read the <strong>Terraform-written state</strong> as-is and rewrote the
+    lockfile: providers now resolve from <code>registry.opentofu.org</code> —
+    <em>"version selections were preserved, but the hashes were not"</em>.
+  </KwCard>
+  <div class="mt-3">
+  <KwCard heading="The official path" kind="moved" variant="warn">
+    <strong>Back up state first.</strong> Then <code>tofu init</code> →
+    <code>tofu plan</code>: expect <em>"No changes"</em> — or the same plan
+    Terraform showed. An unexpected diff means <strong>stop, don't
+    apply</strong>; the guide documents the rollback.
+  </KwCard>
+  </div>
+</div>
+
+<!--
+Say: The single most common adoption question, answered with a real capture, not
+a promise. This exact directory was created and applied by Terraform 1.15.8 —
+the state file on disk says terraform_version 1.15.8. Then, same directory: tofu
+init succeeds and prints one warning worth reading aloud — it rewrote the
+dependency lock file so both providers now resolve from registry.opentofu.org,
+and in the project's own words "the version selections were preserved, but the
+hashes were not because the OpenTofu project's provider releases are not
+byte-for-byte identical". Then tofu plan against the Terraform-written state:
+"No changes. Your infrastructure matches the configuration." That is the whole
+switch for a config like Lab 01's. Walk the right column: the official guide
+(opentofu.org, Migration Guide) makes you back up state and code FIRST, then
+init, then plan — the expected result is "No changes" or the same plan output
+Terraform gave; if anything unexpected appears the guide says do not apply,
+investigate, roll back. The demo output here was captured with OpenTofu 1.12.5
+against Terraform 1.15.8 on 2026-08-30; elided lines are marked with "..." and
+the full transcript is recorded in docs/claims-verification.md. (~3 min)
+Then: "Before you carry that home, the fine print — stated precisely."
+-->
+
+---
+
+<span class="kw-kicker">Migration, precisely</span>
+
+# The fine print — compatibility is tested, not promised
+
+<div class="kw-cols-3 mt-4">
+  <KwCard heading="Config compatibility" variant="ok">
+    The project's own claim is scoped, not absolute: <em>"most Terraform code
+    will work without modification"</em>. The arbiter is <code>tofu
+    plan</code>, per workdir, before anything applies.
+  </KwCard>
+  <KwCard heading="State — one way after apply" kind="state" variant="warn">
+    Same on-disk format in the demo (state <code>version&nbsp;4</code> on both
+    sides) — and the first <code>tofu apply</code> "updates the state file
+    format if needed", stamping OpenTofu's version into it. Hence the guide's
+    step&nbsp;1: <strong>back up</strong>.
+  </KwCard>
+  <KwCard heading="tenv runs both engines" variant="accent">
+    One binary installs and pins <strong>OpenTofu and Terraform</strong> side
+    by side — what a migration-in-flight actually needs. Depth, plus the rest
+    of the toolbelt: <strong>S28</strong>, the optional appendix.
+  </KwCard>
+</div>
+
+<div v-click class="mt-6 kw-muted text-sm">
+
+The version caveat, dated honestly: OpenTofu's per-version guides (1.9 era)
+said migrate **like-to-like, then upgrade** — and to *wait* when Terraform was
+newer than the newest guide. Today's guide is version-generic; the demo ran a
+newer Terraform (1.15.8) into OpenTofu 1.12.5 cleanly. Your plan decides.
+
+</div>
+
+<!--
+Say: Three fine-print facts so nobody leaves quoting "always drop-in" — that
+absolute claim is exactly the failure mode to avoid. One: config compatibility
+is the project's own scoped sentence — "most Terraform code will work without
+modification" — so the arbiter is a plan in YOUR workdir, not a slogan. Two:
+state. In the demo the on-disk format was identical before and after (state
+version 4), but the first tofu apply — the guide's own wording — "ensures
+OpenTofu updates the state file format if needed", and it stamps OpenTofu's
+engine version into the file (the demo's went from terraform_version 1.15.8 to
+1.12.5). That stamp is why the guide's first step is a backup, and why you treat
+the switch as one-way once you apply. Three: tenv, the engine manager — one
+binary installing and pinning OpenTofu AND Terraform side by side, which is
+precisely the tool for the weeks both CLIs coexist; S28 is the depth, along
+with the rest of the everyday toolbelt. Click for the version caveat, dated so
+it stays honest: the 1.9-era docs shipped per-Terraform-version guides that
+said migrate to the matching OpenTofu first, then upgrade — and to wait if your
+Terraform was newer than the newest guide. The current guide dropped the
+version pairing and is generic; our capture ran Terraform 1.15.8 into OpenTofu
+1.12.5 without a diff. Sources, verified at authoring time: the migration pages
+at opentofu.org/docs/intro/migration (v1.12.6 docs) and the v1.9.0-tagged
+per-version guides; the state observations are from the captured demo recorded
+in docs/claims-verification.md. (~2 min)
 Then: "One honest caveat before the lab — OpenTofu is not the only tool in this space."
 -->
 
@@ -593,6 +713,7 @@ next: 'Next: HCL & building blocks'
 - The **fork**: BUSL relicense (2023-08-10) → OpenTofu fork (2023-08-25) → 1.6 GA (2024-01-10).
 - **MPL 2.0** (open, Linux Foundation) vs **BUSL 1.1** (source-available, single vendor) — why we run `tofu`.
 - **Beyond the licence**: state & plan **encryption** (1.7), provider **`for_each`** and **`-exclude`** (1.9) are OpenTofu-only — S10 is the deep dive.
+- **Arriving from Terraform**: back up, `tofu init`, `tofu plan` — expect *"No changes"*; unexpected diffs mean stop. Engine manager + toolbelt: S28.
 - **Alternatives are real**: Pulumi, Crossplane and Ansible each fit a different job — know which one you have.
 
 <!--
@@ -604,7 +725,9 @@ repairs. The fork timeline: BUSL relicense, community fork, 1.6 GA. And the lice
 difference — MPL 2.0 open and Linux-Foundation-governed versus BUSL 1.1
 source-available and single-vendor — is why we teach the tofu CLI. But the fork is
 not only a licence story: state and plan encryption, provider for_each, and
--exclude are OpenTofu-only, and S10 is the deep dive when there's time. Then the
+-exclude are OpenTofu-only, and S10 is the deep dive when there's time. The
+migration beat made adoption concrete — back up, init, plan, expect no changes,
+fine print stated precisely, tenv and S28 for the rest. Then the
 two orientation threads: the six design principles that explain the behaviour, and
 the alternatives — Pulumi, Crossplane, Ansible — so nobody leaves the room thinking
 OpenTofu is the only option. (~2 min)
