@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/section-11-the-contractors-fair.png
+image: /covers/section-11-the-contractors-fair.webp
 day: Day 1
 section: '11'
 tier: optional

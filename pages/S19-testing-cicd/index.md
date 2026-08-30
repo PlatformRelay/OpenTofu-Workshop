@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/section-19-the-automated-gauntlet.png
+image: /covers/section-19-the-automated-gauntlet.webp
 day: Day 2
 section: '19'
 tier: recommended

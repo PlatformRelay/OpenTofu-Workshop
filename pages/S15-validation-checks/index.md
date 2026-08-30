@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/section-15-the-checkpoint-gates.png
+image: /covers/section-15-the-checkpoint-gates.webp
 day: Day 1
 section: '15'
 tier: core

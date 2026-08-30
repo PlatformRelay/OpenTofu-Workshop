@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/section-20-the-sprawling-frontier.png
+image: /covers/section-20-the-sprawling-frontier.webp
 day: Day 3
 section: '20'
 tier: core

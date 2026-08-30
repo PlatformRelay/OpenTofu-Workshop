@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/section-14-the-gauntlet-of-scanners.png
+image: /covers/section-14-the-gauntlet-of-scanners.webp
 day: Day 2
 section: '14'
 tier: core

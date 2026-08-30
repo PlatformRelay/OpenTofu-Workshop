@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/section-22-the-pattern-loom.png
+image: /covers/section-22-the-pattern-loom.webp
 day: Day 3
 section: '22'
 tier: core

@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/section-07-the-parts-depot.png
+image: /covers/section-07-the-parts-depot.webp
 day: Day 1
 section: '07'
 tier: core

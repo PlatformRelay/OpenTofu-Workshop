@@ -261,19 +261,19 @@ deliberately **not** renamed or recreated; use this mapping instead.
 
 | Delivery position | Section | Cover file | Narrative name |
 | ---: | --- | --- | --- |
-| 1 | S00 | `public/covers/section-00-arrival.png` | Arrival |
-| 2 | S01 | `public/covers/section-01-the-two-blueprints.png` | The two blueprints |
-| 3 | S02 | `public/covers/section-02-the-first-prefabs.png` | The first prefabs |
-| 4 | S03 | `public/covers/section-03-plan-then-raise.png` | Plan then raise |
-| 5 | S06 | `public/covers/section-06-calibrating-the-instruments.png` | Calibrating the instruments |
-| 6 | S15 | `public/covers/section-15-the-checkpoint-gates.png` | The checkpoint gates |
-| 7 | S04 | `public/covers/section-04-the-great-survey-map.png` | The great survey map |
-| 8 | S05 | `public/covers/section-05-sealing-the-ledger.png` | Sealing the ledger |
-| 9 | S07 | `public/covers/section-07-the-parts-depot.png` | The parts depot |
-| 10 | S08 | `public/covers/section-08-tagging-the-works.png` | Tagging the works |
-| — (skipped) | S09 | `public/covers/section-09-the-tidy-worksite.png` | The tidy worksite |
-| — (skipped) | S10 | `public/covers/section-10-the-advanced-rig.png` | The advanced rig |
-| — (skipped) | S11 | `public/covers/section-11-the-contractors-fair.png` | The contractors' fair |
+| 1 | S00 | `public/covers/section-00-arrival.webp` | Arrival |
+| 2 | S01 | `public/covers/section-01-the-two-blueprints.webp` | The two blueprints |
+| 3 | S02 | `public/covers/section-02-the-first-prefabs.webp` | The first prefabs |
+| 4 | S03 | `public/covers/section-03-plan-then-raise.webp` | Plan then raise |
+| 5 | S06 | `public/covers/section-06-calibrating-the-instruments.webp` | Calibrating the instruments |
+| 6 | S15 | `public/covers/section-15-the-checkpoint-gates.webp` | The checkpoint gates |
+| 7 | S04 | `public/covers/section-04-the-great-survey-map.webp` | The great survey map |
+| 8 | S05 | `public/covers/section-05-sealing-the-ledger.webp` | Sealing the ledger |
+| 9 | S07 | `public/covers/section-07-the-parts-depot.webp` | The parts depot |
+| 10 | S08 | `public/covers/section-08-tagging-the-works.webp` | Tagging the works |
+| — (skipped) | S09 | `public/covers/section-09-the-tidy-worksite.webp` | The tidy worksite |
+| — (skipped) | S10 | `public/covers/section-10-the-advanced-rig.webp` | The advanced rig |
+| — (skipped) | S11 | `public/covers/section-11-the-contractors-fair.webp` | The contractors' fair |
 
 Day 2: `S12 → S13 → S14 → S16 → S17 → S19`.
 

@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/section-01-the-two-blueprints.png
+image: /covers/section-01-the-two-blueprints.webp
 day: Day 1
 section: '01'
 tier: core

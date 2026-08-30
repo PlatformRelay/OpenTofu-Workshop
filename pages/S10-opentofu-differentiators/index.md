@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/section-10-the-advanced-rig.png
+image: /covers/section-10-the-advanced-rig.webp
 day: Day 1
 section: '10'
 tier: recommended

@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/section-17-the-stand-in-props.png
+image: /covers/section-17-the-stand-in-props.webp
 day: Day 2
 section: '17'
 tier: core

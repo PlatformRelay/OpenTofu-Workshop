@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/section-18-the-full-field-trial.png
+image: /covers/section-18-the-full-field-trial.webp
 day: Day 2
 section: '18'
 tier: optional

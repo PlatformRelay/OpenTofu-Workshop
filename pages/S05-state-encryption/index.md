@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/section-05-sealing-the-ledger.png
+image: /covers/section-05-sealing-the-ledger.webp
 day: Day 1
 section: '05'
 tier: core

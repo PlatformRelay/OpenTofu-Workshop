@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/section-08-tagging-the-works.png
+image: /covers/section-08-tagging-the-works.webp
 day: Day 1
 section: '08'
 tier: core

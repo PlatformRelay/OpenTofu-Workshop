@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/section-24-only-what-moved.png
+image: /covers/section-24-only-what-moved.webp
 day: Day 3
 section: '24'
 tier: recommended

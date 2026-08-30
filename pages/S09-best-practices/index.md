@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/section-09-the-tidy-worksite.png
+image: /covers/section-09-the-tidy-worksite.webp
 day: Day 1
 section: '09'
 tier: recommended

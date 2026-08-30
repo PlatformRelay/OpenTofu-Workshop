@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/section-25-the-orbital-watch.png
+image: /covers/section-25-the-orbital-watch.webp
 day: Day 3
 section: '25'
 tier: optional

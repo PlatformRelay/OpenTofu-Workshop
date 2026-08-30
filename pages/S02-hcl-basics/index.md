@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/section-02-the-first-prefabs.png
+image: /covers/section-02-the-first-prefabs.webp
 day: Day 1
 section: '02'
 tier: core

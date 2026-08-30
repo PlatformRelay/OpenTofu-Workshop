@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/section-23-conducting-the-fleet.png
+image: /covers/section-23-conducting-the-fleet.webp
 day: Day 3
 section: '23'
 tier: core

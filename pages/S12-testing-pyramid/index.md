@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/section-12-the-safety-briefing.png
+image: /covers/section-12-the-safety-briefing.webp
 day: Day 2
 section: '12'
 tier: core

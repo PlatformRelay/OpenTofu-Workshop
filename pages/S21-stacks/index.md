@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/section-21-mapping-the-districts.png
+image: /covers/section-21-mapping-the-districts.webp
 day: Day 3
 section: '21'
 tier: core

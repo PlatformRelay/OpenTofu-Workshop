@@ -1,6 +1,6 @@
 ---
 layout: section-cover
-image: /covers/section-26-the-settled-colony.png
+image: /covers/section-26-the-settled-colony.webp
 day: Day 3
 section: '26'
 tier: core
