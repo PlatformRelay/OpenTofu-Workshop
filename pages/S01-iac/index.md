@@ -380,8 +380,8 @@ kicker: 'Beyond the licence'
 The fork changed more than the licence — since 1.7, **the feature sets have
 diverged**.
 
-Same HCL, drop-in compatible — *and* OpenTofu ships features the Terraform CLI
-simply doesn't have.
+Same HCL — most code works unmodified — *and* OpenTofu ships features the
+Terraform CLI simply doesn't have.
 
 <!--
 Say: Head off the assumption that OpenTofu is just a licence-clean copy. That was
@@ -486,15 +486,19 @@ directory, OpenTofu takes over. Captured output, **OpenTofu v1.12.5**:
 $ terraform apply -auto-approve
 ...
 Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
+...
 
 $ tofu init
 ...
 OpenTofu has been successfully initialized!
+...
 
 $ tofu plan
-random_pet.env: Refreshing state... [id=up-treefrog]
+random_pet.env: Refreshing state... [id=clever-chipmunk]
+local_file.manifest: Refreshing state... [id=b643126f...]
 
 No changes. Your infrastructure matches the configuration.
+...
 ```
 
 ::right::
@@ -524,14 +528,16 @@ dependency lock file so both providers now resolve from registry.opentofu.org,
 and in the project's own words "the version selections were preserved, but the
 hashes were not because the OpenTofu project's provider releases are not
 byte-for-byte identical". Then tofu plan against the Terraform-written state:
-"No changes. Your infrastructure matches the configuration." That is the whole
-switch for a config like Lab 01's. Walk the right column: the official guide
-(opentofu.org, Migration Guide) makes you back up state and code FIRST, then
-init, then plan — the expected result is "No changes" or the same plan output
-Terraform gave; if anything unexpected appears the guide says do not apply,
-investigate, roll back. The demo output here was captured with OpenTofu 1.12.5
-against Terraform 1.15.8 on 2026-08-30; elided lines are marked with "..." and
-the full transcript is recorded in docs/claims-verification.md. (~3 min)
+both resources refresh from it — the random_pet and the manifest — and the
+verdict is "No changes. Your infrastructure matches the configuration." That
+is the whole switch for a config like Lab 01's. Walk the right column: the
+official guide (opentofu.org, Migration Guide) makes you back up state and code
+FIRST, then init, then plan — the expected result is "No changes" or the same
+plan output Terraform gave; if anything unexpected appears the guide says do
+not apply, investigate, roll back. The demo output here was captured with
+OpenTofu 1.12.5 against Terraform 1.15.8 on 2026-08-30; every elision — skipped
+lines and the shortened manifest id — is marked with "..." and the capture is
+documented in docs/claims-verification.md §M. (~3 min)
 Then: "Before you carry that home, the fine print — stated precisely."
 -->
 
@@ -590,7 +596,7 @@ version pairing and is generic; our capture ran Terraform 1.15.8 into OpenTofu
 1.12.5 without a diff. Sources, verified at authoring time: the migration pages
 at opentofu.org/docs/intro/migration (v1.12.6 docs) and the v1.9.0-tagged
 per-version guides; the state observations are from the captured demo recorded
-in docs/claims-verification.md. (~2 min)
+in docs/claims-verification.md §M. (~2 min)
 Then: "One honest caveat before the lab — OpenTofu is not the only tool in this space."
 -->
 
