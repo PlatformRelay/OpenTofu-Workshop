@@ -310,7 +310,7 @@ share of the day. **3-day cut** = compress / skip from the fit plan or `hide:` i
 | S16 | `tofu test` | core | 35 | Keep | Plan vs apply run — when is apply justified? | LocalStack for apply tests |
 | S17 | Mocking providers | core | 30 | Keep | Green while Docker/LocalStack is **down**? | Prove emulator idle on purpose |
 | S18 | Integration & cost | optional | 30 | **Skip** (`hide`) | (If run) Container Terratest lane; Infracost optional key | Do not pull terratest on `lab:up` |
-| S19 | Testing in CI/CD | recommended | 30 | Keep | Why is `fmt` without `-check` a false green? | Paper + fixture; badge honesty |
+| S19 | Testing in CI/CD | recommended | 30 | Keep | Why is `fmt` without `-check` a false green? | Paper + fixture; badge honesty; optional fork-and-run stretch is **+~15 min outside the 30-min budget** (GitHub account + network; offline skip = `task verify`) |
 
 ### Day 3 (shipped)
 

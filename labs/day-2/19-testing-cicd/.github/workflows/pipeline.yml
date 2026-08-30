@@ -4,8 +4,8 @@
 # `.github/workflows/ci.yml` (the taught artifact).
 #
 # This file is NOT executed by GitHub Actions — it lives under labs/ as a
-# paper fixture. Do not copy it to the repository-root .github/workflows/
-# without review.
+# paper fixture. Only the lab's optional fork-and-run stretch copies it to
+# the root .github/workflows/ — on a throwaway branch of YOUR OWN FORK.
 
 name: Workshop CI (lab fixture)
 

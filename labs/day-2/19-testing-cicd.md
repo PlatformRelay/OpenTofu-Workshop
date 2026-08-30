@@ -240,9 +240,13 @@ use the `mktemp` demo directory from Step 3.
 
 </details>
 
-## Stretch (optional)
+## Stretch (optional) — run the pipeline for real
 
-Run the real unit lane once and confirm it stays green without Docker:
+**+~15 min, outside the 30-minute estimate. Needs a GitHub account and
+network access.** Nothing later in the workshop depends on this stretch.
+
+**Skip path (no GitHub account, or an offline venue):** run the real unit
+lane locally once and confirm it stays green without Docker:
 
 ```bash
 task verify
@@ -255,5 +259,162 @@ validate/test for `modules/` and `examples/`, and drift checks. It must not requ
 LocalStack. Integration coverage remains a separate concern
 (`verify-integration` in CI, or `task verify:integration` when you intentionally
 start the emulator).
+
+</details>
+
+Everything so far was paper: you assembled and repaired workflow YAML, but no
+runner ever executed it. To watch your pipeline run, push it to a fork of this
+repository — GitHub Actions supplies the Ubuntu runner and the Docker engine
+this lab deliberately avoided on your machine.
+
+### Fork the workshop and enable Actions
+
+Fork via the **Fork** button on
+`https://github.com/PlatformRelay/OpenTofu-Workshop`, or with the GitHub CLI
+(this clones the fork into a new `OpenTofu-Workshop/` directory):
+
+```bash
+gh repo fork PlatformRelay/OpenTofu-Workshop --clone
+```
+
+> **This is the expected edge case, not a mistake:** new forks start with the
+> inherited workflows **disabled**. On your fork, open the **Actions** tab and
+> press **"I understand my workflows, go ahead and enable them"**. Until you
+> do, pushes to the fork trigger nothing at all.
+
+### Put the fixture where Actions can see it
+
+GitHub only executes workflows that sit in the repository-root
+`.github/workflows/`. The lab fixture lives under `labs/day-2/…` precisely so
+it can never run by accident. **In your fork clone**, copy the fixture you
+repaired in Steps 4–5 to the root, on a branch:
+
+```bash
+git switch -c lab19-fork-run
+cp labs/day-2/19-testing-cicd/.github/workflows/pipeline.yml .github/workflows/pipeline.yml
+git add .github/workflows/pipeline.yml
+git status --short
+```
+
+<details><summary>Solution / expected output</summary>
+
+```text
+A  .github/workflows/pipeline.yml
+```
+
+One staged file; the fixture under `labs/` stays untouched — the workflow now
+exists in both places on this branch, and only the root copy can run.
+
+</details>
+
+### Predict the fork's verdict before pushing
+
+Root workflows are production territory: this repository's `supply-chain` CI
+job requires SHA-pinned actions and explicit least-privilege permissions, and
+your copy carries the fixture's teaching-grade `@vN` tags. Ask the same gate
+locally what the fork's job will say:
+
+```bash
+node scripts/supply-chain-policy.mjs; echo "exit: $?"
+```
+
+<details><summary>Solution / captured output</summary>
+
+Captured against the tracked starter fixture (Node 26; your repaired copy adds
+jobs, so line numbers and finding counts shift — the verdict class does not):
+
+```text
+.github/workflows/pipeline.yml:30: third-party action must use an immutable 40-character commit SHA
+.github/workflows/pipeline.yml:31: third-party action must use an immutable 40-character commit SHA
+.github/workflows/pipeline.yml:32: third-party action must use an immutable 40-character commit SHA
+.github/workflows/pipeline.yml:43: third-party action must use an immutable 40-character commit SHA
+.github/workflows/pipeline.yml:44: third-party action must use an immutable 40-character commit SHA
+.github/workflows/pipeline.yml:45: third-party action must use an immutable 40-character commit SHA
+.github/workflows/pipeline.yml:60: third-party action must use an immutable 40-character commit SHA
+.github/workflows/pipeline.yml:61: third-party action must use an immutable 40-character commit SHA
+.github/workflows/pipeline.yml: workflow must declare explicit read-only top-level permissions
+exit: 1
+```
+
+Leave it red and do **not** pin the fixture: the `@vN` tags are lab material,
+and the copy exists only on this throwaway branch of your fork. The point is
+that you can now predict the fork's `supply-chain` verdict before any runner
+spins up — while your own pipeline's jobs run green beside it.
+
+</details>
+
+### Push and open a pull request in your fork
+
+Both workflows trigger on `pull_request` targeting `main`, so a pushed branch
+alone runs nothing — the PR is what fires them:
+
+```bash
+git commit -m "lab19 stretch: run the assembled pipeline on my fork"
+git push -u origin lab19-fork-run
+```
+
+> **Base-repository trap:** for fork branches GitHub preselects
+> `PlatformRelay/OpenTofu-Workshop` as the PR base. Switch the **base
+> repository** dropdown to `YOUR-USER/OpenTofu-Workshop` (base `main`) so the
+> PR — and the pipeline — stays inside your fork. With the CLI, name the repo
+> explicitly:
+
+```bash
+gh pr create --repo YOUR-USER/OpenTofu-Workshop --base main --head lab19-fork-run \
+  --title "Lab 19 stretch: fork-and-run" --body "Run the assembled fixture pipeline."
+```
+
+Watch the run on the PR's **Checks** tab, under your fork's **Actions** tab,
+or with `gh pr checks --watch --repo YOUR-USER/OpenTofu-Workshop`.
+
+<details><summary>Solution / expected observation (GitHub-side — described, not transcribed)</summary>
+
+Two workflows report on the same commit:
+
+- **Workshop CI (lab fixture)** — your `pipeline.yml`: `lint`, `build`,
+  `verify-unit`, and (after Step 5) `verify-integration`. The integration job
+  pulls `localstack/localstack:4.9.2` and actually boots it on the runner's
+  Docker engine — the pyramid tip executes for real for the first time in
+  this lab. Expect a few minutes end to end; the image pull dominates.
+- **CI** — the repository's real workflow: its `supply-chain` job fails on
+  your copied fixture, exactly as the local prediction said. That red is the
+  gate doing its job on an unpinned root workflow — leave it red.
+
+If you push the fixture **without** the Step 4 repair, `verify-unit` still
+reports green: the Step 3 false green, now live in a real Actions run —
+`tofu fmt` without `-check` cannot fail on drift.
+
+These observations happen on **your fork**, so this lab describes them
+instead of pasting a transcript — a captured log from anywhere else would be
+fabricated evidence, which is exactly what the false-green exercise taught
+you to reject.
+
+</details>
+
+### Clean up the fork
+
+GitHub-side: close the PR and delete the `lab19-fork-run` branch — or delete
+the entire fork (**Settings → General → Delete this repository**). In your
+fork clone:
+
+```bash
+git switch main
+git branch -D lab19-fork-run
+git status --short
+```
+
+If you ran the copy step inside this workshop checkout instead of a fork
+clone, remove the stray root copy as well:
+
+```bash
+rm -f .github/workflows/pipeline.yml
+git status --short -- .github/workflows
+```
+
+<details><summary>Solution / expected cleanup</summary>
+
+Both `git status --short` commands print nothing: the branch is gone, the
+repository-root `.github/workflows/` holds only the tracked real workflows,
+and the lab fixture under `labs/day-2/19-testing-cicd/` is still pristine.
 
 </details>
