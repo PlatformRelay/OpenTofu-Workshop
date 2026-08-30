@@ -310,11 +310,18 @@ $ tofu init
 OpenTofu has been successfully initialized!
 
 $ tofu state list
+
+Error: No state file was found
+
+State management commands require a state file. Run this command in a
+directory where OpenTofu has been run or use the -state flag to point the
+command to a specific state location.
 ```
 
-`state list` prints nothing: the bucket is real, state is empty. `apply` cannot
-close that gap (it would try to create a name-colliding second bucket) —
-adoption needs `import`.
+`state list` errors (exit 1): a fresh `init` writes **no state file** — only
+the first apply/import does. The bucket is real, OpenTofu has no record of it,
+and `apply` cannot close that gap (it would try to create a name-colliding
+second bucket) — adoption needs `import`.
 
 </details>
 
@@ -497,7 +504,10 @@ resource "aws_s3_bucket" "media" {
 
 The draft is written even though the plan fails on it — the generator emits
 every attribute it read back, including the mutually-exclusive
-`bucket`/`bucket_prefix` pair. "Please review" is load-bearing.
+`bucket`/`bucket_prefix` pair. "Please review" is load-bearing. Config
+generation is **experimental**: a *successful* generation plan is stamped
+`Warning: Config generation is experimental`; this failing v1.12.5 run emits
+only the errors — no warning appears in the real output.
 
 </details>
 

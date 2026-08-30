@@ -432,9 +432,10 @@ next: 'Next: Best practices — structure, lifecycle & refactoring'
   address **and its dependents**; a recovery tool, not routine.
 - **OCI registries** (1.10) mirror providers *and* modules through the container
   registry you already run — for air-gapped and regulated orgs.
-- **`import {}`** adopts existing objects **plannably** — done at
-  `0 to change`, loopable via `for_each` since 1.7; the CLI form has no
-  preview. Config that disagrees with reality mutates it on the adopting apply.
+- **`import {}`** (shared with Terraform) adopts existing objects **plannably**
+  — done at `0 to change`, loopable via `for_each` since 1.7; the CLI form has
+  no preview. Config that disagrees with reality mutates it on the adopting
+  apply.
 
 <!--
 Say: Pull the threads together. OpenTofu stays drop-in compatible with Terraform

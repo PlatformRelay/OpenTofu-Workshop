@@ -621,8 +621,8 @@ tofu init
 > these with `docker exec opentofu-workshop-localstack` instead (e.g.
 > `docker exec opentofu-workshop-localstack awslocal s3 mb …`).
 
-**Task:** After `init` succeeds, run `tofu state list`. What does it print, and
-why is that the whole point of this part?
+**Task:** After `init` succeeds, run `tofu state list`. It does not print a
+list — it **errors**. Read the error: why is it the whole point of this part?
 
 <details><summary>Solution / expected output</summary>
 
@@ -655,9 +655,22 @@ OpenTofu has been successfully initialized!
 > Your resolved `hashicorp/aws` patch within `>= 5.0.0, < 6.0.0` may differ —
 > match on the version *range*, not the exact `v5.x.y`.
 
-`tofu state list` prints **nothing** — the bucket is real (the tagging
-round-trip proves it), but state is empty. Reality and state disagree, and
-*nothing* in the core workflow you learned in S03 will reconcile that
+```console
+$ tofu state list
+
+Error: No state file was found
+
+State management commands require a state file. Run this command in a
+directory where OpenTofu has been run or use the -state flag to point the
+command to a specific state location.
+```
+
+`tofu state list` cannot even print an *empty* list — it exits non-zero,
+because after a fresh `init` there is **no state file at all**: `init` wires
+up backend and providers, but only the first apply (or import) writes state.
+The error *is* the evidence — the bucket is real (the tagging round-trip
+proves it), yet OpenTofu holds no record of it. Reality and state disagree,
+and *nothing* in the core workflow you learned in S03 will reconcile that
 direction: `apply` would try to **create** a second `workshop-adopted-logs`
 and fail on the name collision. Adoption needs its own verb.
 
@@ -996,6 +1009,13 @@ the file opens with "**Please review**": generated config is a *draft* for
 you to edit down, not config to commit blind. The plan failing on its own
 output is the review gate working.
 
+One more honesty note: config generation is **experimental**, and OpenTofu
+says so itself — a run where generation *succeeds* stamps the plan with
+`Warning: Config generation is experimental` ("the generated configuration
+format may change in future versions"). This run failed, and v1.12.5 then
+prints only the errors: the paste above is the complete output — there is no
+warning to elide. Draft, from an experimental generator: review it twice.
+
 </details>
 
 **Fix — prune the draft, then adopt.** Delete the `bucket_prefix`,
@@ -1049,8 +1069,10 @@ Cleanup does that for you.
   convenient but couples their lifecycles: shrink the set with resources still in
   state and you get **`Error: Provider instance not present`**. The fix is to
   re-add the element, then retire it over two applies.
-- **Part B:** a real-but-unmanaged object shows up in `awslocal` and *not* in
-  `tofu state list`; the `import {}` block closes that gap **at plan time** —
+- **Part B:** a real-but-unmanaged object shows up in `awslocal` while
+  `tofu state list` errors **`No state file was found`** — before the first
+  apply/import there is no state at all; the `import {}` block closes that gap
+  **at plan time** —
   `Plan: 1 to import, 0 to add, 0 to change, 0 to destroy`, then
   `Apply complete! Resources: 1 imported`. A wrong `id` fails the plan
   (`Cannot import non-existent remote object`); a config that disagrees with
