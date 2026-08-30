@@ -64,3 +64,25 @@ setup() {
   grep -qx 'scripts/bootstrap-selftest\.sh' <<<"$matched"
   grep -qx 'scripts/verify-selftest\.sh' <<<"$matched"
 }
+
+@test "release.yml serializes Release runs per ref (US-E-RELCONC)" {
+  # v0.6.0 double-fired: one tag push raced two publish runs and one needed a
+  # manual cancel (runs 32947408465/32947408182; audit RELSE-1). A top-level
+  # concurrency group keyed on the ref queues the duplicate behind the first;
+  # cancel-in-progress stays false so an in-flight publish is never killed
+  # mid-asset. Asserted against COMMENT-STRIPPED yaml, same as the ci.yml
+  # contracts above — prose must not be able to certify the behaviour.
+  local wf="$ROOT/.github/workflows/release.yml"
+  local exec_lines
+  exec_lines="$(grep -v '^[[:space:]]*#' "$wf")"
+
+  # Top-level (column-0) key, not a stanza nested inside a job.
+  grep -qx 'concurrency:' <<<"$exec_lines"
+
+  # Extract the block itself so a job-level lookalike elsewhere in the file
+  # cannot satisfy the two greps below.
+  local block
+  block="$(awk '/^concurrency:/{f=1; print; next} f && /^[^ ]/{f=0} f' <<<"$exec_lines")"
+  grep -qF 'group: release-${{ github.ref }}' <<<"$block"
+  grep -qF 'cancel-in-progress: false' <<<"$block"
+}

@@ -31,6 +31,13 @@ on:
     tags:
       - "v*"
 
+# One Release run per ref: a duplicate trigger for the same tag queues behind
+# the in-flight run instead of racing it (v0.6.0 double-fired; audit RELSE-1).
+# cancel-in-progress stays false so a publish is never killed mid-asset.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
