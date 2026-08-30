@@ -32,7 +32,7 @@ hide: false
 ---
 
 ---
-# DAY1-FIT: COMPRESS S01 50→30 (-20); fork timeline pre-read, retain why IaC + design principles + alternatives + governance.
+# DAY1-FIT: COMPRESS S01 55→30 (-25); fork timeline pre-read, retain why IaC + design principles + differentiators teaser + alternatives + governance.
 # S01 · Infrastructure as Code · core · Day 1
 src: ./pages/S01-iac/index.md
 hide: false

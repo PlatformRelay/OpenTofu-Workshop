@@ -368,6 +368,109 @@ is visible, but the additional-use-grant forbids using it to compete with the
 licensor until each release hits its change date, and it's controlled by a single
 vendor. For a team that wants genuinely open, community-governed tooling, OpenTofu
 is the answer — and it's compatible, so adopting it is low-friction. (~3 min)
+Then: "And the licence isn't the whole story — since the fork, the feature sets
+have diverged too."
+-->
+
+---
+layout: statement
+kicker: 'Beyond the licence'
+---
+
+The fork changed more than the licence — since 1.7, **the feature sets have
+diverged**.
+
+Same HCL, drop-in compatible — *and* OpenTofu ships features the Terraform CLI
+simply doesn't have.
+
+<!--
+Say: Head off the assumption that OpenTofu is just a licence-clean copy. That was
+true at 1.6; from 1.7 onward the feature sets have diverged, and several OpenTofu
+features have no Terraform equivalent at all. The HCL and the plan/apply workflow
+stay drop-in compatible — you lose nothing — but you gain capabilities Terraform's
+CLI doesn't offer. The next two slides are the teaser; S10 is the deep dive. (~1 min)
+Then: "Here are the three headliners you literally cannot write in Terraform."
+-->
+
+---
+
+<span class="kw-kicker">The differentiators, teased</span>
+
+# Three things you can't write in Terraform
+
+<div class="kw-cols-3 mt-4">
+  <KwCard heading="State & plan encryption" kind="state" variant="accent">
+    <strong>1.7.</strong> Client-side encryption of state and plan files —
+    <code>terraform { encryption {} }</code>, key providers, <code>fallback</code>
+    to migrate. You'll <strong>build it yourself</strong> later today (S05).
+  </KwCard>
+  <KwCard heading="Provider for_each" kind="module" variant="ok">
+    <strong>1.9.</strong> One <code>provider</code> block fans out to one instance
+    per key — e.g. per region. Terraform needs a hand-written aliased block for
+    each one.
+  </KwCard>
+  <KwCard heading="-exclude" kind="validation" variant="warn">
+    <strong>1.9.</strong> The inverse of <code>-target</code>: plan everything
+    <em>but</em> the addresses you name — often the shorter list when breaking
+    out of a bad apply.
+  </KwCard>
+</div>
+
+<div v-click class="mt-6 kw-muted text-sm">
+
+All three are **OpenTofu-only** — Terraform's docs offer aliasing, `-target`,
+and backend-delegated state encryption, but no equivalent of these.
+
+</div>
+
+<!--
+Say: Three concrete features with no Terraform equivalent, so "why tofu" is never
+just a licence argument. One: client-side state and plan encryption, shipped in
+1.7 — an encryption block with key providers and a fallback to migrate plaintext
+state; you will build it hands-on in S05 later today, so just plant the flag here.
+Two: provider for_each from 1.9 — a single provider block becomes one instance
+per key, say one per region, where Terraform makes you hand-write and hand-sync an
+aliased block each. Three: -exclude, also 1.9 — the inverse of -target, planning
+everything except the addresses you name. Click for the honesty line: all three
+are genuinely absent from Terraform — its docs offer aliasing, -target, and
+backend-delegated encryption instead. (~2 min)
+Then: "And the pace hasn't slowed — here's the release timeline in one glance."
+-->
+
+---
+
+<span class="kw-kicker">The pace since the fork</span>
+
+# 1.7 → 1.12, in one glance — S10 has the depth
+
+<div class="text-sm mt-4 space-y-2">
+  <div><KwChip>1.7</KwChip> State &amp; plan <strong>encryption</strong> · provider-defined functions · <code>removed</code> block</div>
+  <div v-click><KwChip>1.8</KwChip> <code>.tofu</code> file extension · test <strong>mocking &amp; overrides</strong></div>
+  <div v-click><KwChip>1.9</KwChip> <strong>Provider <code>for_each</code></strong> · <strong><code>-exclude</code></strong> plan filter</div>
+  <div v-click><KwChip>1.10</KwChip> <strong>OCI</strong> registries for providers &amp; modules · native S3 state locking · external key providers</div>
+  <div v-click><KwChip>1.11–1.12</KwChip> Ephemeral resources &amp; write-only attributes · <code>enabled</code> meta-arg · <code>destroy = false</code></div>
+</div>
+
+<div v-click class="mt-6 kw-muted text-sm">
+
+Current baseline: **OpenTofu 1.12.x** (supported to 2027-02-01); this workshop
+pins **1.10.3** (`versions.env`) for reproducibility. The deep dive is
+**S10 — OpenTofu differentiators** (skipped in the 3-day cut): its Lab 10 runs
+the 1.9 pair against LocalStack — take it as follow-up.
+
+</div>
+
+<!--
+Say: One release per beat, so the pace lands without memorizing anything. 1.7 is
+the watershed: state and plan encryption, provider-defined functions, the removed
+block. 1.8: the .tofu extension and test mocking. 1.9: provider for_each and
+-exclude — the pair you just met. 1.10: OCI registries for providers and modules,
+native S3 locking, external key providers. 1.11 and 1.12: ephemeral resources,
+write-only attributes, the enabled meta-argument, destroy equals false. Final
+click: today's baseline is 1.12.x, supported into 2027; the workshop pins 1.10.3
+for reproducibility. This slide is deliberately a teaser — S10 is the deep dive
+with a lab that runs the 1.9 pair on LocalStack; it's skipped in the 3-day cut,
+so point the room at it as follow-up. (~2 min)
 Then: "One honest caveat before the lab — OpenTofu is not the only tool in this space."
 -->
 
@@ -489,18 +592,21 @@ next: 'Next: HCL & building blocks'
 - Six **design principles**: declarative config, execution plan, resource graph, state, immutability, modules.
 - The **fork**: BUSL relicense (2023-08-10) → OpenTofu fork (2023-08-25) → 1.6 GA (2024-01-10).
 - **MPL 2.0** (open, Linux Foundation) vs **BUSL 1.1** (source-available, single vendor) — why we run `tofu`.
+- **Beyond the licence**: state & plan **encryption** (1.7), provider **`for_each`** and **`-exclude`** (1.9) are OpenTofu-only — S10 is the deep dive.
 - **Alternatives are real**: Pulumi, Crossplane and Ansible each fit a different job — know which one you have.
 
 <!--
-Say: Pull the five threads together. Doing infra by hand fails three ways — not
+Say: Pull the six threads together. Doing infra by hand fails three ways — not
 repeatable, no preview, no drift detection. The evolution went click-ops to scripts
 to declarative IaC, each step fixing the prior pain. The core distinction:
 imperative says how, declarative says what, and the tool previews, repeats, and
 repairs. The fork timeline: BUSL relicense, community fork, 1.6 GA. And the licence
 difference — MPL 2.0 open and Linux-Foundation-governed versus BUSL 1.1
-source-available and single-vendor — is why we teach the tofu CLI. Then the two
-orientation threads: the six design principles that explain the behaviour, and the
-alternatives — Pulumi, Crossplane, Ansible — so nobody leaves the room thinking
+source-available and single-vendor — is why we teach the tofu CLI. But the fork is
+not only a licence story: state and plan encryption, provider for_each, and
+-exclude are OpenTofu-only, and S10 is the deep dive when there's time. Then the
+two orientation threads: the six design principles that explain the behaviour, and
+the alternatives — Pulumi, Crossplane, Ansible — so nobody leaves the room thinking
 OpenTofu is the only option. (~2 min)
 Then: transition into S02 — HCL & building blocks.
 -->

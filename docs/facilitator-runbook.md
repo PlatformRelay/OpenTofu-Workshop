@@ -115,20 +115,20 @@ the
 
 | Day | Slides | Labs | Slides+labs (planned) | Against the 390 budget |
 | --- | ---: | ---: | ---: | --- |
-| 1 | 535 | 250 | **785** | **+395 over** |
+| 1 | 540 | 250 | **790** | **+400 over** |
 | 2 | 180 | 180 | 360 | 30 under |
 | 3 | 200 | 200 | **400** | **+10 over** |
 
 **Day 1 and Day 3 do not fit.** Say so when you plan the delivery: the honest
-statement is "Day 1 is 395 over a one-day budget", not "Day 1 fits once you apply
+statement is "Day 1 is 400 over a one-day budget", not "Day 1 fits once you apply
 the fit plan". These are **unrehearsed planning estimates** from section
 frontmatter and lab headers — no rehearsal has timed them, so treat them as a
 budget, not a stopwatch.
 
 The README fit plan's **400 is a different figure**: it is Day-1 **slide**
-runtime only (`dayOneFitTotal()`), compressed from 665. Day-1 lab time (250) is
+runtime only (`dayOneFitTotal()`), compressed from 670. Day-1 lab time (250) is
 untouched by it, so a fit-plan Day 1 still runs **650** of slides+labs. Use 400
-to check the deck against the day; use 785 to plan the day itself. Note that 400
+to check the deck against the day; use 790 to plan the day itself. Note that 400
 does not fit either: since S01 grew, the compressed deck is 10 minutes over the
 390 budget before a single lab runs.
 
@@ -151,18 +151,22 @@ Cut optional → recommended → compress core. Never drop S08 or S15's blocking
 **The Day-1 resequencing was timing-neutral.** Moving S06 and S15 ahead of S04
 and S05 changed no section's length, so it left the planning total and every
 fit-plan row exactly as they were before the reorder — only the order changed.
-What did move the total was S01 growing 40→50 minutes to carry the
-design-principles and alternatives beats, plus Lab 04 growing 20→25 to add the
-drift step: Day 1 is now **785** planned, and the fit-plan slide target is **400**.
+What did move the total was S01 growing: 40→50 minutes to carry the
+design-principles and alternatives beats, then 50→55 to carry the OpenTofu
+differentiators teaser, plus Lab 04 growing 20→25 to add the drift step. Day 1
+is now **790** planned, and the fit-plan slide target is **400**.
 
 **Accepted cost of the canonical cut: `for_each` is never taught.** S09 and S10
 are both skipped, which removes S09's `count` vs `for_each` lesson (and
 `moved`-based refactoring without replacement) and S10's provider-level
-`for_each` / `-exclude`. A canonical-cut learner meets the keyword only
-incidentally — a `dynamic` block toggle in the Day-3 capstone's provider
-boilerplate, and an optional stretch prompt at the end of Lab 07 — and is never
-taught or checked on it. This is deliberate, not an oversight; S09 is the first
-section to restore when time returns.
+`for_each` / `-exclude`. S01's differentiators teaser now *names* provider
+`for_each` and `-exclude` and points at S10 as follow-up, so a canonical-cut
+learner at least hears the "why OpenTofu" feature story — but naming is not
+teaching: beyond the teaser the keyword survives only incidentally, in a
+`dynamic` block toggle in the Day-3 capstone's provider boilerplate and an
+optional stretch prompt at the end of Lab 07, and is never taught or checked.
+This is deliberate, not an oversight; S09 is the first section to restore when
+time returns.
 
 ### Day 2 (test)
 
@@ -278,7 +282,7 @@ share of the day. **3-day cut** = compress / skip from the fit plan or `hide:` i
 | ID | Topic | Tier | Full (fit plan) | Lab | 3-day cut | Checkpoint (ask before moving on) | Watch-outs |
 | --- | --- | --- | ---: | ---: | --- | --- | --- |
 | S00 | Welcome & setup | core | 40 → **25** | 20 | Compress | Can everyone `tofu apply` local + reach LocalStack health? | First LocalStack boot; Docker not running |
-| S01 | Infrastructure as Code | core | 50 → **30** | 20 | Compress | Declarative vs imperative — what does the plan give you that a script doesn’t? | Fork timeline is pre-reading when compressed; keep the six design principles and the alternatives beat |
+| S01 | Infrastructure as Code | core | 55 → **30** | 20 | Compress | Declarative vs imperative — what does the plan give you that a script doesn’t? | Fork timeline is pre-reading when compressed; keep the six design principles, the differentiators teaser and the alternatives beat |
 | S02 | HCL & building blocks | core | 50 → **35** | 20 | Compress | Name the six block types; which one alone mutates the world? | Reference wiring; `.tofu` vs `.tf` aside |
 | S03 | Core workflow | core | 60 → **45** | 20 | Compress | Read a plan line: `+` / `~` / `-` and “known after apply”? | One lifecycle run when compressed |
 | S06 | Variables & types | core | 50 → **35** | 25 | Compress | Break a validation on purpose — which phase fails? | Precedence variants follow-up when compressed |
