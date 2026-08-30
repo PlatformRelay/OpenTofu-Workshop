@@ -157,7 +157,7 @@ Both engines' changelogs were read independently.
 | E3 | `aws = "~> 6.0"` | `labs/day-1/00-setup/versions.tf:7` | VERIFIED | `repos/hashicorp/terraform-provider-aws/releases/latest` → `v6.61.0` (`2026-08-19`). `~> 6.0` resolves inside the current major. |
 | E4 | `local = "~> 2.5"` | `labs/day-1/00-setup/versions.tf:11` | VERIFIED | `repos/hashicorp/terraform-provider-local/releases/latest` → `v2.9.0` (`2026-05-13`). `~> 2.5` (≥2.5, <3.0) is satisfiable and current. |
 | E5 | `random = "~> 3.7"` | `labs/day-1/00-setup/versions.tf:15` | VERIFIED | `repos/hashicorp/terraform-provider-random/releases/latest` → `v3.9.0` (`2026-05-13`). `~> 3.7` (≥3.7, <4.0) is satisfiable and current. |
-| E6 | The S14 slide fixture pins `aws = "~> 5.0"` | `pages/S14-security-scanners/index.md:242` | INCONSISTENT | One major behind E3. The AWS provider's current major is 6.x, and `labs/day-1/00-setup/versions.tf:7` pins `~> 6.0` an hour earlier in the same workshop. **The repo is not uniformly 6.0, though, and that is deliberate:** `labs/day-1/10-differentiators.md:67` pins `">= 5.0, < 6.0"` with the reason in a comment — "provider v6's waiters are incompatible with LocalStack community (last release 4.9.2). v5 applies clean against :4566." That pin is correct and must not be swept up by any bump (nor by a gate — see §K). S14 is different: its fixture is scan-only, never applied against LocalStack, so no waiter behaviour is in play and the bump is safe — proven, not assumed, at F12. |
+| E6 | The S14 slide fixture pins `aws = "~> 5.0"` | `pages/S14-security-scanners/index.md:242` | INCONSISTENT | One major behind E3. The AWS provider's current major is 6.x, and `labs/day-1/00-setup/versions.tf:7` pins `~> 6.0` an hour earlier in the same workshop. **The repo is not uniformly 6.0, though, and that is deliberate:** `labs/day-1/10-differentiators.md:87` pins `">= 5.0, < 6.0"` with the reason in a comment — "provider v6's waiters are incompatible with LocalStack community (last release 4.9.2). v5 applies clean against :4566." That pin is correct and must not be swept up by any bump (nor by a gate — see §K). S14 is different: its fixture is scan-only, never applied against LocalStack, so no waiter behaviour is in play and the bump is safe — proven, not assumed, at F12. |
 | E7 | *(gate check, not a deck claim)* Is the S14 slide's HCL block drift-checked against its fixture? | `pages/S14-.../index.md:235-289` vs `labs/day-2/14-security-scanners/messy/main.tf` | **NOT GATED** | `scripts/verify.sh` §6 only arms on a `<!-- source: PATH -->` comment "IMMEDIATELY followed by an opening ```hcl fence"; an "unannotated block → ignored (only counted/warned)". The fence at `pages/S14-.../index.md:235` has **no such marker** — line 234 is blank and 233 is a heading — so §6 does not read this pair at all. The two are byte-identical today — verified, not assumed: `sed -n '236,288p'` of the slide `diff`s clean against the 53-line fixture, and §6's fence regex explicitly tolerates the magic-move metadata this fence carries in its `{...}` highlight spec. So **adding the one-line marker arms the existing gate for free and passes on the first run.** Note the asymmetry that makes this worth doing: the *lab* copy of the same fixture (`labs/day-2/14-security-scanners.md:60`, marker at `:52`) **is** armed, so a fixture edit that skips the lab reds §6 immediately, while the same edit skipping the *slide* is silent. Two of the three copies are guarded and the learner-facing one is not. Recommended alongside L12. |
 
 ## F. Scanner and policy-tool status (plan §5 #6, #7 — "Two load-bearing facts")
@@ -279,7 +279,7 @@ The justification is empirical, not theoretical — but the honest yield is
 this pass's own findings, strictly as specified above:
 
 - **E2 — caught.** `pages/S28:88` and `setup/bootstrap.sh:25` say "≥ 1.8 runs the
-  labs" while `labs/day-1/10-differentiators.md:60` requires `>= 1.9.0`. This is
+  labs" while `labs/day-1/10-differentiators.md:80` requires `>= 1.9.0`. This is
   squarely the floor half of the check, and it is the defect with real learner
   cost: follow the setup docs on 1.8 and Lab 10 hard-fails.
 - **D1 vs A1 — arguable.** `pages/S10:65` calls 1.12.x the "current baseline"
@@ -290,7 +290,7 @@ this pass's own findings, strictly as specified above:
 - **E6 — NOT caught, and worth dwelling on.** `pages/S14:242` pins `aws ~> 5.0`
   against Day 1's `~> 6.0`, but `aws` is not in `versions.env`, so the check as
   scoped never sees it. The tempting fix — extend check 1 to *all* provider
-  constraints — must be resisted: `labs/day-1/10-differentiators.md:67`
+  constraints — must be resisted: `labs/day-1/10-differentiators.md:87`
   deliberately pins `">= 5.0, < 6.0"` with the reason in a comment ("provider
   v6's waiters are incompatible with LocalStack community"). A whole-repo
   provider-version gate would red on a correct, deliberate, documented pin. That
@@ -546,7 +546,7 @@ not render as intended in CommonMark, and confirmed L5's quote spans lines
 
 | # | File | Line | Now reads — verified in place | Before phase 2 | Source |
 | --- | --- | --- | --- | --- | --- |
-| L1 | `pages/S10-opentofu-differentiators/index.md` | 65-66 | ``Current baseline: **OpenTofu 1.12.x** (supported to 2027-02-01) — the workshop`` / ``toolchain pins **1.10.3** (`versions.env`) for reproducibility.`` | was `Current baseline: **OpenTofu 1.12.x** (supported to 2027-02-01).` on line 65 — true, but silent about the version the workshop actually pins. | A1, A2, D1 |
+| L1 | `pages/S10-opentofu-differentiators/index.md` | 68-69 | ``Current baseline: **OpenTofu 1.12.x** (supported to 2027-02-01) — the workshop`` / ``toolchain pins **1.10.3** (`versions.env`) for reproducibility.`` | was `Current baseline: **OpenTofu 1.12.x** (supported to 2027-02-01).` on line 65 — true, but silent about the version the workshop actually pins. | A1, A2, D1 |
 | L2 | `pages/S14-security-scanners/index.md` | 44 | `Facts verified 2026-08-25 — re-check maintenance status before you ship a standard.` | was `Facts verified 2026-07 — …`; the stamp now carries this pass's check date. | F13, this table |
 | L3 | `pages/S14-security-scanners/index.md` | 146 | `<span class="kw-kicker">superseded &amp; archived · don't adopt either</span>` | was `<span class="kw-kicker">dead tools · don't adopt ghosts</span>` — tfsec is superseded, not dead. | F2, F4 |
 | L4 | `pages/S14-security-scanners/index.md` | 156 | ``- Still published (v1.28.14, 2025-05-02) but superseded — new material should not teach `tfsec` `` | was ``- New material should not teach `tfsec` ``, which left the reader to infer the tool was gone. | F2 |

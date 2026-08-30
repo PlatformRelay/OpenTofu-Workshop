@@ -1,0 +1,17 @@
+# Learner-generated artifacts from running this lab in place — never committed.
+# The lab's canonical HCL is providers.tf + imports.tf + adopted.tf (tracked,
+# drift-checked). Everything below is regenerated on init/plan/apply, or is a
+# deliberate learner-scratch file a step tells you to create and then remove.
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+# Step 4's learner-scratch import block and the config OpenTofu generates:
+import-media.tf
+generated.tf
+# Stretch scratch — the loopable (for_each) fleet import:
+fleet.tf

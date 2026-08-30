@@ -140,24 +140,24 @@ the fit plan does not touch them.
 
 ### Day 1 fit plan
 
-This plan compresses **slide time only**. It starts at **685 minutes** of slide
+This plan compresses **slide time only**. It starts at **695 minutes** of slide
 time across all thirteen Day-1 sections (`dayOneSupersetSlidesTotal()`) and ends
 at **400** (`dayOneFitTotal()`). Day-1 lab time — 250 minutes — is untouched, so
 a fit-plan delivery still runs **650 minutes** of slides+labs against a 390
 budget. Be precise about what the plan now buys. Since S01 grew to carry the
 design-principles and alternatives beats, the compressed **deck alone** is 10
 minutes over the whole-day budget, so the plan no longer makes even the deck fit
-the day. What it does is remove 285 minutes of slide time and turn the remaining
+the day. What it does is remove 295 minutes of slide time and turn the remaining
 overflow into a planned, published one instead of a mid-morning surprise.
 Apply the rows in order. The first three remove optional/recommended material;
 the remaining rows shorten core delivery while preserving each section's outcome.
-The arithmetic is explicit: **685 → 650 → 605 → 540**, then
+The arithmetic is explicit: **695 → 660 → 605 → 540**, then
 **540 → 525 → 500 → 485 → 470 → 455 → 440 → 425 → 410 → 400**.
 
 | Order | Action | Minutes | Running total | Pedagogical cost |
 | ---: | --- | ---: | ---: | --- |
-| 1 | Skip S11 (optional); its `hide: true` toggle is already set | −35 | 650 | Defer the TACO vendor-selection landscape |
-| 2 | Skip S10 (recommended) at its `DAY1-FIT` marker; keep `hide: false` | −45 | 605 | Defer the differentiator deep dive; S01's teaser and S05's encryption demo remain |
+| 1 | Skip S11 (optional); its `hide: true` toggle is already set | −35 | 660 | Defer the TACO vendor-selection landscape |
+| 2 | Skip S10 (recommended) at its `DAY1-FIT` marker; keep `hide: false` | −55 | 605 | Defer the differentiator deep dive (incl. the import/adoption drill); S01's teaser and S05's encryption demo remain |
 | 3 | Skip S09 (recommended) at its `DAY1-FIT` marker; keep `hide: false` | −65 | 540 | Defer the `count` vs `for_each` lesson, `dynamic` blocks, and `moved`-based refactoring to follow-up study |
 | 4 | Compress S00 from 40→25 at its marker | −15 | 525 | Move installation checks before class; retain orientation and first apply |
 | 5 | Compress S01 from 55→30 at its marker | −25 | 500 | Make the detailed fork timeline pre-reading; retain why IaC, the design principles, the differentiators teaser, the alternatives, and governance |
@@ -184,11 +184,12 @@ planning total to 790 and the fit-plan target to 400.
 Skipping S09 and S10 carries a known, accepted cost: a learner on the canonical
 cut **never sees `for_each` taught** — neither S09's `count` vs `for_each`
 lesson and `moved`-based refactoring without replacement, nor S10's
-provider-level `for_each` and `-exclude`. S01's differentiators teaser *names*
-provider `for_each` and `-exclude` and points at S10 as follow-up, but naming is
-not teaching: beyond it the keyword survives only incidentally, in a `dynamic`
-block toggle inside the Day-3 capstone's provider boilerplate and in an optional
-stretch prompt at the end of Lab 07; neither is taught or checked.
+provider-level `for_each` and `-exclude` — and, with S10, the hands-on
+`import`/state-adoption drill of Lab 10 Part B. S01's differentiators teaser
+*names* provider `for_each` and `-exclude` and points at S10 as follow-up, but
+naming is not teaching: beyond it the keyword survives only incidentally, in a
+`dynamic` block toggle inside the Day-3 capstone's provider boilerplate and in
+an optional stretch prompt at the end of Lab 07; neither is taught or checked.
 Restore S09 first if time returns.
 
 ## Common local commands

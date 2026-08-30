@@ -1,4 +1,4 @@
-# Lab 10 — OpenTofu differentiators: provider `for_each` & `-exclude` (S10) — solutions
+# Lab 10 — OpenTofu differentiators: provider `for_each`, `-exclude` & `import` (S10) — solutions
 
 Use this companion after attempting the participant lab. Compare state and meaning
 rather than copying ephemeral resource names, IDs, or timestamps literally.
@@ -264,6 +264,264 @@ locals {
 tofu plan
 ```
 
+---
+
+### Part B — work in `labs/day-1/10-differentiators/import/`
+
+```bash
+cd labs/day-1/10-differentiators/import   # from the repo root
+```
+
+LocalStack must be up (`task lab:up`). Every `awslocal` command below also runs
+as `docker exec opentofu-workshop-localstack awslocal …` if the wrapper is not
+on your host.
+
+### Step 5 — Manufacture the "existing infrastructure", out-of-band
+
+```bash
+awslocal s3 mb s3://workshop-adopted-logs
+awslocal s3api put-bucket-tagging --bucket workshop-adopted-logs \
+  --tagging 'TagSet=[{Key=owner,Value=ops}]'
+awslocal s3api get-bucket-tagging --bucket workshop-adopted-logs
+tofu init
+tofu state list
+```
+
+<details><summary>Expected output</summary>
+
+```console
+$ awslocal s3 mb s3://workshop-adopted-logs
+make_bucket: workshop-adopted-logs
+
+$ awslocal s3api get-bucket-tagging --bucket workshop-adopted-logs
+{
+    "TagSet": [
+        {
+            "Key": "owner",
+            "Value": "ops"
+        }
+    ]
+}
+
+$ tofu init
+...
+- Installed hashicorp/aws v5.100.0 (signed, key ID 0C0AF313E5FD9F80)
+...
+OpenTofu has been successfully initialized!
+
+$ tofu state list
+```
+
+`state list` prints nothing: the bucket is real, state is empty. `apply` cannot
+close that gap (it would try to create a name-colliding second bucket) —
+adoption needs `import`.
+
+</details>
+
+### Step 6 — The importing plan
+
+```bash
+tofu plan
+```
+
+<details><summary>Expected output</summary>
+
+```console
+$ tofu plan
+aws_s3_bucket.adopted: Preparing import... [id=workshop-adopted-logs]
+aws_s3_bucket.adopted: Refreshing state... [id=workshop-adopted-logs]
+...
+  # aws_s3_bucket.adopted will be imported
+  # (imported from "workshop-adopted-logs")
+...
+Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.
+```
+
+The four-number summary is the adoption contract: bind the real object into
+state (`1 to import`), create nothing, and — the one to watch — mutate nothing
+(`0 to change`). The attribute values in the plan body were read from the live
+bucket during `Refreshing state...`.
+
+</details>
+
+### Step 7 — Break → fix ×2
+
+Break 1: edit `imports.tf`, `id = "workshop-adopted-log"` (typo), `tofu plan`.
+
+<details><summary>Expected output</summary>
+
+```console
+$ tofu plan
+...
+Error: Cannot import non-existent remote object
+
+While attempting to import an existing object to "aws_s3_bucket.adopted", the
+provider detected that no object exists with the given id or identity. Only
+pre-existing objects can be imported; check that the id or identity is
+correct and that it is associated with the provider's configured region or
+endpoint, or use "tofu apply" to create a new remote object for this
+resource.
+```
+
+Fails at **plan** time — nothing touched. Fix: `git checkout -- imports.tf`.
+
+</details>
+
+Break 2: delete the `tags = { … }` attribute from `adopted.tf`, `tofu plan`.
+
+<details><summary>Expected output</summary>
+
+```console
+$ tofu plan
+...
+  # aws_s3_bucket.adopted will be updated in-place
+  # (imported from "workshop-adopted-logs")
+  ~ resource "aws_s3_bucket" "adopted" {
+      ~ tags                        = {
+          - "owner" = "ops" -> null
+        }
+...
+Plan: 1 to import, 0 to add, 1 to change, 0 to destroy.
+```
+
+No error — just `1 to change`: the adopting apply would also strip the real
+bucket's `owner` tag. Adoption is done at `0 to change`, not at "plan
+succeeded". Fix: `git checkout -- adopted.tf`, re-plan, confirm `0 to change`.
+
+</details>
+
+### Step 8 — Apply the adoption
+
+```bash
+tofu apply -auto-approve
+tofu plan
+tofu state list
+```
+
+<details><summary>Expected output</summary>
+
+```console
+$ tofu apply -auto-approve
+...
+aws_s3_bucket.adopted: Importing... [id=workshop-adopted-logs]
+aws_s3_bucket.adopted: Import complete [id=workshop-adopted-logs]
+
+Apply complete! Resources: 1 imported, 0 added, 0 changed, 0 destroyed.
+
+$ tofu plan
+
+No changes. Your infrastructure matches the configuration.
+
+$ tofu state list
+aws_s3_bucket.adopted
+```
+
+`1 imported` — not created, not changed. The `import` block still in
+`imports.tf` is a no-op once `to` is in state; delete it in the next commit.
+
+</details>
+
+### Step 9 — The imperative `tofu import` CLI
+
+```bash
+tofu state rm aws_s3_bucket.adopted
+tofu import aws_s3_bucket.adopted workshop-adopted-logs
+tofu plan
+```
+
+<details><summary>Expected output</summary>
+
+```console
+$ tofu state rm aws_s3_bucket.adopted
+Removed aws_s3_bucket.adopted
+Successfully removed 1 resource instance(s).
+
+$ tofu import aws_s3_bucket.adopted workshop-adopted-logs
+aws_s3_bucket.adopted: Importing from ID "workshop-adopted-logs"...
+aws_s3_bucket.adopted: Import prepared!
+  Prepared aws_s3_bucket for import
+aws_s3_bucket.adopted: Refreshing state... [id=workshop-adopted-logs]
+
+Import successful!
+
+$ tofu plan
+
+No changes. Your infrastructure matches the configuration.
+```
+
+Same end state, minus the guardrails: no plan preview, no reviewable diff, one
+address per invocation. Prefer the block form.
+
+</details>
+
+### Step 10 — `-generate-config-out`
+
+Create scratch `import-media.tf` (import block for `aws_s3_bucket.media`, no
+resource block), then:
+
+```bash
+awslocal s3 mb s3://workshop-adopted-media
+tofu plan -generate-config-out=generated.tf
+```
+
+<details><summary>Expected output</summary>
+
+```console
+$ tofu plan -generate-config-out=generated.tf
+...
+Planning failed. OpenTofu encountered an error while generating this plan.
+
+Error: Conflicting configuration arguments
+
+  with aws_s3_bucket.media,
+  on generated.tf line 1:
+  (source code not available)
+
+"bucket": conflicts with bucket_prefix
+...
+
+$ cat generated.tf
+# __generated__ by OpenTofu
+# Please review these resources and move them into your main configuration files.
+
+# __generated__ by OpenTofu
+resource "aws_s3_bucket" "media" {
+  bucket              = "workshop-adopted-media"
+  bucket_prefix       = ""
+  force_destroy       = null
+  object_lock_enabled = false
+  tags                = {}
+  tags_all            = {}
+}
+```
+
+The draft is written even though the plan fails on it — the generator emits
+every attribute it read back, including the mutually-exclusive
+`bucket`/`bucket_prefix` pair. "Please review" is load-bearing.
+
+</details>
+
+Fix: delete the `bucket_prefix`, `force_destroy`, and `tags_all` lines from
+`generated.tf`, then plan and apply.
+
+<details><summary>Expected output</summary>
+
+```console
+$ tofu plan
+...
+Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.
+
+$ tofu apply -auto-approve
+...
+Apply complete! Resources: 1 imported, 0 added, 0 changed, 0 destroyed.
+
+$ tofu state list
+aws_s3_bucket.adopted
+aws_s3_bucket.media
+```
+
+</details>
+
 ## Expected observations
 
 - One `provider "aws"` block with `for_each = local.regions` yields one instance
@@ -281,18 +539,40 @@ tofu plan
   convenient but couples their lifecycles: shrink the set with resources still in
   state and you get **`Error: Provider instance not present`**. The fix is to
   re-add the element, then retire it over two applies.
+- **Part B:** the `import {}` block turns adoption into a plannable change —
+  `Plan: 1 to import, 0 to add, 0 to change, 0 to destroy`, then
+  `Apply complete! Resources: 1 imported`, then a `No changes.` follow-up plan.
+  A wrong `id` fails at plan time (`Cannot import non-existent remote object`);
+  a mismatched config plans as `1 to import, … 1 to change` — converge to
+  `0 to change` before applying.
+- The `tofu import` CLI reaches the same state without a plan preview or a
+  reviewable diff; `-generate-config-out` writes a draft
+  (with a `bucket`/`bucket_prefix` conflict to prune) that you must review.
 
 ## Cleanup / panic reset
 
 ```bash
-cd labs/day-1/10-differentiators
-git checkout -- providers.tf                            # restore canonical providers before destroy (Step 4 shrink breaks provider instances)
-tofu destroy -auto-approve                              # remove all buckets + objects (needs LocalStack up)
-rm -rf .terraform .terraform.lock.hcl
-find . -maxdepth 1 -name 'terraform.tfstate*' -delete   # sweep state/backup safely
+# Part A — restore canonical providers BEFORE destroy (Step 4 shrink breaks provider instances)
+git checkout -- labs/day-1/10-differentiators
+tofu -chdir=labs/day-1/10-differentiators destroy -auto-approve          # needs LocalStack up
+rm -rf labs/day-1/10-differentiators/.terraform labs/day-1/10-differentiators/.terraform.lock.hcl
+find labs/day-1/10-differentiators -maxdepth 1 -name 'terraform.tfstate*' -delete
+
+# Part B — destroy removes the adopted buckets too (adopted objects are fully managed)
+tofu -chdir=labs/day-1/10-differentiators/import destroy -auto-approve   # needs LocalStack up
+rm -f labs/day-1/10-differentiators/import/import-media.tf labs/day-1/10-differentiators/import/generated.tf labs/day-1/10-differentiators/import/fleet.tf
+rm -rf labs/day-1/10-differentiators/import/.terraform labs/day-1/10-differentiators/import/.terraform.lock.hcl
+find labs/day-1/10-differentiators/import -maxdepth 1 -name 'terraform.tfstate*' -delete
+
 task lab:down                                           # stop LocalStack, remove volumes
-git status --short .                                    # expect: no output
+git status --short labs/day-1/10-differentiators        # expect: no output
 ```
+
+> Ran Part B only up to Step 5 (bucket created, never imported)? `destroy`
+> cannot remove what state never held — sweep the orphans directly:
+> `awslocal s3 rb s3://workshop-adopted-logs --force` (and likewise
+> `workshop-adopted-media`). `task lab:down` removes the LocalStack volume, so
+> a full down/up also guarantees a clean slate.
 
 Nothing is created on real AWS, so there is nothing to bill or leak. The
 generated state / `.terraform` files are gitignored. Checkout still comes first
@@ -322,6 +602,10 @@ left unreverted makes destroy fail on missing provider instances.
   all. Then reason about what a *static* reference (a single-region config with
   `bucket = aws_s3_bucket.one.id`) would exclude instead — the granularity of the
   dependency edge decides how far the exclusion reaches.
+- **Adopt a fleet with one loopable `import` (1.7).** In the `import/` workdir:
+  two more orphan buckets, then one scratch `fleet.tf` with a `for_each` import
+  block plus a matching `for_each` resource — see the Stretch solution below for
+  the exact manifest and captured output.
 
 <details><summary>Solution / expected output</summary>
 
@@ -395,6 +679,15 @@ tracked files — the break was purely the temporary edit, and the fix reverted 
   convenient but couples their lifecycles: shrink the set with resources still in
   state and you get **`Error: Provider instance not present`**. The fix is to
   re-add the element, then retire it over two applies.
+- **Part B:** the `import {}` block turns adoption into a plannable change —
+  `Plan: 1 to import, 0 to add, 0 to change, 0 to destroy`, then
+  `Apply complete! Resources: 1 imported`, then a `No changes.` follow-up plan.
+  A wrong `id` fails at plan time (`Cannot import non-existent remote object`);
+  a mismatched config plans as `1 to import, … 1 to change` — converge to
+  `0 to change` before applying.
+- The `tofu import` CLI reaches the same state without a plan preview or a
+  reviewable diff; `-generate-config-out` writes a draft
+  (with a `bucket`/`bucket_prefix` conflict to prune) that you must review.
 
 Representative console output from the inline spoilers above applies when your
 toolchain versions match the lab pin.
@@ -414,17 +707,30 @@ matters and why re-running apply without changes reports zero additions.
 
 ## Troubleshooting and recovery
 
-If a step fails mid-lab, prefer the documented panic reset before editing tracked files by hand:
+If a step fails mid-lab, prefer the documented panic reset (run from the repo root) before editing tracked files by hand:
 
 ```bash
-cd labs/day-1/10-differentiators
-git checkout -- providers.tf                            # restore canonical providers before destroy (Step 4 shrink breaks provider instances)
-tofu destroy -auto-approve                              # remove all buckets + objects (needs LocalStack up)
-rm -rf .terraform .terraform.lock.hcl
-find . -maxdepth 1 -name 'terraform.tfstate*' -delete   # sweep state/backup safely
+# Part A — restore canonical providers BEFORE destroy (Step 4 shrink breaks provider instances)
+git checkout -- labs/day-1/10-differentiators
+tofu -chdir=labs/day-1/10-differentiators destroy -auto-approve          # needs LocalStack up
+rm -rf labs/day-1/10-differentiators/.terraform labs/day-1/10-differentiators/.terraform.lock.hcl
+find labs/day-1/10-differentiators -maxdepth 1 -name 'terraform.tfstate*' -delete
+
+# Part B — destroy removes the adopted buckets too (adopted objects are fully managed)
+tofu -chdir=labs/day-1/10-differentiators/import destroy -auto-approve   # needs LocalStack up
+rm -f labs/day-1/10-differentiators/import/import-media.tf labs/day-1/10-differentiators/import/generated.tf labs/day-1/10-differentiators/import/fleet.tf
+rm -rf labs/day-1/10-differentiators/import/.terraform labs/day-1/10-differentiators/import/.terraform.lock.hcl
+find labs/day-1/10-differentiators/import -maxdepth 1 -name 'terraform.tfstate*' -delete
+
 task lab:down                                           # stop LocalStack, remove volumes
-git status --short .                                    # expect: no output
+git status --short labs/day-1/10-differentiators        # expect: no output
 ```
+
+> Ran Part B only up to Step 5 (bucket created, never imported)? `destroy`
+> cannot remove what state never held — sweep the orphans directly:
+> `awslocal s3 rb s3://workshop-adopted-logs --force` (and likewise
+> `workshop-adopted-media`). `task lab:down` removes the LocalStack volume, so
+> a full down/up also guarantees a clean slate.
 
 Nothing is created on real AWS, so there is nothing to bill or leak. The
 generated state / `.terraform` files are gitignored. Checkout still comes first
@@ -435,7 +741,7 @@ left unreverted makes destroy fail on missing provider instances.
 > aborts under zsh's `nomatch` when no such file exists, and `tofu` can leave
 > timestamped `.backup` files behind. `find` matches zero-or-more without erroring.
 
-Re-enter `labs/day-1/10-differentiators/` and replay from the failing step once the environment is clean. For provider or module download errors, run `tofu init -upgrade` in the workdir and retry `tofu plan`.
+Re-enter `labs/day-1/10-differentiators/` (Part A) or `labs/day-1/10-differentiators/import/` (Part B) and replay from the failing step once the environment is clean. For provider or module download errors, run `tofu init -upgrade` in the workdir and retry `tofu plan`.
 
 ## Stretch solution
 
@@ -452,12 +758,68 @@ cd labs/day-1/10-differentiators
 tofu plan
 ```
 
+**Fleet adoption (loopable import, Part B workdir).** Manufacture the orphans
+and write the scratch `fleet.tf` (gitignored) exactly as follows:
+
+```bash
+cd labs/day-1/10-differentiators/import
+awslocal s3 mb s3://workshop-adopted-alpha
+awslocal s3 mb s3://workshop-adopted-beta
+```
+
+```hcl
+# Learner-scratch (gitignored): the loopable import — ONE import block
+# fanned out over a set, adopting a whole fleet declaratively (>= 1.7).
+locals {
+  fleet = toset(["alpha", "beta"])
+}
+
+import {
+  for_each = local.fleet
+  to       = aws_s3_bucket.fleet[each.key]
+  id       = "workshop-adopted-${each.key}"
+}
+
+resource "aws_s3_bucket" "fleet" {
+  for_each = local.fleet
+  bucket   = "workshop-adopted-${each.key}"
+}
+```
+
+```bash
+tofu plan
+tofu apply -auto-approve
+```
+
 ### Expected state / output
 
 When the stretch applies cleanly, `tofu plan` afterward shows no further changes and stretch-specific outputs appear in state as described in the spoiler blocks above.
+
+Fleet adoption, captured:
+
+```console
+$ tofu plan
+aws_s3_bucket.fleet["alpha"]: Preparing import... [id=workshop-adopted-alpha]
+aws_s3_bucket.fleet["beta"]: Preparing import... [id=workshop-adopted-beta]
+...
+Plan: 2 to import, 0 to add, 0 to change, 0 to destroy.
+
+$ tofu apply -auto-approve
+...
+Apply complete! Resources: 2 imported, 0 added, 0 changed, 0 destroyed.
+
+$ tofu state list
+aws_s3_bucket.adopted
+aws_s3_bucket.fleet["alpha"]
+aws_s3_bucket.fleet["beta"]
+aws_s3_bucket.media
+```
 
 ### Explanation
 
 Stretch tasks extend the same exercise with additional constraints or outputs; they
 remain optional because they reuse the core method and only deepen the analysis once
-the guided path already converged.
+the guided path already converged. The fleet stretch is the payoff of the
+declarative form: because `import` is a block, it takes `for_each` like any other
+block (since 1.7), so one reviewable declaration adopts N objects — the imperative
+CLI would require one `tofu import` invocation per address.

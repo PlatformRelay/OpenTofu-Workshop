@@ -177,12 +177,12 @@
       "sectionTitle": "S10 OpenTofu differentiators",
       "day": 1,
       "environment": "`localstack ✓`",
-      "tools": "Docker + LocalStack",
+      "tools": "Docker + LocalStack (`awslocal` via the container in Part B)",
       "pinned": "OpenTofu ≥1.9; `:4566`",
       "validationState": "unrun",
-      "estimatedDurationMin": 25,
+      "estimatedDurationMin": 55,
       "automationTier": "localstack",
-      "cleanupCommand": "cd labs/day-1/10-differentiators"
+      "cleanupCommand": "git checkout -- labs/day-1/10-differentiators"
     },
     {
       "id": "day-1/11-taco-landscape",

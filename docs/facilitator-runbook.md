@@ -126,7 +126,7 @@ frontmatter and lab headers — no rehearsal has timed them, so treat them as a
 budget, not a stopwatch.
 
 The README fit plan's **400 is a different figure**: it is Day-1 **slide**
-runtime only (`dayOneFitTotal()`), compressed from 685. Day-1 lab time (250) is
+runtime only (`dayOneFitTotal()`), compressed from 695. Day-1 lab time (250) is
 untouched by it, so a fit-plan Day 1 still runs **650** of slides+labs. Use 400
 to check the deck against the day; use 790 to plan the day itself. Note that 400
 does not fit either: since S01 grew, the compressed deck is 10 minutes over the
@@ -141,7 +141,7 @@ does not fit either: since S01 grew, the compressed deck is 10 minutes over the
 | Priority | Action | Source |
 | --- | --- | --- |
 | 1 | Skip **S11** (optional; already `hide: true`) | README fit plan row 1 (−35) |
-| 2 | Skip **S10**, then **S09** at their `DAY1-FIT` markers | README rows 2–3 (−45, −65) |
+| 2 | Skip **S10**, then **S09** at their `DAY1-FIT` markers | README rows 2–3 (−55, −65) |
 | 3 | Compress S00–S03, S06, S15, S04, S05, S07 at markers until slide time is ≤400 | README rows 4–12 |
 | Keep | **S08** at 65 min — flagship synthesis | `slides-3day.md` marker |
 
@@ -159,7 +159,8 @@ is now **790** planned, and the fit-plan slide target is **400**.
 **Accepted cost of the canonical cut: `for_each` is never taught.** S09 and S10
 are both skipped, which removes S09's `count` vs `for_each` lesson (and
 `moved`-based refactoring without replacement) and S10's provider-level
-`for_each` / `-exclude`. S01's differentiators teaser now *names* provider
+`for_each` / `-exclude` — and, with S10, the hands-on `import`/adoption
+drill (Lab 10 Part B). S01's differentiators teaser now *names* provider
 `for_each` and `-exclude` and points at S10 as follow-up, so a canonical-cut
 learner at least hears the "why OpenTofu" feature story — but naming is not
 teaching: beyond the teaser the keyword survives only incidentally, in a
@@ -292,7 +293,7 @@ share of the day. **3-day cut** = compress / skip from the fit plan or `hide:` i
 | S07 | Modules | core | 60 → **50** | 35 | Compress | What is the module contract (inputs/outputs)? Demo registry/OCI only | No registry network on runnable path |
 | S08 | Naming & labelling | core | **65** | 30 | Keep | Mock plan green, then LocalStack apply — validation enforces convention? | Step 4 needs LocalStack; panic-reset safe |
 | S09 | Best practices | recommended | 65 | 45 | **Skip** | (If run) `count` vs `for_each` — which rebuilds on middle removal? And inside a `dynamic` block, why does `each.*` fail? | Only if time returns; lab 09 authors a `dynamic` block hands-on (archive provider, still no Docker) |
-| S10 | Differentiators | recommended | 45 | 25 | **Skip** | (If run) Provider `for_each` / `-exclude` — needs live LocalStack | Heavy emulator use |
+| S10 | Differentiators | recommended | 55 | 55 | **Skip** | (If run) Provider `for_each` / `-exclude` / `import` adoption — needs live LocalStack | Heavy emulator use |
 | S11 | TACO landscape | optional | 35 | 20 | **Skip** (`hide`) | (If run) Constraints-first platform pick — paper only | No tooling |
 
 ### Day 2

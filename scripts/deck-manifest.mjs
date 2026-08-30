@@ -4,7 +4,7 @@ import { resolve } from 'node:path'
 export const sectionTimings = {
   S00: [40, 20], S01: [55, 20], S02: [50, 20], S03: [60, 20], S04: [50, 25],
   S05: [60, 25], S06: [50, 25], S15: [50, 30], S07: [60, 35], S08: [65, 30],
-  S09: [65, 45], S10: [45, 25], S11: [35, 20],
+  S09: [65, 45], S10: [55, 55], S11: [35, 20],
   S12: [20, 20], S13: [30, 30], S14: [35, 35], S16: [35, 35], S17: [30, 30],
   S18: [30, 30], S19: [30, 30],
   S20: [25, 25], S21: [30, 30], S22: [30, 30], S23: [30, 30], S24: [25, 25],
@@ -68,7 +68,7 @@ const sectionDefinitions = [
   },
   {
     id: 'S10', slug: 'opentofu-differentiators', title: 'OpenTofu differentiators', tier: 'recommended', day: 1, canonical: false,
-    status: 'authored', fitAction: 'skip', fitPlan: 'SKIP S10 (-45) in delivery; recommended must remain hide:false.',
+    status: 'authored', fitAction: 'skip', fitPlan: 'SKIP S10 (-55) in delivery; recommended must remain hide:false.',
   },
   {
     id: 'S11', slug: 'taco-landscape', title: 'The TACO landscape', tier: 'optional', day: 1, canonical: false,

@@ -9,8 +9,9 @@ tier: recommended
 # OpenTofu differentiators
 
 Since the fork, OpenTofu has shipped features Terraform has no answer to. Here's
-the practitioner-facing set — a fan-out provider, a surgical plan filter, and
-where they land on the release timeline.
+the practitioner-facing set — a fan-out provider, a surgical plan filter, the
+release timeline — and the day-one skill of adopting infrastructure that
+already exists.
 
 <!--
 Say: Frame the section as "what do you actually get by choosing OpenTofu." This is
@@ -18,8 +19,10 @@ not a licensing pitch — it's the concrete, hands-on features that have shipped
 since the fork and that a practitioner uses in real configs. We'll walk the
 release timeline so version claims are grounded, then focus on two features you
 literally cannot write in Terraform: provider for_each and the -exclude plan
-filter. The headline security feature, client-side state encryption, you've
-already met — we'll point back to it, not re-teach it. (~1 min)
+filter — then close with import, the adopt-existing-infrastructure skill whose
+lab half is the likeliest first task of a real job. The headline security
+feature, client-side state encryption, you've already met — we'll point back
+to it, not re-teach it. (~1 min)
 Then: "Start with the timeline so every version claim later is anchored."
 -->
 
@@ -209,6 +212,129 @@ exclude a bucket and its dependent object goes with it — you cannot keep a
 resource while removing what it depends on. Both -target and -exclude are recovery
 tools that print a targeting-in-effect warning; they're for getting out of a jam,
 not routine applies. (~4 min)
+Then: "One more pair before OCI — what happens when the infrastructure got there first."
+-->
+
+---
+layout: two-cols-code
+heading: 'import {} — adopt what already exists'
+---
+
+<!-- source: labs/day-1/10-differentiators/import/imports.tf -->
+```hcl
+# Declarative adoption: an `import` block is PLANNED like any other
+# change — reviewable in a diff, dry-runnable, and removable once the
+# object is in state (it becomes a no-op after the importing apply).
+#
+# `to` is the config address that will own the object; `id` is the
+# provider-native identifier of the REAL object (for S3: the bucket
+# name). Lab 10's Step 5 creates that bucket out-of-band with
+# awslocal — the "existing infrastructure" this part adopts.
+import {
+  to = aws_s3_bucket.adopted
+  id = "workshop-adopted-logs"
+}
+```
+
+::right::
+
+<div class="mt-2">
+  <KwCard heading="Plannable adoption" kind="state" variant="accent">
+    An <code>import</code> block is <strong>planned</strong>:
+    <code>1 to import, 0 to add, 0 to change</code> lands in a reviewable
+    diff <em>before</em> state is touched.
+  </KwCard>
+  <div class="mt-3">
+  <KwCard heading="id → to" kind="resource" variant="ok">
+    <code>id</code> names the <strong>real object</strong>
+    (provider-native); <code>to</code> is the config address that will own
+    it. Refresh reads the object; apply binds it into state.
+  </KwCard>
+  </div>
+  <div class="mt-3">
+  <KwCard heading="Loopable since 1.7" kind="module" variant="accent">
+    <code>import</code> is a block, so it takes <code>for_each</code> —
+    one declaration adopts a whole fleet. The older
+    <code>tofu import</code> CLI is one address per invocation, no plan.
+  </KwCard>
+  </div>
+</div>
+
+<!--
+Say: The likeliest first task in a real job is not greenfield — it's adoption:
+infrastructure someone already built must come under management without a
+destroy-and-recreate. The import block is the declarative verb for that. id names
+the real object in the provider's own vocabulary — for S3, the bucket name — and
+to names the config address that will own it. Because it's a block, it's planned:
+you see one-to-import-zero-to-change in a diff a colleague can review before
+anything binds, and since 1.7 it takes for_each, so one block can adopt a fleet.
+Config-driven import is shared lineage — Terraform has it too — but the lab makes
+you actually do it, which almost no course does. (~4 min)
+Then: "Adoption has a catch: your config is still the desired state."
+-->
+
+---
+layout: two-cols-code
+heading: 'Your config is the desired state — even mid-adoption'
+---
+
+<!-- source: labs/day-1/10-differentiators/import/adopted.tf -->
+```hcl
+# The config the adopted bucket must MATCH. Importing binds this block
+# to the real object; it does NOT rewrite reality to fit your code.
+# Any attribute that disagrees with the live object shows up in the
+# importing plan as a change — the lab makes you read exactly that.
+resource "aws_s3_bucket" "adopted" {
+  bucket = "workshop-adopted-logs"
+
+  tags = {
+    # Matches the tag Step 5 puts on the real bucket. Delete this
+    # attribute and the importing plan gains an in-place change.
+    owner = "ops"
+  }
+}
+
+output "adopted_bucket" {
+  description = "Name of the bucket adopted into state by the import block."
+  value       = aws_s3_bucket.adopted.bucket
+}
+```
+
+::right::
+
+<div class="mt-2">
+  <KwCard heading="0 to change is the target" kind="validation" variant="ok">
+    Adoption is finished when the importing plan reads
+    <code>1 to import, 0 to add, <strong>0 to change</strong></code> — not
+    when the plan merely succeeds.
+  </KwCard>
+  <div class="mt-3">
+  <KwCard heading="Mismatch = mutation" kind="state" variant="warn">
+    If config disagrees with the real object, the <em>same apply</em> that
+    adopts it also <strong>changes it</strong> — the lab makes you strip a
+    real tag this way, on purpose.
+  </KwCard>
+  </div>
+  <div class="mt-3">
+  <KwCard heading="-generate-config-out" kind="resource" variant="accent">
+    No config yet? The plan can <strong>draft</strong> it from what the
+    provider read back — a reviewable draft, not gospel (the lab's draft
+    ships a <code>bucket</code>/<code>bucket_prefix</code> conflict).
+  </KwCard>
+  </div>
+</div>
+
+<!--
+Say: The catch that makes adoption a skill rather than a command: import binds the
+object to YOUR config, and your config is still the desired state. If it
+disagrees with reality, the importing plan quietly gains one-to-change, and the
+same apply that adopts the bucket also mutates it — in the lab you strip a real
+owner tag exactly this way. So the discipline is: converge to zero-to-change
+before you apply, and change the object only as a separate, deliberate decision.
+When no config exists at all, dash-generate-config-out drafts it from what the
+provider read back — and the lab's draft even fails its own plan on a
+bucket-versus-bucket-prefix conflict, which is the review gate working: generated
+config is a draft to prune, never something to commit blind. (~4 min)
 Then: "One more timeline entry worth calling out for platform teams — OCI."
 -->
 
@@ -254,17 +380,21 @@ Then: "Now go run the 1.9 pair for real — Lab 10."
 ---
 layout: lab
 lab: labs/day-1/10-differentiators.md
-duration: 25 min
+duration: 55 min
 env: 'localstack ✓'
 ---
 
-# Lab 10 — provider `for_each` & `-exclude` on LocalStack
+# Lab 10 — `for_each`, `-exclude` & `import` on LocalStack
 
-Bring up LocalStack, fan **one** `provider "aws"` block over two regions with
-`for_each`, and apply **one S3 bucket per region** — `4 added`, each in its own
-region. Then wield `-exclude`: drop a leaf (clean), drop a dependency (its
-dependents follow). Finally trigger the real **`Provider instance not present`**
-error by shrinking the region set with resources still live, and fix it.
+**Part A:** fan **one** `provider "aws"` block over two regions with
+`for_each`, apply **one S3 bucket per region** (`4 added`), wield `-exclude`
+both ways, then trigger and fix the real **`Provider instance not present`**
+error.
+
+**Part B:** `awslocal` creates a bucket behind OpenTofu's back — adopt it:
+importing plan (`1 to import, 0 to change`), wrong-`id` and mismatched-config
+break→fixes, the imperative `tofu import` contrast, and a
+`-generate-config-out` draft you must prune before it plans clean.
 
 Every task has a `<details>` spoiler; panic reset is `task lab:down`.
 
@@ -276,8 +406,12 @@ own region. Then you'll exercise -exclude both ways: excluding a leaf drops just
 it, excluding a bucket drops its dependent object too. The break-fix is the real
 provider-for_each gotcha: shrink the shared region set while resources are still
 in state and you get Provider-instance-not-present; the fix is to re-add the
-element. All against LocalStack, zero cloud cost. Every task has a spoiler; panic
-reset is task lab:down. (~25 min, matches the lab duration)
+element. Part B is the adoption drill: awslocal plays the colleague who clicked
+around the console, and you bring their bucket under management — read the
+importing plan, mis-key the id, watch a mismatched config threaten a real tag,
+contrast the no-preview CLI, and prune a generated-config draft until it plans
+clean. All against LocalStack, zero cloud cost. Every task has a spoiler; panic
+reset is task lab:down. (~55 min, matches the lab duration)
 Then: regroup for the recap.
 -->
 
@@ -298,6 +432,9 @@ next: 'Next: Best practices — structure, lifecycle & refactoring'
   address **and its dependents**; a recovery tool, not routine.
 - **OCI registries** (1.10) mirror providers *and* modules through the container
   registry you already run — for air-gapped and regulated orgs.
+- **`import {}`** adopts existing objects **plannably** — done at
+  `0 to change`, loopable via `for_each` since 1.7; the CLI form has no
+  preview. Config that disagrees with reality mutates it on the adopting apply.
 
 <!--
 Say: Pull the threads together. OpenTofu stays drop-in compatible with Terraform
@@ -309,7 +446,10 @@ becomes one instance per key and resources select with provider-equals-alias-
 bracket-key; and -exclude, the inverse of -target that plans everything but an
 address and its dependents, a recovery tool rather than routine. And for platform
 teams, 1.10's OCI registries mirror providers and modules through the registry you
-already run. Call forward: next we turn to best practices — structure, lifecycle,
+already run. And the adoption drill: import blocks make bringing existing
+infrastructure under management a planned, reviewable change — finished at
+zero-to-change, loopable with for_each — where the CLI mutates state with no
+preview. Call forward: next we turn to best practices — structure, lifecycle,
 and refactoring. (~2 min)
 Then: transition into Best practices.
 -->

@@ -49,7 +49,7 @@ Fill this in per run:
 | S07 | Modules | 60 | 35 | | | | | |
 | S08 | Naming & labelling module | 65 | 30 | | | | | |
 | S09 | Best practices | 50 | 30 | | | | | |
-| S10 | OpenTofu differentiators | 45 | 25 | | | | | |
+| S10 | OpenTofu differentiators | 55 | 55 | | | | | |
 | S11 | The TACO landscape | 35 | 20 | | — | | — | Paper exercise — lab column n/a. |
 
 ## Day 2

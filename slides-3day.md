@@ -102,7 +102,7 @@ hide: false
 ---
 
 ---
-# DAY1-FIT: SKIP S10 (-45) in delivery; recommended must remain hide:false.
+# DAY1-FIT: SKIP S10 (-55) in delivery; recommended must remain hide:false.
 # S10 · OpenTofu differentiators · recommended · Day 1
 src: ./pages/S10-opentofu-differentiators/index.md
 hide: false
