@@ -86,3 +86,29 @@ setup() {
   grep -qF 'group: release-${{ github.ref }}' <<<"$block"
   grep -qF 'cancel-in-progress: false' <<<"$block"
 }
+
+# US-E-GOVET (audit TEST-1): before this job existed, NO gate compiled the two
+# Terratest Go modules — lab-terratest-selftest.sh only asserts the
+# docker-absent fail-fast message — so a type error in bucket_test.go or
+# smoke_test.go could ship green. Comment-stripped for the same reason as
+# above: prose in ci.yml must not be able to certify the gate.
+
+@test "ci.yml go-vet job compiles both Terratest Go modules" {
+  local wf="$ROOT/.github/workflows/ci.yml"
+  local exec_lines
+  exec_lines="$(grep -v '^[[:space:]]*#' "$wf")"
+
+  # Both module dirs must sit in the vet matrix — losing an entry silently
+  # drops that module from the compile gate.
+  grep -qF 'labs/day-2/18-terratest-cost' <<<"$exec_lines"
+  grep -qF 'labs/fixtures/terratest-smoke' <<<"$exec_lines"
+
+  # The gate itself, run once per matrix dir.
+  grep -qF 'go vet ./...' <<<"$exec_lines"
+
+  # The toolchain is pinned by each module's own go.mod, NOT a ci.yml literal:
+  # verify.sh §10 then has no new version literal to drift-check, and the cost
+  # module's go.mod (go 1.25.0) already requires a newer Go than versions.env's
+  # GO_VERSION container pin — a single ci.yml literal could not serve both.
+  grep -qF 'go-version-file: ${{ matrix.dir }}/go.mod' <<<"$exec_lines"
+}
