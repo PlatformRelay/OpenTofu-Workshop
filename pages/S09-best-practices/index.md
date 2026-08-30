@@ -122,66 +122,252 @@ Here's how to do it without a rebuild."
 -->
 
 ---
+
+<span class="kw-kicker">refactoring blocks</span>
+
+# Change your code without rebuilding the world
+
+<div class="kw-cols-3 mt-4">
+  <KwCard heading="moved {}" kind="state" variant="ok">
+    A <strong>state rename</strong>. Re-keying <code>count</code>→<code>for_each</code>
+    or plainly renaming a resource plans <code>0 to add, 0 change, 0 destroy</code>
+    — every instance <em>has moved to</em> its new address.
+  </KwCard>
+  <KwCard heading="removed {}" kind="state" variant="warn">
+    Stop managing a resource but <strong>keep the object</strong> — a dedicated
+    <strong><code>forget</code></strong> plan action, the reviewable successor to
+    <code>tofu state rm</code>.
+  </KwCard>
+  <KwCard heading="import {}" kind="state" variant="accent">
+    Bring pre-existing infra <strong>under management</strong>. Config-driven and,
+    since <strong>1.7</strong>, <code>for_each</code>-loopable for bulk adoption.
+  </KwCard>
+</div>
+
+<div v-click class="mt-6 kw-muted text-sm">
+
+All three let code and state disagree **on purpose**, then reconcile without
+touching real infrastructure — and all three live **in code**: reviewed in the
+same diff as the config change they accompany, not typed into a console. The
+next three slides run `moved` and `removed` against the lab's real files;
+`import` stays conceptual here and gets its own hands-on unit.
+
+</div>
+
+<!--
+Say: These three blocks let your code and your state disagree on purpose, then reconcile
+without rebuilding. A moved block declares that an old address is the same object as a
+new one — it covers the count-to-for-each migration AND the everyday plain rename, both
+planning zero-zero-zero. A removed block drops a resource from state while keeping the
+real object alive — it gets its own plan action, "forget", and it's the reviewable,
+version-controlled successor to the imperative tofu state rm. An import block adopts an
+object that already exists into state; since 1.7 it takes a for_each, so you can
+bulk-import a whole fleet declaratively. The click lands the common property: all three
+live in code, so state surgery travels in the same reviewed diff as the config edit —
+that's the entire advance over console commands. (~2 min)
+Then: "Start with moved, on the exact file the lab refactors."
+-->
+
+---
 layout: two-cols-code
-heading: Refactor in state, not in the world — moved / removed / import
+heading: moved — a rename is a state edit, not a rebuild
 ---
 
+<!-- source: labs/day-1/09-best-practices/rename.tf -->
 ```hcl
-# moved: an old address IS this new one. Rename or re-key WITHOUT replacement.
+# Companion artifact: release notes rendered beside the manifests.
+# This resource was BORN as local_file.notes; the Step 11 refactor
+# renamed the ADDRESS. Nothing about the real file changed — which is
+# exactly why the rename must be a state edit, not a rebuild.
+resource "local_file" "release_notes" {
+  filename = "${path.module}/out/RELEASE.md"
+  content  = "# Release: checkout, payments, search\n"
+}
+
+# moved: a plain RENAME — the smallest state surgery there is. Without
+# this block the rename plans 1 to add, 1 to destroy (a new address is
+# a new resource); with it, "has moved to" and a 0/0/0 no-op. Applied
+# moved blocks are inert history: keep them as the paper trail.
 moved {
-  from = local_file.manifest[0]         # was count-indexed
-  to   = local_file.manifest["checkout"] # now for_each-keyed
-}
-
-# removed: drop a resource from STATE without destroying the real object.
-removed {
-  from = local_file.legacy
-  lifecycle { destroy = false }
-}
-
-# import: adopt an EXISTING object into state. Loopable (for_each) since 1.7.
-import {
-  for_each = var.adopt
-  to       = local_file.manifest[each.key]
-  id       = each.value
+  from = local_file.notes
+  to   = local_file.release_notes
 }
 ```
 
 ::right::
 
 <div class="mt-2">
-  <KwCard heading="moved {}" kind="state" variant="ok">
-    A <strong>state rename</strong>. The <code>count</code>→<code>for_each</code>
-    migration plans <code>0 to add, 0 change, 0 destroy</code> — every instance
-    <em>has moved to</em> its new address.
+  <KwCard heading="address = identity" kind="state" variant="danger">
+    Rename the block and OpenTofu sees <code>notes</code> <strong>gone</strong> and
+    <code>release_notes</code> <strong>born</strong> — destroy one, create the
+    other, for a file that never changed.
   </KwCard>
-  <div class="mt-3">
-  <KwCard heading="removed {}" kind="state" variant="warn">
-    Stop managing a resource but <strong>keep the object</strong>
-    (<code>destroy = false</code>) — the reviewable successor to
-    <code>tofu state rm</code>.
+  <div v-click class="mt-3">
+  <KwCard heading="moved re-binds it" kind="state" variant="ok">
+    <code>from</code>/<code>to</code> declare "same object, new address" — the
+    plan drops to a pure state edit, <code>id</code> unchanged.
   </KwCard>
   </div>
-  <div class="mt-3">
-  <KwCard heading="import {}" kind="state" variant="accent">
-    Bring pre-existing infra <strong>under management</strong>. Config-driven and,
-    since <strong>1.7</strong>, <code>for_each</code>-loopable for bulk adoption.
+  <div v-click class="mt-3">
+  <KwCard heading="inert history" kind="state" variant="accent">
+    An applied <code>moved</code> block matches nothing in state and no-ops
+    forever — <strong>leave it in</strong> as the reviewable record of the
+    rename.
   </KwCard>
   </div>
 </div>
 
 <!--
-Say: These three blocks let your code and your state disagree on purpose, then reconcile
-without rebuilding. A moved block declares that an old address is the same object as a
-new one — it's what makes the count-to-for-each migration a pure state rename, planning
-zero add, zero change, zero destroy, with every instance reported as "has moved to." A
-removed block drops a resource from state while keeping the real object alive via
-destroy equals false — the reviewable, version-controlled successor to the imperative
-tofu state rm. And an import block adopts an object that already exists into state; since
-1.7 it takes a for_each, so you can bulk-import a whole fleet declaratively instead of
-one CLI call at a time. All three live in code, so they're reviewed and repeatable. (~4 min)
-Then: "moved and count-vs-for-each are the runnable core; dynamic blocks are the next
-DRY tool."
+Say: This fence IS the tracked lab file, byte-checked in CI — the end state of the
+rename you'll perform yourself. The resource was born as local_file.notes and now lives
+at local_file.release_notes; the moved block underneath is what made that transition
+safe. Walk the clicks. First, why a rename is dangerous at all: the address is the
+identity, so renaming the block makes OpenTofu see one resource vanish and a brand-new
+one appear — destroy plus create for a file whose path and content never changed. On a
+local file that's churn; on a database it's an outage. Second: moved re-binds the
+address to the existing object — from and to, nothing else — and the plan collapses to
+a pure state edit with the id provably unchanged. Third: once applied, a moved block is
+inert — its from-address matches nothing — so you leave it in the file as history; the
+next reader learns the resource used to be called notes. Same verb as the
+count-to-for-each migration you saw earlier, at its smallest scale. (~3 min)
+Then: "Here are those two plans side by side, verbatim."
+-->
+
+---
+layout: two-cols-code
+heading: The rename, twice — without moved, then with
+---
+
+```console
+$ tofu plan   # rename only — no moved block
+...
+  # local_file.notes will be destroyed
+  # (because local_file.notes is not in configuration)
+...
+  # local_file.release_notes will be created
+...
+Plan: 1 to add, 0 to change, 1 to destroy.
+```
+
+```console
+$ tofu plan   # same rename + moved block
+  # local_file.notes has moved to local_file.release_notes
+    resource "local_file" "release_notes" {
+        id  = "8b2a534a4b1a8f4c5e7dfbc2fe70ce23bc58dfcf"
+        # (10 unchanged attributes hidden)
+    }
+
+Plan: 0 to add, 0 to change, 0 to destroy.
+```
+
+::right::
+
+<div class="mt-2">
+  <KwCard heading="the tell" kind="state" variant="danger">
+    "<em>is not in configuration</em>" on a resource you merely
+    <strong>renamed</strong> — OpenTofu lost the thread of identity, not the
+    resource.
+  </KwCard>
+  <div v-click class="mt-3">
+  <KwCard heading="has moved to" kind="state" variant="ok">
+    One line replaces the destroy/create pair, and the <code>id</code> carries
+    over — <strong>same object</strong>, new address, nothing touched on disk.
+  </KwCard>
+  </div>
+  <div v-click class="mt-3">
+  <KwCard heading="read the tally" kind="state" variant="accent">
+    <code>1 to add, 1 to destroy</code> on a pure rename is a plan to
+    <strong>stop and fix</strong>, not to approve — the same reflex as
+    <code>forces replacement</code>.
+  </KwCard>
+  </div>
+</div>
+
+<!--
+Say: Both plans are captured verbatim from the lab. Top: the rename without help. The
+tell is the parenthetical — "because local_file.notes is not in configuration" — on a
+resource you only renamed; OpenTofu isn't wrong, it just has no way to know the two
+addresses are one object, so it plans a real destroy and a real create. Bottom: the
+identical rename with the moved block — a single "has moved to" line, the id carried
+over unchanged, and a zero-zero-zero tally. Click three generalises the reflex from the
+plan-reading slide coming up: an add/destroy pair on a change you believe is cosmetic is
+a stop signal; renames should plan as moves, and when they don't, you're about to
+rebuild something for no reason. In the lab you write the moved block yourself and watch
+the plan flip. (~3 min)
+Then: "The second verb: retiring a resource whose artifact must survive."
+-->
+
+---
+layout: two-cols-code
+heading: removed — retire from state, keep the artifact
+---
+
+<!-- source: labs/day-1/09-best-practices/retire.tf -->
+```hcl
+# Retirement paper trail (Step 12): out/build-info.env used to be
+# managed here as local_file.build_info. The resource block is deleted;
+# this removed block hands the file over — OpenTofu FORGETS the object
+# without destroying it. Like moved, an applied removed block is inert
+# history and safe to keep.
+removed {
+  from = local_file.build_info
+
+  # Say the intent out loud. destroy = false means "forget, don't
+  # destroy". Omitting the lifecycle block still forgets — but with a
+  # warning — and destroy = true flips this same block into a real
+  # destroy of the artifact.
+  lifecycle {
+    destroy = false
+  }
+}
+```
+
+```console
+$ tofu plan
+  # local_file.build_info will be removed from the OpenTofu state but will not be destroyed
+...
+Plan: 0 to add, 0 to change, 0 to destroy, 1 to forget.
+```
+
+::right::
+
+<div class="mt-2">
+  <KwCard heading=". forget — its own verb" kind="state" variant="ok">
+    Not a destroy: the plan grows a <strong>fourth tally column</strong>,
+    <code>1 to forget</code>, and the apply reports
+    <strong><code>1 forgotten</code></strong> — the artifact stays on disk.
+  </KwCard>
+  <div v-click class="mt-3">
+  <KwCard heading="one boolean, two fates" kind="state" variant="danger">
+    <code>destroy = true</code> flips the <strong>same block</strong> into a real
+    destroy; omit <code>lifecycle</code> and OpenTofu forgets by default but
+    <strong>warns</strong> — write the decision down.
+  </KwCard>
+  </div>
+  <div v-click class="mt-3">
+  <KwCard heading="vs tofu state rm" kind="state" variant="warn">
+    <code>state rm</code> is instant, unreviewed, and does <strong>half the
+    job</strong> (config still declares the resource). <code>removed</code> ships
+    config edit + state edit in <strong>one planned diff</strong>.
+  </KwCard>
+  </div>
+</div>
+
+<!--
+Say: Again the fence is the tracked lab file — and note what it does NOT contain: the
+resource block is gone; the removed block stands where it stood. Deleting code alone
+means "destroy the object" — the lab makes you feel that plan first. removed replaces
+that meaning with "stop tracking it": the plan grows a genuinely separate action symbol,
+dot-forget, its own column in the tally — zero to destroy, one to forget — and the apply
+summary reads "1 forgotten" with the file provably intact. Click two is the edge the lab
+also runs: the lifecycle boolean is the whole decision. destroy equals true turns this
+identical block into a real destroy; leaving lifecycle out still forgets but draws a
+warning, because OpenTofu wants the fate written down, not defaulted. Click three is the
+contrast with the imperative tool from the state lab: state rm forgets instantly but is
+unreviewed and leaves the config edit as a separate step you must remember — removed
+puts both edits in one diff that plans before it acts. One more real detail: the apply
+warns that re-managing the file later means import — the third verb. (~4 min)
+Then: "moved and removed are the runnable core; dynamic blocks are the next DRY tool."
 -->
 
 ---
@@ -554,7 +740,7 @@ Then: "Now go make count-to-for-each churn, then fix it with moved — Lab 09."
 ---
 layout: lab
 lab: labs/day-1/09-best-practices.md
-duration: 45 min
+duration: 60 min
 env: 'mock ✓ (no docker)'
 ---
 
@@ -565,9 +751,13 @@ instances (`2 to destroy` for removing **one**). Refactor to `for_each` with `mo
 blocks and prove the migration is a state-only no-op (`0 to add, 0 change, 0
 destroy`). Then **write a `dynamic` block yourself** — regress the bundle to
 copy-paste blocks, watch it *silently forget* a new service, hit the classic
-`each.*` error, and fix it. Plus three more **break→fix** beats: a mis-keyed map,
-a `filename` edit that re-creates the whole fleet, and a fan-out width unknown at
-plan time.
+`each.*` error, and fix it. Part B runs the refactoring verbs in full: replay
+`tofu state rm`, plan a **plain rename** with and without `moved`
+(`1 to destroy` vs `has moved to`), then retire a resource with **`removed`**
+and read the new **`1 to forget`** tally — artifact intact on disk. Plus the
+**break→fix** beats: a mis-keyed map, a `filename` edit that re-creates the
+whole fleet, a width unknown at plan time, a dangling reference, and the one
+boolean that separates *forget* from *destroy*.
 
 Every task has a `<details>` spoiler; panic reset leaves the tree clean.
 
@@ -578,11 +768,16 @@ one-service deletion, churning an instance you never touched. Then you refactor 
 for_each with three moved blocks and prove the whole migration plans as zero add, zero
 change, zero destroy — a pure state rename. Then the dynamic unit: inspect the bundle,
 regress it to hand-copied blocks, watch the copy-paste form silently miss a new service,
-and write the dynamic block yourself — hitting the each-dot error on the way. Along the
-way three more break-fixes: a mis-keyed map lookup, the one-word filename edit that wants
-to rebuild all three instances with "forces replacement," and the unknown-width count
-error with its -exclude workaround. No Docker, pure local providers. Every task has a
-spoiler; panic reset leaves the tree clean. (~45 min, matches the lab duration)
+and write the dynamic block yourself — hitting the each-dot error on the way. Part B is
+the refactoring unit: replay tofu state rm and see it do half the job, rename a resource
+and compare the destroy/create plan against the has-moved-to no-op, then retire a
+resource with removed — feeling the dangling-reference error, the plain-deletion destroy,
+and the missing-lifecycle warning on the way to a "1 forgotten" apply with the file
+intact. Along the way the remaining break-fixes: a mis-keyed map lookup, the one-word
+filename edit that wants to rebuild all three instances with "forces replacement," and
+the unknown-width count error with its -exclude workaround. No Docker, pure local
+providers. Every task has a spoiler; panic reset leaves the tree clean. (~60 min,
+matches the lab duration)
 Then: regroup for the recap.
 -->
 
@@ -597,8 +792,11 @@ next: 'Next: OpenTofu differentiators'
   renumbers and rebuilds later instances); `for_each` addresses by key (removal is
   surgical). Prefer `for_each` for anything with a stable identity.
 - **Refactoring blocks move state, not infra:** `moved` renames/re-keys with no
-  replacement, `removed` un-manages while keeping the object, `import` adopts
-  existing infra — `for_each`-loopable since **1.7**.
+  replacement (`has moved to`, `id` unchanged — a plain rename without it plans
+  destroy+create); `removed` un-manages while keeping the object (its own
+  `. forget` action and `1 to forget` tally, `lifecycle { destroy = false }`
+  making the fate explicit — the reviewable successor to `tofu state rm`);
+  `import` adopts existing infra — `for_each`-loopable since **1.7**.
 - **`dynamic` blocks** generate repeated nested blocks from a collection — the
   iterator is named after the **label** (`source.*`, not `each.*`), it's pure
   expansion sugar (the literal form plans `No changes`), and it's earned only
@@ -618,8 +816,11 @@ Say: Pull the threads together. The core decision is count versus for_each: coun
 addresses by index so a middle removal renumbers and rebuilds later instances, while
 for_each addresses by key so removal is surgical — prefer for_each for anything with a
 stable identity. The refactoring blocks let code and state diverge safely: moved renames
-without replacement, removed un-manages while keeping the object, and import adopts
-existing infra, loopable since 1.7. dynamic blocks keep repeated nested blocks DRY — the
+without replacement — the lab proved the same rename plans destroy-plus-create without
+it and a no-op with it; removed un-manages while keeping the object, with its own
+forget action in the plan tally and the lifecycle boolean writing the forget-or-destroy
+decision down — the reviewable successor to tofu state rm; and import adopts existing
+infra, loopable since 1.7. dynamic blocks keep repeated nested blocks DRY — the
 iterator is the label, the expansion is pure sugar, and it's earned only when the
 collection is an input; and fan-out width must be known at plan time, with -exclude as
 the two-pass workaround and width-from-configuration as the fix. lifecycle gives you
