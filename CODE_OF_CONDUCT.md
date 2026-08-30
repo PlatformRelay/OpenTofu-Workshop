@@ -48,12 +48,12 @@ individual is officially representing the project in public spaces.
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to
-the project maintainers via the contact details on the
-[PlatformRelay GitHub organization page](https://github.com/PlatformRelay), or by
-opening a [GitHub Discussion](https://github.com/PlatformRelay/OpenTofu-Workshop/discussions)
-marked private/moderated if you'd rather not make the report public. All complaints
-will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported
+privately by email to the maintainer at <konrad.heimel@gmail.com>. For matters that do
+not need to stay private, you may instead open an
+[issue](https://github.com/PlatformRelay/OpenTofu-Workshop/issues) or a
+[GitHub Discussion](https://github.com/PlatformRelay/OpenTofu-Workshop/discussions).
+All complaints will be reviewed and investigated promptly and fairly.
 
 ## Attribution
 

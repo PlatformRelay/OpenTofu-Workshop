@@ -19,9 +19,9 @@ all welcome.
 
 - **Report a bug or content issue** —
   [open an issue](https://github.com/PlatformRelay/OpenTofu-Workshop/issues/new/choose).
-- **Ask a question or propose an idea** — use
-  [GitHub Discussions](https://github.com/PlatformRelay/OpenTofu-Workshop/discussions)
-  if there's nothing concrete to fix yet.
+- **Ask a question or propose an idea** — start a
+  [GitHub Discussion](https://github.com/PlatformRelay/OpenTofu-Workshop/discussions).
+  If there's something concrete to fix, open an issue instead.
 - **Fix something small** — typos, broken links, a wrong command, a slide overflow —
   open a PR directly.
 - **Propose a new section, lab, or module** — open a Discussion or issue first
