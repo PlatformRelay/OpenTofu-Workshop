@@ -1,0 +1,42 @@
+# KMS variant of encryption.tf — Step 6 activates it with `cp`, and
+# `git checkout -- encryption.tf` reverts it (this file itself never changes).
+# Primary key from AWS KMS (LocalStack in the lab); the PBKDF2 passphrase stays
+# on as the fallback so one apply can READ passphrase-encrypted state and WRITE
+# it re-keyed under KMS — Step 3's migration mechanism, pointed at a real key.
+
+variable "kms_key_id" {
+  type        = string
+  description = "KMS key id for state encryption (Step 6 exports TF_VAR_kms_key_id)."
+}
+
+terraform {
+  encryption {
+    key_provider "pbkdf2" "passphrase" {
+      passphrase = var.state_passphrase
+    }
+    key_provider "aws_kms" "workshop" {
+      kms_key_id = var.kms_key_id
+      key_spec   = "AES_256"
+      region     = "us-east-1"
+
+      # LocalStack has no real IAM/STS; skip that handshake (same rationale as
+      # examples/naming-labels-demo). The endpoint itself comes from
+      # AWS_ENDPOINT_URL, exported in Step 6.
+      skip_credentials_validation = true
+    }
+    method "aes_gcm" "kms" {
+      keys = key_provider.aws_kms.workshop
+    }
+    method "aes_gcm" "passphrase" {
+      keys = key_provider.pbkdf2.passphrase
+    }
+    state {
+      method = method.aes_gcm.kms
+      fallback { method = method.aes_gcm.passphrase }
+    }
+    plan {
+      method = method.aes_gcm.kms
+      fallback { method = method.aes_gcm.passphrase }
+    }
+  }
+}

@@ -268,7 +268,9 @@ env: 'localstack ✓ · mock ✓ · real-aws (optional)'
 
 Start from a plaintext local state, add a PBKDF2 `encryption` block, migrate with
 a `fallback`, and **prove the file on disk is ciphertext** with `cat` and `jq`.
-Then flip `enforced = true` and watch a plaintext read get rejected.
+Then flip `enforced = true` and watch a plaintext read get rejected. Optional
+Step 6 (+10 min, Docker): re-key to a real **`aws_kms`** key on LocalStack — the
+same `fallback` migration, production-shaped.
 
 Every task has a `<details>` spoiler; panic reset is `task lab:down`.
 
@@ -277,6 +279,8 @@ Say: Set up the lab and its payoff moment. Start from plaintext state, add the
 PBKDF2 encryption block, migrate with a fallback, then actually cat and jq the file
 to see it's ciphertext — that "oh, it really is scrambled" moment is the point.
 Finally flip enforced = true and watch a plaintext read get rejected on purpose.
+For rooms with Docker, point at optional Step 6: create a KMS key on LocalStack and
+re-key the state with the same fallback trick — the production key path, +10 min.
 Every task has a spoiler; panic reset is task lab:down. (~25 min, matches the lab
 duration)
 Then: regroup for the recap.
@@ -292,7 +296,8 @@ next: 'Next: Modules — reuse, inputs & outputs'
 - State **and** plan files hold resolved secrets in plaintext by default.
 - OpenTofu's `terraform { encryption }` (1.7+) encrypts them **client-side** —
   no Terraform equivalent.
-- **PBKDF2** for labs; **KMS/OpenBao** for production.
+- **PBKDF2** for labs; **KMS/OpenBao** for production — Lab 05's optional Step 6
+  re-keys to `aws_kms` on LocalStack.
 - `fallback` migrates and rotates keys; `enforced = true` bans plaintext.
 - This ties into **S08** — the naming/labelling demo ships with encryption on.
 

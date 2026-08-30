@@ -3,8 +3,8 @@
 | | |
 | --- | --- |
 | **Section** | S05 — State encryption *(red line: author → **protect** → test)* |
-| **Environment** | `localstack ✓` · `mock ✓` · `real-aws (optional)` — this lab needs neither; it uses the `random` provider only |
-| **Estimated time** | 25 min |
+| **Environment** | `localstack ✓` · `mock ✓` · `real-aws (optional)` — Steps 0–5 need neither Docker nor cloud (`random` provider only); optional Step 6 uses LocalStack's KMS |
+| **Estimated time** | 25 min core path · +10 min optional Step 6 (KMS) |
 
 ## Objective
 
@@ -13,6 +13,9 @@ state — and turn on OpenTofu's client-side
 `encryption` block (PBKDF2), migrate the existing state with a `fallback`, and
 **prove the file on disk is ciphertext**. Then flip `enforced = true` to ban any
 unencrypted fallback, and confirm the state is inaccessible without the passphrase.
+Optional Step 6 then swaps the passphrase for the production-shaped key path: an
+`aws_kms` key provider against LocalStack's KMS, migrated with the same
+`fallback` mechanism you just learned.
 
 You run **tracked files**, not heredocs — what you apply is exactly what CI
 verified. The config lives in this repo at `labs/day-1/05-state-encryption/`:
@@ -29,7 +32,8 @@ verified. The config lives in this repo at `labs/day-1/05-state-encryption/`:
 
 - `tofu` ≥ 1.8 (`task setup` installs it). Check: `tofu version`.
 - `jq` for inspecting state (optional but used in a spoiler).
-- Run everything **from the repo clone** — no Docker, no cloud.
+- Docker — **optional Step 6 only**, for LocalStack's KMS. Check: `docker version`.
+- Run everything **from the repo clone** — Steps 0–5 need no Docker and no cloud.
 
 ## Files used
 
@@ -42,6 +46,9 @@ them:
   forward from stage 6.
 - `encryption.tf` — the client-side `encryption` block.
 - `variables.tf` — declares the `state_passphrase` variable the block consumes.
+- `encryption-kms.tf.off` — the KMS variant of the encryption block (optional
+  Step 6 copies it over `encryption.tf`; the `.off` suffix keeps it inert until
+  then).
 - `.gitignore` — keeps the state/`.terraform`/`out/` you generate out of version
   control.
 
@@ -68,7 +75,9 @@ job is done:**
   would confuse the two.
 
 **Introduced here, and auxiliary:** `variable "state_passphrase"` (in
-`variables.tf`, so Step 1 can move it aside) and the `encryption` block itself.
+`variables.tf`, so Step 1 can move it aside), the `encryption` block itself, and —
+for optional Step 6 — the tracked KMS variant `encryption-kms.tf.off` with its
+own `kms_key_id` variable.
 
 The lab drives these files through four stages by editing `encryption.tf`
 **temporarily** (plaintext → migration → enforced) and then resetting it. The
@@ -294,6 +303,218 @@ would *prompt* for the passphrase; `-input=false` turns that into the hard error
 above — the non-interactive form a CI teammate would hit.)
 </details>
 
+---
+
+## Step 6 — Optional: swap the passphrase for a real key (LocalStack KMS)
+
+*Optional — needs Docker. Skip straight to Expected observations if you have no
+Docker; nothing later depends on this step.*
+
+A passphrase is a lab device. Production hands key custody to a key service —
+`aws_kms`, `gcp_kms`, or `openbao` — and this step does exactly that against
+LocalStack's KMS: create a key, switch the primary `key_provider`, and migrate
+with the **same `fallback` mechanism Step 3 taught**, this time from one
+*encrypted* method to another.
+
+The variant config is tracked as `encryption-kms.tf.off` — `cat` it before
+activating; the fence below is drift-checked against the file:
+
+<!-- source: labs/day-1/05-state-encryption/encryption-kms.tf.off -->
+```hcl
+# KMS variant of encryption.tf — Step 6 activates it with `cp`, and
+# `git checkout -- encryption.tf` reverts it (this file itself never changes).
+# Primary key from AWS KMS (LocalStack in the lab); the PBKDF2 passphrase stays
+# on as the fallback so one apply can READ passphrase-encrypted state and WRITE
+# it re-keyed under KMS — Step 3's migration mechanism, pointed at a real key.
+
+variable "kms_key_id" {
+  type        = string
+  description = "KMS key id for state encryption (Step 6 exports TF_VAR_kms_key_id)."
+}
+
+terraform {
+  encryption {
+    key_provider "pbkdf2" "passphrase" {
+      passphrase = var.state_passphrase
+    }
+    key_provider "aws_kms" "workshop" {
+      kms_key_id = var.kms_key_id
+      key_spec   = "AES_256"
+      region     = "us-east-1"
+
+      # LocalStack has no real IAM/STS; skip that handshake (same rationale as
+      # examples/naming-labels-demo). The endpoint itself comes from
+      # AWS_ENDPOINT_URL, exported in Step 6.
+      skip_credentials_validation = true
+    }
+    method "aes_gcm" "kms" {
+      keys = key_provider.aws_kms.workshop
+    }
+    method "aes_gcm" "passphrase" {
+      keys = key_provider.pbkdf2.passphrase
+    }
+    state {
+      method = method.aes_gcm.kms
+      fallback { method = method.aes_gcm.passphrase }
+    }
+    plan {
+      method = method.aes_gcm.kms
+      fallback { method = method.aes_gcm.passphrase }
+    }
+  }
+}
+```
+
+### 6a — Bring up LocalStack and create a key
+
+KMS is already in the compose file's `SERVICES` list. The `awslocal` CLI ships
+inside the container, so `docker exec` works without installing anything (if you
+have `awslocal` on your PATH, call it directly instead):
+
+```bash
+task lab:up                                   # start LocalStack on :4566
+cd labs/day-1/05-state-encryption
+export AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_REGION=us-east-1
+export AWS_ENDPOINT_URL=http://localhost:4566
+KEY_ID=$(docker exec opentofu-workshop-localstack \
+  awslocal kms create-key --description "lab05 state key" \
+  --query KeyMetadata.KeyId --output text)
+echo "$KEY_ID"
+```
+
+**Task:** Confirm you got a key id back.
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ echo "$KEY_ID"
+090770fe-ae7e-4620-a95e-abc73be09880
+```
+
+A UUID (yours differs). LocalStack accepts any credentials — `test`/`test` is
+convention — and `AWS_ENDPOINT_URL` is how the `aws_kms` key provider will find
+the emulator instead of real AWS.
+</details>
+
+### 6b — Activate the variant and hit the wrong-key wall (break → fix)
+
+Copy the variant over `encryption.tf`, but wire in a **deliberately wrong** key
+id first — see what a bad key reference actually looks like before trusting the
+real one:
+
+```bash
+cp encryption-kms.tf.off encryption.tf        # activate; revert = git checkout
+export TF_VAR_state_passphrase="correct-horse-battery-staple"   # still the fallback
+export TF_VAR_kms_key_id="00000000-0000-0000-0000-000000000000" # wrong on purpose
+tofu plan -input=false -lock=false
+```
+
+**Task:** Read the error. Which side failed — reading the old state, or keying
+the new one?
+
+<details><summary>Solution / expected output</summary>
+
+Verbatim OpenTofu 1.12.5 transcript against LocalStack 4.9.2 (request IDs vary):
+
+```console
+$ tofu plan -input=false -lock=false
+Error: Unable to fetch encryption key data
+
+key_provider.aws_kms.workshop failed with error: failed to generate key:
+operation error KMS: GenerateDataKey, https response error StatusCode: 400,
+RequestID: c77e98d0-bcf3-4985-8fc4-d277a60f703b, NotFoundException: Key
+'arn:aws:kms:us-east-1:000000000000:key/00000000-0000-0000-0000-000000000000'
+does not exist
+```
+
+The **new primary** failed: OpenTofu asked KMS to `GenerateDataKey` under the
+key id you gave it, and KMS has no such key. The pbkdf2 `fallback` is unharmed —
+your state is still readable the moment the primary is fixed. That is the same
+protection it gave in Step 3, now guarding a key-service typo instead of a
+plaintext migration.
+</details>
+
+### 6c — Fix the key id and migrate
+
+```bash
+export TF_VAR_kms_key_id="$KEY_ID"
+tofu apply -auto-approve
+```
+
+**Task:** Confirm the apply re-keys the state under KMS.
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ tofu apply -auto-approve
+Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
+```
+
+Zero resource changes — exactly like Step 3, the only thing that changed hands
+is the **key**: the apply read the passphrase-encrypted state through the
+fallback and wrote it back encrypted under the KMS data key.
+</details>
+
+### 6d — Verify: ciphertext on disk, and the passphrase is now powerless
+
+```bash
+jq 'keys' terraform.tfstate
+jq -r '.meta | keys[]' terraform.tfstate
+export TF_VAR_state_passphrase="definitely-not-the-passphrase"
+tofu state pull \
+  | jq -r '.resources[] | select(.type=="random_password")
+           | .instances[0].attributes.result'
+```
+
+**Task:** The file must still be an encrypted envelope — but which provider does
+its metadata name now, and why does a *wrong passphrase* no longer lock you out?
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ jq 'keys' terraform.tfstate
+[
+  "encrypted_data",
+  "encryption_version",
+  "lineage",
+  "meta",
+  "serial"
+]
+
+$ jq -r '.meta | keys[]' terraform.tfstate
+key_provider.aws_kms.workshop
+
+$ tofu state pull \
+  | jq -r '.resources[] | select(.type=="random_password")
+           | .instances[0].attributes.result'
+S3cr3t-...-your-generated-value
+```
+
+Same opaque envelope as Step 4 — but the metadata now names
+`key_provider.aws_kms.workshop`, and the decrypt succeeded even though the
+exported passphrase is wrong: key custody genuinely moved from the passphrase to
+KMS. (The variable still has to be *set* because the fallback block references
+it; its value no longer matters for reading KMS-keyed state.)
+
+> **The key IS the state now.** The compose file runs LocalStack with
+> `PERSISTENCE: "0"`, so a container restart discards the key — after that, this
+> state is *permanently undecryptable* (re-run the plan and KMS answers
+> `NotFoundException` for your key id). Harmless here — everything the lab
+> manages is a local file and the panic reset below removes the state — but it
+> is the real production lesson: protect and back up KMS keys like the state
+> they unlock.
+</details>
+
+**Before you leave the step:** destroy *now*, while `encryption.tf` still holds
+the KMS config that can read this state — the canonical passphrase config you
+will restore in Cleanup cannot:
+
+```bash
+tofu destroy -auto-approve
+```
+
+---
+
 ## Expected observations
 
 - A generated secret lands in **plaintext** state by default — and so does every
@@ -303,20 +524,34 @@ above — the non-interactive form a CI teammate would hit.)
   but the resource data is one opaque `encrypted_data` blob.
 - `enforced = true` bans any unencrypted fallback; without the passphrase the
   encrypted state can't be read at all.
+- (Step 6) The **same `fallback` mechanism** migrates between *keys*, not just
+  from plaintext: primary `aws_kms`, fallback pbkdf2, one apply — and key
+  custody moves to the key service. Lose the KMS key, lose the state.
 
 ## Cleanup / panic reset
 
 Destroy the (local-only) resources and restore the tracked files to a pristine
-state — no residue, `git status` clean:
+state — no residue, `git status` clean. The destroy runs **first**, while
+`encryption.tf` still matches whatever stage your state is in — the canonical
+config restored by `git checkout` cannot read every stage's state (KMS-keyed
+state after Step 6, or Step 1's plaintext). If it fails anyway — wrong shell,
+key gone — that is harmless: everything this lab manages is local, and the `rm`
+line removes it:
 
 ```bash
 cd labs/day-1/05-state-encryption
 export TF_VAR_state_passphrase="correct-horse-battery-staple"
-git checkout -- encryption.tf                          # restore canonical config first
-tofu destroy -auto-approve                             # tear down the project
+tofu destroy -auto-approve || true                     # under the config you last applied with
+git checkout -- encryption.tf                          # back to the canonical passphrase config
 rm -rf .terraform .terraform.lock.hcl terraform.tfstate terraform.tfstate.* out \
   encryption.tf.off variables.tf.off encryption.tf.bak
 git status --short labs/day-1/05-state-encryption      # expect: no output
+```
+
+If you ran Step 6, finish with:
+
+```bash
+task lab:down          # stop LocalStack; PERSISTENCE=0 discards the KMS key with it
 ```
 
 No cloud resources are created in this lab, so there is nothing to bill or leak.
@@ -325,7 +560,6 @@ tracked files exactly as CI verified them.
 
 ## Stretch (optional)
 
-- Swap the `pbkdf2` key provider for `aws_kms` pointed at LocalStack's KMS
-  (`task lab:up` first) and re-migrate — same `fallback` trick, a real key.
 - Rotate the passphrase: put the old key in `fallback`, the new key in the primary
-  method, `apply` once, then drop the fallback.
+  method, `apply` once, then drop the fallback — the Step 3/Step 6 migration
+  mechanism, applied a third way.
