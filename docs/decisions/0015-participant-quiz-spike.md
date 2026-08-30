@@ -1,6 +1,6 @@
 # ADR 0015: Participant quiz prototype — schema and offline delivery first
 
-- **Status:** proposed
+- **Status:** accepted (amended by US-D-QUIZ-BANK: prototype promoted to the full bank, CI-wired; platform selection still open)
 - **Scope:** portable section-quiz content ownership, offline facilitator fallback, and the decision
   boundary before any live quiz platform is selected for the OpenTofu practitioner workshop.
 
@@ -46,6 +46,10 @@ Would couple quiz content to deck generation and complicate reuse across deliver
 ## Consequences
 
 - Question authoring can proceed without choosing Claper, ClassQuiz, QuizDock, or another platform.
-- The three prototype questions (S03, S04, S07) are examples, not full section coverage.
+- ~~The three prototype questions (S03, S04, S07) are examples, not full section coverage.~~
+  US-D-QUIZ-BANK promoted the prototype to `quiz/questions.json` with >=3 questions per canonical
+  section, a validator-enforced coverage floor, and manifest-driven per-day exports.
 - Facilitators can use offline exports until a later ADR accepts a live runtime.
-- US-P-QUIZ does not modify `ci.yml`, pages build, or Taskfile lanes; integration is a follow-up story.
+- ~~US-P-QUIZ does not modify `ci.yml`, pages build, or Taskfile lanes; integration is a follow-up story.~~
+  That follow-up story (US-D-QUIZ-BANK) landed: `pnpm quiz:validate` and `pnpm test:quiz` now run as
+  blocking steps in the CI lint job. Live-platform selection remains explicitly open pending a future ADR.
