@@ -1,0 +1,2007 @@
+{
+  "$schema": "./questions.schema.json",
+  "schemaVersion": 1,
+  "questions": [
+    {
+      "id": "S00-Q-01",
+      "section": "S00",
+      "prompt": "Before starting a lab, you see the environment badge `mock ✓ (no docker)`. What does this tell you about the lab?",
+      "options": [
+        {
+          "id": "simulated-cli",
+          "text": "The lab uses simulated OpenTofu output rather than the real tool, so results are illustrative only.",
+          "rationale": "A practitioner may equate 'mock' with a fake toolchain, but the workshop always runs real OpenTofu with real provider schemas; mock_provider replaces the remote service, not the CLI."
+        },
+        {
+          "id": "tool-only",
+          "text": "It needs only the local toolchain — no Docker or LocalStack emulator has to be running before you begin.",
+          "rationale": "Correct: the badge answers 'what must be running?' — mock-badged labs are tool-only, while `localstack ✓` labs need a healthy local emulator."
+        },
+        {
+          "id": "aws-fallback",
+          "text": "Real AWS credentials are required as a fallback because Docker is not available for this lab.",
+          "rationale": "Tempting for anyone used to cloud-backed tutorials, but `real-aws` is explicitly optional and never required on the workshop path — no lab needs cloud credentials."
+        }
+      ],
+      "answer": "tool-only",
+      "explanation": "The environment badge tells you what must be running before a lab: a mock badge means the lab runs with local tooling alone, with no emulator or cloud account involved.",
+      "difficulty": "introductory",
+      "learningObjective": "Read a lab's environment badge to determine what must be running before starting.",
+      "references": [
+        "https://opentofu.org/docs/"
+      ]
+    },
+    {
+      "id": "S00-Q-02",
+      "section": "S00",
+      "prompt": "You clone a fresh config and immediately run `tofu plan`, which fails because provider plugins are missing. What should you have run first, and why?",
+      "options": [
+        {
+          "id": "run-init",
+          "text": "`tofu init` — it sets up the backend and downloads the providers declared in the `required_providers` block.",
+          "rationale": "Correct: init prepares the working directory by installing the pinned provider plugins; until then, plan has nothing to execute the config with."
+        },
+        {
+          "id": "start-localstack",
+          "text": "`task lab:up` — the LocalStack emulator supplies the provider plugins at runtime.",
+          "rationale": "A plausible conflation of the two setup steps: LocalStack emulates AWS-shaped APIs, but provider plugins are downloaded by init regardless of what backs them."
+        },
+        {
+          "id": "run-apply-first",
+          "text": "`tofu apply` — the first apply bootstraps the providers before planning is possible.",
+          "rationale": "Practitioners sometimes assume the 'real' command does the setup, but apply executes a plan; neither works before init has installed the providers."
+        }
+      ],
+      "answer": "run-init",
+      "explanation": "`tofu init` prepares the directory by initializing the backend and downloading the pinned providers; plan and apply both depend on that having happened.",
+      "difficulty": "intermediate",
+      "learningObjective": "Explain why init must precede plan and apply in a fresh working directory.",
+      "references": [
+        "https://opentofu.org/docs/"
+      ]
+    },
+    {
+      "id": "S00-Q-03",
+      "section": "S00",
+      "prompt": "`hello.tf` sets `filename = \"${path.module}/hello.txt\"`, but the plan prints `+ filename = \"./hello.txt\"`. What explains the difference?",
+      "options": [
+        {
+          "id": "plan-truncates",
+          "text": "The plan output abbreviates paths for readability; the stored value is still the original expression.",
+          "rationale": "Easy to assume it is display formatting, but the plan shows real evaluated values — the expression has genuinely been resolved, not shortened."
+        },
+        {
+          "id": "silent-fallback",
+          "text": "The interpolation failed silently and OpenTofu fell back to the current directory.",
+          "rationale": "A practitioner may read the change as a bug being papered over, but OpenTofu fails loudly on bad references — it never silently substitutes a fallback value."
+        },
+        {
+          "id": "resolves-to-dot",
+          "text": "`path.module` resolves to `.` in the root module, so the expression evaluates to `./hello.txt` — the plan shows the resolved value.",
+          "rationale": "Correct: expressions are evaluated before the plan is displayed, and in the root module `path.module` is simply the current directory."
+        }
+      ],
+      "answer": "resolves-to-dot",
+      "explanation": "Plans display evaluated expressions, and `path.module` evaluates to `.` when the config is the root module, yielding `./hello.txt`.",
+      "difficulty": "advanced",
+      "learningObjective": "Interpret evaluated expressions such as path.module when reading plan output.",
+      "references": [
+        "https://opentofu.org/docs/"
+      ]
+    },
+    {
+      "id": "S01-Q-01",
+      "section": "S01",
+      "prompt": "A provisioning shell script gets re-run \"just to be safe\" and creates duplicate resources. Why does re-running `tofu apply` on an unchanged config not have the same problem?",
+      "options": [
+        {
+          "id": "plan-blocks-it",
+          "text": "Because `plan` always runs first and blocks any command that would repeat work already done.",
+          "rationale": "Attributes the safety to the wrong mechanism: plan is a preview, not a gate — the protection comes from apply converging on desired state, not from plan refusing to proceed."
+        },
+        {
+          "id": "apply-refuses-rerun",
+          "text": "Because OpenTofu refuses to run `apply` a second time until the config changes.",
+          "rationale": "A second apply runs fine — it simply reports nothing to do; assuming it is blocked confuses a no-op with a refusal."
+        },
+        {
+          "id": "idempotent-converge",
+          "text": "Because `apply` converges reality to the declared desired state — with nothing to change, it is a no-op, so the outcome depends on the description, not the run count.",
+          "rationale": "Correct: declarative IaC is idempotent — the tool computes the diff against desired state, while an imperative script blindly repeats its steps and can double-create."
+        }
+      ],
+      "answer": "idempotent-converge",
+      "explanation": "Declarative tools converge to a desired state, so a re-run with no config change finds no diff and does nothing — the idempotency that imperative scripts lack.",
+      "difficulty": "introductory",
+      "learningObjective": "Explain why declarative IaC is idempotent where imperative scripts are not.",
+      "references": [
+        "https://opentofu.org/docs/intro/"
+      ]
+    },
+    {
+      "id": "S01-Q-02",
+      "section": "S01",
+      "prompt": "Someone hand-edits a file that OpenTofu manages through a `local_file` resource. What happens on the next plan/apply cycle?",
+      "options": [
+        {
+          "id": "reconciles-drift",
+          "text": "OpenTofu detects that reality no longer matches the declared state and plans a change that puts the file back as declared.",
+          "rationale": "Correct: drift detection compares intent to reality on every run, and apply reconciles the managed object back to the desired state."
+        },
+        {
+          "id": "adopts-change",
+          "text": "OpenTofu updates its own records to match the manual edit, keeping the change.",
+          "rationale": "Assumes the tool treats reality as the source of truth, but the config is authoritative — unrecorded manual changes are drift to be corrected, not adopted."
+        },
+        {
+          "id": "errors-reimport",
+          "text": "OpenTofu errors because the object changed outside its control and requires it to be re-imported.",
+          "rationale": "Treats drift as fatal; importing is for objects OpenTofu does not yet manage — drift on a managed object is handled routinely by reconciling it."
+        }
+      ],
+      "answer": "reconciles-drift",
+      "explanation": "Because the config declares the desired state, OpenTofu detects the hand-edit as drift and converges the file back to what is declared.",
+      "difficulty": "intermediate",
+      "learningObjective": "Predict how OpenTofu responds when a managed object drifts from its declared state.",
+      "references": [
+        "https://opentofu.org/docs/intro/"
+      ]
+    },
+    {
+      "id": "S01-Q-03",
+      "section": "S01",
+      "prompt": "Your OpenTofu config still uses a top-level `terraform {}` block, yet every command you type is `tofu`. Why does the block keep its old name?",
+      "options": [
+        {
+          "id": "deprecated-legacy",
+          "text": "The block name is deprecated; new OpenTofu configs are expected to rename it.",
+          "rationale": "A reasonable guess after a fork, but the shared block name is deliberate compatibility, not legacy debt — renaming would break the drop-in story."
+        },
+        {
+          "id": "hcl-compat",
+          "text": "OpenTofu forked from Terraform and keeps the HCL language compatible, so existing configs work unchanged — the block name is part of that shared language.",
+          "rationale": "Correct: the fork changed the licence and governance, not the language — keeping `terraform {}` is what makes adoption low-friction."
+        },
+        {
+          "id": "rename-unlocks",
+          "text": "You should rename it to `tofu {}` to unlock the features that exist only in OpenTofu.",
+          "rationale": "Inviting but wrong: OpenTofu-only features are not gated on renaming the settings block, and `terraform {}` remains the compatible spelling."
+        }
+      ],
+      "answer": "hcl-compat",
+      "explanation": "OpenTofu is a drop-in-compatible fork: the HCL — including the `terraform {}` settings block — is shared with Terraform, while the CLI you run is `tofu`.",
+      "difficulty": "intermediate",
+      "learningObjective": "Explain how the fork preserved HCL compatibility while changing the runtime and governance.",
+      "references": [
+        "https://opentofu.org/docs/intro/"
+      ]
+    },
+    {
+      "id": "S02-Q-01",
+      "section": "S02",
+      "prompt": "A teammate hesitates to add a `data` block, worried it might modify the existing object it points at. What will actually happen?",
+      "options": [
+        {
+          "id": "creates-if-missing",
+          "text": "If the object does not exist yet, the data block will create it on apply.",
+          "rationale": "Confuses data with resource: only `resource` blocks create real objects — a data source that finds nothing to read is an error, not a create."
+        },
+        {
+          "id": "reads-only",
+          "text": "The data block only reads the existing object's attributes — it never manages or changes it; only `resource` blocks change real objects.",
+          "rationale": "Correct: `data` reads something that already exists without managing it — resource is the single block type that creates, updates, or destroys."
+        },
+        {
+          "id": "takes-ownership",
+          "text": "The object becomes managed by this config, so it will be removed by `tofu destroy`.",
+          "rationale": "Assumes reading implies ownership, but data sources never take management of an object — destroy removes only what resource blocks manage."
+        }
+      ],
+      "answer": "reads-only",
+      "explanation": "A `data` block reads an existing object without managing it; `resource` is the only block type that changes real objects.",
+      "difficulty": "introductory",
+      "learningObjective": "Distinguish which block types can change real objects and which only read or compute.",
+      "references": [
+        "https://opentofu.org/docs/language/"
+      ]
+    },
+    {
+      "id": "S02-Q-02",
+      "section": "S02",
+      "prompt": "You split one large `main.tf` into `main.tf`, `variables.tf`, and `outputs.tf`. How does this affect what OpenTofu creates, and in what order?",
+      "options": [
+        {
+          "id": "alphabetical-order",
+          "text": "Files are processed alphabetically, so the create order may change after the split.",
+          "rationale": "Carries over a scripting mental model where file position drives execution — but OpenTofu derives order from the dependency graph, never from file layout."
+        },
+        {
+          "id": "imports-needed",
+          "text": "References across files will break unless each file explicitly imports the blocks it uses.",
+          "rationale": "A habit from programming languages with import systems; HCL has none — every `*.tf` in the directory is already one merged namespace."
+        },
+        {
+          "id": "merged-graph",
+          "text": "Nothing changes: all `*.tf` files in a directory are concatenated into one config, and order comes from the reference-built dependency graph, not file layout.",
+          "rationale": "Correct: the split is purely for readability — the merged config and the graph that orders it are identical either way."
+        }
+      ],
+      "answer": "merged-graph",
+      "explanation": "OpenTofu concatenates every `*.tf` file in a directory into one config and orders operations by the dependency graph, so splitting files changes nothing.",
+      "difficulty": "intermediate",
+      "learningObjective": "Explain why file layout never affects a config's behavior or execution order.",
+      "references": [
+        "https://opentofu.org/docs/language/"
+      ]
+    },
+    {
+      "id": "S02-Q-03",
+      "section": "S02",
+      "prompt": "A directory contains both `versions.tf` and `versions.tofu`. What does OpenTofu do, and why is that useful?",
+      "options": [
+        {
+          "id": "tofu-wins",
+          "text": "It loads `versions.tofu`, which takes precedence over the same-named `.tf` — letting you keep OpenTofu-only overrides while the `.tf` file stays Terraform-compatible.",
+          "rationale": "Correct: a `.tofu` file wins over a same-named `.tf`, which is exactly the mechanism for OpenTofu-specific content in an otherwise Terraform-compatible tree."
+        },
+        {
+          "id": "duplicate-error",
+          "text": "It fails with a duplicate-configuration error because two files define the same thing.",
+          "rationale": "A sensible fear given how duplicate blocks normally conflict, but the precedence rule exists precisely so a same-named pair overrides cleanly instead of colliding."
+        },
+        {
+          "id": "both-merged",
+          "text": "Both files are merged, like any two config files in the same directory.",
+          "rationale": "Over-applies the concatenation rule: differently-named files merge, but a `.tofu` file replaces its same-named `.tf` counterpart rather than combining with it."
+        }
+      ],
+      "answer": "tofu-wins",
+      "explanation": "OpenTofu also reads the `.tofu` extension, and a `.tofu` file takes precedence over a same-named `.tf`, enabling OpenTofu-only overrides in a Terraform-compatible repo.",
+      "difficulty": "advanced",
+      "learningObjective": "Apply the .tofu extension precedence rule to keep OpenTofu-only overrides Terraform-compatible.",
+      "references": [
+        "https://opentofu.org/docs/language/"
+      ]
+    },
+    {
+      "id": "S03-Q-01",
+      "section": "S03",
+      "prompt": "A plan line shows `-/+ resource \"local_file\" \"manifest\"`. If you approve this plan, what happens to the resource?",
+      "options": [
+        {
+          "id": "destroy-recreate",
+          "text": "It is destroyed and then recreated — the change cannot be made in place, so OpenTofu replaces the resource.",
+          "rationale": "Correct: `-/+` is the replacement symbol — destroy then create — and it is the one to watch for, because the old object goes away during the apply."
+        },
+        {
+          "id": "risky-update",
+          "text": "It is modified in place; the compound symbol just flags the update as risky.",
+          "rationale": "Mistakes `-/+` for a decorated `~`: in-place update has its own symbol, and reading a replacement as an update hides that the object will be destroyed."
+        },
+        {
+          "id": "destroy-only",
+          "text": "It is destroyed now, and a later apply will create the replacement.",
+          "rationale": "Splits one operation into two runs; the single apply performs both the destroy and the recreate as one planned replacement."
+        }
+      ],
+      "answer": "destroy-recreate",
+      "explanation": "`-/+` means the resource will be destroyed and then created again in the same apply, because the change cannot be applied in place.",
+      "difficulty": "introductory",
+      "learningObjective": "Interpret the plan symbols, especially the destroy-then-recreate replacement.",
+      "references": [
+        "https://opentofu.org/docs/cli/"
+      ]
+    },
+    {
+      "id": "S03-Q-02",
+      "section": "S03",
+      "prompt": "After `tofu init`, a new `.terraform.lock.hcl` file appears. A teammate adds it to `.gitignore` as \"local tool clutter\". Why is that a mistake?",
+      "options": [
+        {
+          "id": "contains-state",
+          "text": "The file records resource state that the next plan needs to compute its diff.",
+          "rationale": "Confuses the lock file with the state file — state is what plan diffs against; the lock file pins provider selections, a different job entirely."
+        },
+        {
+          "id": "download-cache",
+          "text": "It is only a provider download cache; ignoring it just makes future inits slower.",
+          "rationale": "Mixes up the lock file with the `.terraform/` directory — the plugins live there, while the lock file records which exact plugins were chosen."
+        },
+        {
+          "id": "pins-providers",
+          "text": "It pins the exact provider versions and checksums, so committing it is what guarantees every teammate and CI resolve identical plugins.",
+          "rationale": "Correct: the lock file plays the role of a package lock file — without it, each machine re-resolves providers and can drift apart as the registry moves."
+        }
+      ],
+      "answer": "pins-providers",
+      "explanation": "`.terraform.lock.hcl` records the exact provider selections and checksums, and committing it ensures every machine and CI resolve the same plugins.",
+      "difficulty": "intermediate",
+      "learningObjective": "Explain why the provider lock file must be committed to version control.",
+      "references": [
+        "https://opentofu.org/docs/cli/"
+      ]
+    },
+    {
+      "id": "S03-Q-03",
+      "section": "S03",
+      "prompt": "Two `local_file` resources each reference the other's `content`, and `tofu plan` fails with `Error: Cycle: …`. What is the right fix?",
+      "options": [
+        {
+          "id": "reorder-blocks",
+          "text": "Reorder the blocks in the file so one of them is defined first.",
+          "rationale": "File position never sets execution order — the graph is built from references alone, so moving blocks around cannot remove the loop."
+        },
+        {
+          "id": "break-edge",
+          "text": "Remove one of the mutual references — each reference is an edge in the dependency graph, and the graph must be acyclic.",
+          "rationale": "Correct: mutual references form a loop, and since dependency edges decide ordering, one of them has to go before OpenTofu can sequence the work."
+        },
+        {
+          "id": "apply-twice",
+          "text": "Run `tofu apply` twice — the first pass creates one side so the second pass can finish the other.",
+          "rationale": "Treats the cycle as a bootstrap problem, but OpenTofu refuses to plan at all while the loop exists — no number of re-runs gets past an acyclic-graph violation."
+        }
+      ],
+      "answer": "break-edge",
+      "explanation": "References build the dependency graph and it must be acyclic, so a mutual reference is a hard error until one of the edges is removed.",
+      "difficulty": "advanced",
+      "learningObjective": "Diagnose and fix a dependency cycle by reasoning about reference-built graph edges.",
+      "references": [
+        "https://opentofu.org/docs/cli/"
+      ]
+    },
+    {
+      "id": "S03-Q-SPK-01",
+      "section": "S03",
+      "prompt": "During `tofu plan`, which statement about the proposed changes is accurate?",
+      "options": [
+        {
+          "id": "read-only",
+          "text": "Plan is read-only: it shows what would change without applying.",
+          "rationale": "Plan computes a diff against state and does not mutate remote infrastructure."
+        },
+        {
+          "id": "applies-changes",
+          "text": "Plan applies non-destructive changes immediately.",
+          "rationale": "Only apply (or auto-approve flows) mutate infrastructure; plan does not."
+        },
+        {
+          "id": "locks-state",
+          "text": "Plan permanently locks state until apply completes.",
+          "rationale": "State locking behaviour depends on backend configuration; plan itself is not a permanent lock."
+        }
+      ],
+      "answer": "read-only",
+      "explanation": "OpenTofu plan compares desired configuration to state and produces a change set; apply executes it.",
+      "difficulty": "introductory",
+      "learningObjective": "Distinguish plan from apply in the core workflow.",
+      "references": [
+        "https://opentofu.org/docs/cli/commands/plan/"
+      ]
+    },
+    {
+      "id": "S06-Q-01",
+      "section": "S06",
+      "prompt": "`variable \"environment\"` has `default = \"dev\"`, `terraform.tfvars` sets it to `staging`, and you run `tofu apply -var environment=prod`. Which value is used, and why?",
+      "options": [
+        {
+          "id": "staging-wins",
+          "text": "`staging` — a committed tfvars file is explicit configuration and beats an ad-hoc CLI flag.",
+          "rationale": "Gets the precedence stack backwards — an understandable intuition, since files feel more authoritative, but the CLI is the strongest source, not the weakest."
+        },
+        {
+          "id": "conflict-error",
+          "text": "OpenTofu errors because the same variable is set by more than one source.",
+          "rationale": "Assumes conflicts must be resolved by hand, but multiple sources are normal and the precedence stack resolves them silently in a fixed order."
+        },
+        {
+          "id": "prod-wins",
+          "text": "`prod` — `-var` on the command line sits at the top of the precedence stack, while the block's `default` is the weakest source.",
+          "rationale": "Correct: precedence runs default < environment variable < tfvars files < CLI `-var`, so the command line wins over everything below it."
+        }
+      ],
+      "answer": "prod-wins",
+      "explanation": "Variable sources are layered from the block default (weakest) up to `-var` on the CLI (strongest), so the command-line value wins.",
+      "difficulty": "intermediate",
+      "learningObjective": "Apply the variable precedence stack to predict which value a run will use.",
+      "references": [
+        "https://opentofu.org/docs/language/"
+      ]
+    },
+    {
+      "id": "S06-Q-02",
+      "section": "S06",
+      "prompt": "You mark a token variable `sensitive = true`. What protection does that actually give you?",
+      "options": [
+        {
+          "id": "encrypted-everywhere",
+          "text": "The value is encrypted wherever it is stored, including the state file.",
+          "rationale": "The classic over-trust: `sensitive` masks display output only — protecting what is stored in state is a separate concern, solved by state encryption."
+        },
+        {
+          "id": "masked-only",
+          "text": "The value prints as `<sensitive>` in plan, apply, and `tofu output` — but it still lands in plaintext in the state file.",
+          "rationale": "Correct: masking stops shoulder-surfing and log leaks, and that is all — it is not encryption, which is why the state itself still needs protecting."
+        },
+        {
+          "id": "excluded-from-state",
+          "text": "The value is kept out of the state file entirely.",
+          "rationale": "Wishful thinking — sensitive values are still recorded in state, which is precisely the gap that makes masking insufficient on its own."
+        }
+      ],
+      "answer": "masked-only",
+      "explanation": "`sensitive = true` masks the value everywhere it would print, but it is not encryption — the value remains plaintext in state.",
+      "difficulty": "introductory",
+      "learningObjective": "Distinguish output masking from encryption when handling secret values.",
+      "references": [
+        "https://opentofu.org/docs/language/"
+      ]
+    },
+    {
+      "id": "S06-Q-03",
+      "section": "S06",
+      "prompt": "The `service` variable carries a `validation` whose condition is `!(var.environment == \"prod\" && var.service.replicas < 2)`. What happens when you plan with `environment = \"prod\"` and `replicas = 1`?",
+      "options": [
+        {
+          "id": "plan-stops",
+          "text": "The plan stops with the block's error message before any resource is touched — a validation condition may read other variables such as `var.environment`.",
+          "rationale": "Correct: validations are hard, fail-fast gates evaluated at plan time, and cross-variable conditions let a rule reason across the whole config."
+        },
+        {
+          "id": "warns-applies",
+          "text": "The plan prints a warning but apply still proceeds — validations are advisory.",
+          "rationale": "Downgrades the guard: a false condition is a hard failure with your message, not a warning — nothing is applied past a failed validation."
+        },
+        {
+          "id": "invalid-reference",
+          "text": "The config itself is rejected, because a validation condition may only reference the variable it validates.",
+          "rationale": "A rule carried over from older engines, where conditions could read only their own variable — modern cross-variable validation makes this config legal."
+        }
+      ],
+      "answer": "plan-stops",
+      "explanation": "A false validation condition halts the plan with the declared error message before any resource is touched, and the condition may reference other variables.",
+      "difficulty": "advanced",
+      "learningObjective": "Predict how a cross-variable validation block gates a plan on invalid input combinations.",
+      "references": [
+        "https://opentofu.org/docs/language/"
+      ]
+    },
+    {
+      "id": "S15-Q-01",
+      "section": "S15",
+      "prompt": "During apply, an `assert` inside a `check` block evaluates to false. What happens to the run?",
+      "options": [
+        {
+          "id": "apply-aborts",
+          "text": "The apply aborts, just like a failed postcondition.",
+          "rationale": "That is blocking-assertion behaviour — preconditions and postconditions fail hard, but a check is deliberately advisory."
+        },
+        {
+          "id": "warns-and-completes",
+          "text": "OpenTofu emits a warning and the run completes — checks never fail a run.",
+          "rationale": "check blocks are the non-blocking guard: they warn at plan and apply but never stop delivery."
+        },
+        {
+          "id": "resources-tainted",
+          "text": "The affected resources are marked for recreation on the next plan.",
+          "rationale": "Checks only report — they never modify state or taint resources; a false assertion has no effect beyond the warning."
+        }
+      ],
+      "answer": "warns-and-completes",
+      "explanation": "A check is advisory by design: a failed assert surfaces as a warning while the run still succeeds.",
+      "difficulty": "introductory",
+      "learningObjective": "Describe the non-blocking behaviour of check blocks.",
+      "references": [
+        "https://opentofu.org/docs/language/checks/"
+      ]
+    },
+    {
+      "id": "S15-Q-02",
+      "section": "S15",
+      "prompt": "A resource's `postcondition` reads `self.content`. Why can it only fail during apply, while the `precondition` beside it fails at plan?",
+      "options": [
+        {
+          "id": "fires-when-values-known",
+          "text": "An assertion fires as soon as the values it reads are known — `self.*` exists only after the resource is built, while the precondition reads plan-known inputs.",
+          "rationale": "Phase follows the values read: inputs like var.* resolve at plan, but the built result cannot be inspected until apply creates it."
+        },
+        {
+          "id": "lifecycle-runs-at-apply",
+          "text": "Because `lifecycle` blocks are only evaluated during apply.",
+          "rationale": "Preconditions also live in lifecycle yet fail at plan — the phase is determined by the values an assertion reads, not by which block contains it."
+        },
+        {
+          "id": "configured-phase",
+          "text": "Because postconditions are explicitly configured to defer their evaluation to apply.",
+          "rationale": "There is no phase setting to configure — the timing falls out of when the referenced values become known."
+        }
+      ],
+      "answer": "fires-when-values-known",
+      "explanation": "An assertion evaluates as soon as its referenced values are known, and self.* is only known once the resource actually exists — at apply.",
+      "difficulty": "intermediate",
+      "learningObjective": "Apply the values-known rule to predict which phase an assertion fires in.",
+      "references": [
+        "https://opentofu.org/docs/language/expressions/custom-conditions/"
+      ]
+    },
+    {
+      "id": "S15-Q-03",
+      "section": "S15",
+      "prompt": "After every apply you want to probe a deployed service's health and surface problems — without ever blocking delivery. Which guard fits?",
+      "options": [
+        {
+          "id": "postcondition-probe",
+          "text": "A `postcondition` that reads a data source pointed at the endpoint.",
+          "rationale": "A postcondition is blocking — an unhealthy probe would fail the apply, which is exactly the behaviour you said you don't want."
+        },
+        {
+          "id": "variable-validation",
+          "text": "A `validation` block on the service's input variable.",
+          "rationale": "validation guards a variable's value at plan; it cannot observe live infrastructure after apply."
+        },
+        {
+          "id": "check-with-data",
+          "text": "A `check` block embedding its own scoped data source — it polls after apply and only ever emits a warning.",
+          "rationale": "A check can carry a scoped data source to poll live infra and report without failing the run — the advisory guard for signals you want to know about, not stop on."
+        }
+      ],
+      "answer": "check-with-data",
+      "explanation": "A check block with its own scoped data source is the advisory health probe: it reports after apply but never fails the run.",
+      "difficulty": "intermediate",
+      "learningObjective": "Choose between blocking assertions and advisory checks for a post-apply probe.",
+      "references": [
+        "https://opentofu.org/docs/language/checks/"
+      ]
+    },
+    {
+      "id": "S04-Q-01",
+      "section": "S04",
+      "prompt": "A refresh reveals that a resource's real-world value no longer matches what state recorded — someone changed it by hand. What does the next `tofu plan` propose?",
+      "options": [
+        {
+          "id": "rewrite-config",
+          "text": "Nothing to apply — OpenTofu updates your configuration files to adopt the new real-world value.",
+          "rationale": "Practitioners often expect drift to be adopted, but OpenTofu never edits config; the HCL you wrote stays the authoritative desired state."
+        },
+        {
+          "id": "reconcile-to-config",
+          "text": "A change that steers the real resource back to what your configuration declares.",
+          "rationale": "The plan always reconciles actual toward desired; state is the fixed reference point that exposes the hand-made drift."
+        },
+        {
+          "id": "refresh-accepts-drift",
+          "text": "Nothing to apply — the refresh already updated state, so the drift becomes the new desired value.",
+          "rationale": "Refresh only updates state's picture of the actual world; desired still comes from config, so the diff between them remains and the plan proposes to fix it."
+        }
+      ],
+      "answer": "reconcile-to-config",
+      "explanation": "When actual diverges from state, the plan proposes to reconcile reality back to the config — it steers toward what you declared, never the other way.",
+      "difficulty": "introductory",
+      "learningObjective": "Predict how a plan responds to drift between state and the real world.",
+      "references": [
+        "https://opentofu.org/docs/language/state/"
+      ]
+    },
+    {
+      "id": "S04-Q-02",
+      "section": "S04",
+      "prompt": "You run `tofu state rm` on a resource that still exists in the real world. What happens on the next `plan`?",
+      "options": [
+        {
+          "id": "plan-recreates",
+          "text": "OpenTofu no longer tracks the resource, so the plan proposes to create it again — alongside the real one it forgot.",
+          "rationale": "state rm removes the binding without destroying anything; with no record, OpenTofu treats the config as describing a resource that doesn't exist yet."
+        },
+        {
+          "id": "auto-reimport",
+          "text": "The refresh detects the orphaned resource and automatically re-imports it into state.",
+          "rationale": "Refresh only reads resources that are already in state; a forgotten resource is invisible to OpenTofu until you deliberately import it."
+        },
+        {
+          "id": "already-destroyed",
+          "text": "Nothing — `state rm` already destroyed the resource, so the plan is a no-op.",
+          "rationale": "state rm is state-only surgery: it makes OpenTofu forget the resource but never touches the real object."
+        }
+      ],
+      "answer": "plan-recreates",
+      "explanation": "state rm forgets a resource without destroying it, so the next plan wants to recreate what OpenTofu no longer knows it built.",
+      "difficulty": "intermediate",
+      "learningObjective": "Predict the consequence of removing a live resource from state.",
+      "references": [
+        "https://opentofu.org/docs/cli/commands/state/rm/"
+      ]
+    },
+    {
+      "id": "S04-Q-03",
+      "section": "S04",
+      "prompt": "Two engineers run `tofu apply` at the same moment against the same shared state. What actually prevents the state file from being corrupted?",
+      "options": [
+        {
+          "id": "cli-serializes",
+          "text": "The CLI detects the concurrent run and queues the second apply, regardless of backend.",
+          "rationale": "Locking is a property of the backend, not the CLI — with no backend lock, the two applies race and their writes interleave."
+        },
+        {
+          "id": "local-file-lock",
+          "text": "The state file's operating-system lock protects it across both machines.",
+          "rationale": "Local state has no cross-machine lock — that's exactly why sharing a local state file across a team is dangerous."
+        },
+        {
+          "id": "remote-backend-lock",
+          "text": "A remote backend takes a lock for the duration of the apply, so the second run waits its turn.",
+          "rationale": "Remote backends provide locking as a backend property; the second apply blocks instead of racing, which is the load-bearing reason teams go remote."
+        }
+      ],
+      "answer": "remote-backend-lock",
+      "explanation": "Only a remote backend's lock makes concurrent applies safe — local state offers no cross-machine locking at all.",
+      "difficulty": "intermediate",
+      "learningObjective": "Explain why teams adopt remote backends for shared state.",
+      "references": [
+        "https://opentofu.org/docs/language/state/locking/"
+      ]
+    },
+    {
+      "id": "S04-Q-SPK-01",
+      "section": "S04",
+      "prompt": "Why does OpenTofu store state separately from the configuration files?",
+      "options": [
+        {
+          "id": "bind-real-world",
+          "text": "State binds configuration to real-world resource identities and attributes.",
+          "rationale": "Without state, OpenTofu cannot reliably map HCL to existing infrastructure."
+        },
+        {
+          "id": "replace-hcl",
+          "text": "State replaces HCL as the source of truth for desired configuration.",
+          "rationale": "Configuration files express intent; state records what exists."
+        },
+        {
+          "id": "encrypt-secrets",
+          "text": "State exists primarily to encrypt provider credentials.",
+          "rationale": "Credentials belong in environment or secret stores; state tracks resource metadata."
+        }
+      ],
+      "answer": "bind-real-world",
+      "explanation": "State maps resource addresses to provider-specific IDs so subsequent plans can diff accurately.",
+      "difficulty": "introductory",
+      "learningObjective": "Explain why state is required beyond configuration alone.",
+      "references": [
+        "https://opentofu.org/docs/language/state/"
+      ]
+    },
+    {
+      "id": "S05-Q-01",
+      "section": "S05",
+      "prompt": "A teammate argues: \"Our remote backend already encrypts state at rest on the server, so we don't need an `encryption` block.\" What are they missing?",
+      "options": [
+        {
+          "id": "backend-covers-everything",
+          "text": "Nothing — server-side at-rest encryption protects the state everywhere it goes.",
+          "rationale": "Backend encryption covers transit and server storage, but every local copy — working dir, backups, CI artifacts — is written and read as plaintext."
+        },
+        {
+          "id": "sensitive-marks-suffice",
+          "text": "Nothing extra is needed as long as every secret variable is marked `sensitive`.",
+          "rationale": "sensitive only redacts CLI output; resolved values still land in the state file as literal strings that a simple grep extracts."
+        },
+        {
+          "id": "local-plaintext-window",
+          "text": "The file is still plaintext the moment `tofu` reads or writes it locally — client-side encryption is what closes that window.",
+          "rationale": "Remote backends encrypt in transit and at rest on the server, but the local file stays plaintext; OpenTofu's encryption block makes it ciphertext before it ever touches disk."
+        }
+      ],
+      "answer": "local-plaintext-window",
+      "explanation": "Backend encryption stops at the server — the local state file is plaintext during every run unless OpenTofu encrypts it client-side.",
+      "difficulty": "introductory",
+      "learningObjective": "Distinguish server-side backend encryption from client-side state encryption.",
+      "references": [
+        "https://opentofu.org/docs/language/state/encryption/"
+      ]
+    },
+    {
+      "id": "S05-Q-02",
+      "section": "S05",
+      "prompt": "The encryption block wires the AES-GCM method into both the `state { }` and `plan { }` targets. Why is encrypting plans not optional in practice?",
+      "options": [
+        {
+          "id": "plans-hold-diffs-only",
+          "text": "It is optional — plan files store resource addresses and diffs, not actual values.",
+          "rationale": "A saved plan carries resolved values, not just references; treating it as metadata-only is the misconception that leaks secrets through CI artifacts."
+        },
+        {
+          "id": "plans-leak-same-values",
+          "text": "A saved plan file contains the same resolved secrets as state, so an unencrypted plan leaks just as much.",
+          "rationale": "Plans hold resolved passwords, keys, and tokens as literals — the exposure is identical to state, so both targets get the method."
+        },
+        {
+          "id": "plans-only-remote",
+          "text": "Plan encryption only matters when plan files are uploaded to a remote backend.",
+          "rationale": "The exposure exists on any disk where a plan file is saved — a laptop or a CI artifact leaks it just as readily as remote storage."
+        }
+      ],
+      "answer": "plans-leak-same-values",
+      "explanation": "A saved plan file holds the same resolved secrets as state, so encrypting state while leaving plans plaintext leaves the leak open.",
+      "difficulty": "intermediate",
+      "learningObjective": "Recognize that plan files carry the same secret exposure as state.",
+      "references": [
+        "https://opentofu.org/docs/language/state/encryption/"
+      ]
+    },
+    {
+      "id": "S05-Q-03",
+      "section": "S05",
+      "prompt": "You add an encryption block with `enforced = true` to a project that already has plaintext state, and `tofu plan` now errors that it cannot read plaintext state. What is the intended migration path?",
+      "options": [
+        {
+          "id": "fallback-one-apply",
+          "text": "Add a `fallback` block with an unencrypted method so one apply reads the old plaintext while writing ciphertext, then remove the fallback.",
+          "rationale": "fallback is the read-old-write-new mechanism: a one-time run migrates the state to ciphertext, and the same trick later rotates keys."
+        },
+        {
+          "id": "remove-and-readd",
+          "text": "Delete the encryption block, run apply once, then re-add the block.",
+          "rationale": "That apply writes plaintext again, and re-adding the block reproduces the exact same error — fallback exists precisely to break this loop."
+        },
+        {
+          "id": "delete-state-file",
+          "text": "Delete `terraform.tfstate` and run apply so it is rebuilt encrypted from scratch.",
+          "rationale": "Deleting state destroys the map to your real resources — the next plan would blindly try to recreate everything OpenTofu already built."
+        }
+      ],
+      "answer": "fallback-one-apply",
+      "explanation": "A temporary fallback with an unencrypted method lets one apply read plaintext and write ciphertext; you then delete the fallback.",
+      "difficulty": "advanced",
+      "learningObjective": "Migrate existing plaintext state to encrypted state without losing access.",
+      "references": [
+        "https://opentofu.org/docs/language/state/encryption/"
+      ]
+    },
+    {
+      "id": "S07-Q-01",
+      "section": "S07",
+      "prompt": "A root module calls the same child module twice — `module \"checkout\"` and `module \"payments\"` — with different inputs. What does OpenTofu build?",
+      "options": [
+        {
+          "id": "shared-resources",
+          "text": "One shared set of resources, since both blocks point at the same definition.",
+          "rationale": "A module directory is only a definition; each module block is a distinct instance, so the two calls produce independent resources."
+        },
+        {
+          "id": "independent-instances",
+          "text": "Two independent instances with namespaced addresses like `module.checkout.local_file.manifest` and `module.payments.local_file.manifest`.",
+          "rationale": "Each module block instantiates the definition separately — same code, different inputs, independently tracked state."
+        },
+        {
+          "id": "duplicate-address-error",
+          "text": "An error — the same resource addresses would be declared twice.",
+          "rationale": "Resource addresses inside a module are prefixed with module.<name>, so instances never collide; that prefix is what makes reuse possible."
+        }
+      ],
+      "answer": "independent-instances",
+      "explanation": "Every module block is a distinct instance whose resources get namespaced addresses, so one definition safely yields many independent copies.",
+      "difficulty": "introductory",
+      "learningObjective": "Explain how multiple module blocks instantiate one definition independently.",
+      "references": [
+        "https://opentofu.org/docs/language/modules/"
+      ]
+    },
+    {
+      "id": "S07-Q-02",
+      "section": "S07",
+      "prompt": "You add a `version` argument to a module block whose `source` is a local path (`./modules/...`). Why doesn't this work?",
+      "options": [
+        {
+          "id": "all-sources-versioned",
+          "text": "It does work — every module source type accepts a version constraint.",
+          "rationale": "Only registry sources take a version argument; assuming it's universal is the mistake the source-type asymmetry exists to catch."
+        },
+        {
+          "id": "needs-ref-param",
+          "text": "Local modules must be pinned with a `?ref=` query parameter instead.",
+          "rationale": "?ref= is how Git sources pin a tag, branch, or commit — a local path has no versioning mechanism at all."
+        },
+        {
+          "id": "registry-only-version",
+          "text": "Only registry sources accept a `version` constraint; a local path resolves to whatever HCL is on disk.",
+          "rationale": "The source type determines the versioning model: local paths have none, Git pins via ref, and registry sources alone take a version argument."
+        }
+      ],
+      "answer": "registry-only-version",
+      "explanation": "The version argument is exclusive to registry sources — local paths are just the directory contents, and Git sources pin through their ref.",
+      "difficulty": "intermediate",
+      "learningObjective": "Match each module source type to its versioning mechanism.",
+      "references": [
+        "https://opentofu.org/docs/language/modules/sources/"
+      ]
+    },
+    {
+      "id": "S07-Q-03",
+      "section": "S07",
+      "prompt": "A registry module is pinned with a version constraint that no published release satisfies. At which point does the run fail?",
+      "options": [
+        {
+          "id": "fails-at-init",
+          "text": "At `tofu init` — the phase that fetches modules and providers — with a \"no available releases match the given constraints\" error, before any plan.",
+          "rationale": "Constraints resolve during init's fetch step, so an unsatisfiable pin surfaces immediately, long before OpenTofu evaluates any resources."
+        },
+        {
+          "id": "fails-at-plan",
+          "text": "At `tofu plan`, when the module's resources are first evaluated.",
+          "rationale": "By plan time, fetching is already done — resolution is init's job, so a bad pin never survives to the evaluation phase."
+        },
+        {
+          "id": "fails-at-apply",
+          "text": "At `tofu apply`, when OpenTofu downloads the module to build its resources.",
+          "rationale": "Apply never downloads modules; everything the run needs was fetched and pinned during init."
+        }
+      ],
+      "answer": "fails-at-init",
+      "explanation": "Version constraints resolve at init, the fetch phase, so an unsatisfiable pin fails there with the resolver's no-matching-releases error.",
+      "difficulty": "intermediate",
+      "learningObjective": "Identify the workflow phase where version constraints resolve and fail.",
+      "references": [
+        "https://opentofu.org/docs/language/expressions/version-constraints/"
+      ]
+    },
+    {
+      "id": "S07-Q-SPK-01",
+      "section": "S07",
+      "prompt": "When should you extract repeated infrastructure into a module?",
+      "options": [
+        {
+          "id": "reuse-pattern",
+          "text": "When the same composable pattern appears in multiple root modules.",
+          "rationale": "Modules encapsulate reusable building blocks with a stable interface."
+        },
+        {
+          "id": "single-resource",
+          "text": "For every individual resource to keep root modules minimal.",
+          "rationale": "Over-modularising single resources adds indirection without reuse benefit."
+        },
+        {
+          "id": "hide-state",
+          "text": "To prevent state from recording child module resources.",
+          "rationale": "Child module resources still appear in state under the module address prefix."
+        }
+      ],
+      "answer": "reuse-pattern",
+      "explanation": "Modules reduce duplication and encode conventions; they do not bypass state tracking.",
+      "difficulty": "intermediate",
+      "learningObjective": "Recognise when module extraction improves maintainability.",
+      "references": [
+        "https://opentofu.org/docs/language/modules/"
+      ]
+    },
+    {
+      "id": "S08-Q-01",
+      "section": "S08",
+      "prompt": "What is the main payoff of routing every resource name and tag through shared naming/labels modules instead of writing literals per resource?",
+      "options": [
+        {
+          "id": "enforced-queryable-convention",
+          "text": "The convention becomes the only way to name and tag — a fixed taxonomy drives cost allocation, ownership, and policy, and validation stops malformed names before any provider sees them.",
+          "rationale": "Deterministic names plus a queryable tag taxonomy are what make resources findable and chargeable, and in-module guards make the convention enforceable."
+        },
+        {
+          "id": "saves-typing-only",
+          "text": "It mostly saves typing; real enforcement still requires an external policy tool.",
+          "rationale": "Variable validation and output preconditions enforce the convention inside the module itself — a bad name cannot ship, no external tooling needed."
+        },
+        {
+          "id": "console-already-tracks",
+          "text": "Little — cloud consoles already record who created each resource.",
+          "rationale": "Console metadata is not a portable, queryable taxonomy; without governed tags there is no cost allocation, inventory, or policy across the estate."
+        }
+      ],
+      "answer": "enforced-queryable-convention",
+      "explanation": "Shared modules turn ad-hoc names and tags into an enforced, machine-queryable convention that cost, ownership, and policy tooling can rely on.",
+      "difficulty": "introductory",
+      "learningObjective": "Explain what a governed naming and labelling convention buys a team.",
+      "references": [
+        "https://opentofu.org/docs/language/modules/"
+      ]
+    },
+    {
+      "id": "S08-Q-02",
+      "section": "S08",
+      "prompt": "A caller swaps in a custom short-name profile and passes a `resource_type` the profile doesn't contain, so `lookup()` resolves to an empty string. What happens?",
+      "options": [
+        {
+          "id": "compact-drops-silently",
+          "text": "`compact()` drops the empty part, so the name quietly composes without a type prefix.",
+          "rationale": "compact() would indeed swallow the empty string — which is exactly why the module layers an output precondition on top; stopping here misses the second guard."
+        },
+        {
+          "id": "provider-rejects",
+          "text": "The cloud provider rejects the malformed name at apply time.",
+          "rationale": "The whole design goal is that a malformed name never reaches a provider — guards fire inside the module, not downstream."
+        },
+        {
+          "id": "output-precondition-fails",
+          "text": "The output precondition fails with a clear error — an unknown `resource_type` can never leave the module.",
+          "rationale": "The precondition checks the type against the profile's keys, converting a silent empty lookup into an explicit, actionable failure."
+        }
+      ],
+      "answer": "output-precondition-fails",
+      "explanation": "The output precondition is the last line of defence: it rejects any resource_type missing from the profile, so a silently truncated name can never escape the module.",
+      "difficulty": "intermediate",
+      "learningObjective": "Trace how layered guards catch a bad input that expression logic alone would swallow.",
+      "references": [
+        "https://opentofu.org/docs/language/expressions/custom-conditions/"
+      ]
+    },
+    {
+      "id": "S08-Q-03",
+      "section": "S08",
+      "prompt": "In the mocked, plan-only test lane for the naming/labels demo, why do the assertions target the labels map instead of the fully composed name?",
+      "options": [
+        {
+          "id": "only-maps-assertable",
+          "text": "Because `tofu test` can only assert on map-typed module outputs.",
+          "rationale": "Any output can be asserted — the constraint is about which values are known at plan time, not their type."
+        },
+        {
+          "id": "random-suffix-unknown",
+          "text": "The composed name embeds a random suffix that is unknown at plan time; full names are verified by the apply test instead.",
+          "rationale": "random_id is not resolved until apply, so a plan-only assertion on the full name cannot pass deterministically — the unit lane asserts what plan can know."
+        },
+        {
+          "id": "plan-skips-locals",
+          "text": "Because plan never evaluates locals, so the name isn't computed until apply.",
+          "rationale": "Plan evaluates everything it can; only genuinely unknown values like a random suffix defer to apply, and the locals around them still resolve."
+        }
+      ],
+      "answer": "random-suffix-unknown",
+      "explanation": "The name's random suffix is unknown until apply, so the plan-only lane asserts the fully known labels map and leaves full-name checks to the apply test.",
+      "difficulty": "advanced",
+      "learningObjective": "Design plan-time test assertions around values that are unknown until apply.",
+      "references": [
+        "https://opentofu.org/docs/cli/commands/test/"
+      ]
+    },
+    {
+      "id": "S12-Q-01",
+      "section": "S12",
+      "prompt": "What principle decides how many checks belong at each layer of the IaC testing pyramid?",
+      "options": [
+        {
+          "id": "cheapest-signal",
+          "text": "For each risk, choose the cheapest signal that can actually disprove it; escalate layers only when the risk demands it.",
+          "rationale": "The pyramid is an economic portfolio rule: many cheap checks at the base, progressively fewer expensive ones above."
+        },
+        {
+          "id": "maximize-fidelity",
+          "text": "Prefer the highest-fidelity layer available, since end-to-end tests catch everything the lower layers catch.",
+          "rationale": "Tempting because e2e is most realistic, but it pays in time, flakiness, state, and cleanup for defects a cheap check could have disproved."
+        },
+        {
+          "id": "more-is-better",
+          "text": "Add as many tests as possible at every layer, because more tests always mean more trust.",
+          "rationale": "The section explicitly rejects 'more tests' as the goal; unfocused volume adds cost without adding trustworthy signal."
+        }
+      ],
+      "answer": "cheapest-signal",
+      "explanation": "The pyramid optimizes for the cheapest trustworthy signal per risk, not for volume or maximum fidelity.",
+      "difficulty": "introductory",
+      "learningObjective": "Explain the cost-based rationale behind the IaC testing pyramid.",
+      "references": [
+        "https://opentofu.org/docs/cli/commands/test/"
+      ]
+    },
+    {
+      "id": "S12-Q-02",
+      "section": "S12",
+      "prompt": "A test applies an S3 bucket against LocalStack. Which pyramid layer is this, and why?",
+      "options": [
+        {
+          "id": "unit-not-real-cloud",
+          "text": "Unit, because LocalStack is not the real cloud, so no meaningful boundary is crossed.",
+          "rationale": "Confuses fidelity with boundary: an emulated service API is still a service API, with real create/teardown lifecycle."
+        },
+        {
+          "id": "integration-service-api",
+          "text": "Integration, because the provider talks to a service API — the layer is set by the boundary crossed, not the tool's realism.",
+          "rationale": "Classification asks 'what must be real to obtain the signal?'; here a service API must answer, which is the integration boundary."
+        },
+        {
+          "id": "e2e-real-resources",
+          "text": "End-to-end, because actual resources get created rather than just planned.",
+          "rationale": "Resource creation alone is not e2e; e2e means deploying and probing a full production-like system, not one emulated service."
+        }
+      ],
+      "answer": "integration-service-api",
+      "explanation": "Layers are classified by the boundary that must be crossed — applying to a service API (even emulated) is integration.",
+      "difficulty": "intermediate",
+      "learningObjective": "Classify checks by the boundary they cross rather than by tool name or realism.",
+      "references": [
+        "https://opentofu.org/docs/cli/commands/test/"
+      ]
+    },
+    {
+      "id": "S12-Q-03",
+      "section": "S12",
+      "prompt": "Two engineers argue whether `tofu validate` is a static check or something more. What makes the classification honest and useful?",
+      "options": [
+        {
+          "id": "vendor-decides",
+          "text": "Defer to how the tool's documentation categorizes itself, so the whole team uses one label.",
+          "rationale": "Consistency by decree skips the useful question; a tool can participate in more than one layer depending on how it is run."
+        },
+        {
+          "id": "integration-because-download",
+          "text": "Call it integration, because loading provider schemas means it contacts cloud services.",
+          "rationale": "Overstates the boundary: schema loading gives validate a contract flavour but it creates nothing and proves no service behaviour."
+        },
+        {
+          "id": "name-the-boundary",
+          "text": "Name the boundary: it creates nothing, so it is static here — while acknowledging provider schema loading gives it a contract flavour.",
+          "rationale": "Making the boundary explicit turns a debatable label into a useful classification; the workshop calls validate static on that basis."
+        }
+      ],
+      "answer": "name-the-boundary",
+      "explanation": "Naming the boundary crossed resolves ambiguous cases: validate creates nothing (static) even though schema loading adds a contract flavour.",
+      "difficulty": "advanced",
+      "learningObjective": "Resolve ambiguous layer classifications by making the required boundary explicit.",
+      "references": [
+        "https://opentofu.org/docs/cli/commands/validate/"
+      ]
+    },
+    {
+      "id": "S13-Q-01",
+      "section": "S13",
+      "prompt": "Why does a CI gate run `tofu fmt -check` instead of plain `tofu fmt`?",
+      "options": [
+        {
+          "id": "check-formats-faster",
+          "text": "`-check` performs the same rewrite but runs faster on large repositories.",
+          "rationale": "Misreads the flag: `-check` changes behaviour (detect, don't modify), not performance."
+        },
+        {
+          "id": "check-exits-nonzero",
+          "text": "`-check` changes nothing and exits non-zero on drift, so the pipeline fails instead of silently reformatting a disposable workspace.",
+          "rationale": "A gate must detect and fail; plain `fmt` is the repair command and would exit zero after rewriting files nobody keeps."
+        },
+        {
+          "id": "fmt-pushes-fixes",
+          "text": "Plain `fmt` would commit and push the corrected formatting, polluting the branch history.",
+          "rationale": "Plain `fmt` only rewrites the checked-out files; the real problem is that it exits zero while the branch still carries drift."
+        }
+      ],
+      "answer": "check-exits-nonzero",
+      "explanation": "`fmt` repairs in place while `fmt -check` changes nothing and signals drift through a non-zero exit code, which is what a gate needs.",
+      "difficulty": "introductory",
+      "learningObjective": "Distinguish the repair and enforcement modes of the canonical formatter.",
+      "references": [
+        "https://opentofu.org/docs/cli/commands/fmt/"
+      ]
+    },
+    {
+      "id": "S13-Q-02",
+      "section": "S13",
+      "prompt": "`tofu validate` reports that a variable declared as `list(string)` has the default `\"payments\"`. What is the right repair?",
+      "options": [
+        {
+          "id": "loosen-type",
+          "text": "Change the type to `string`, since the default shows the module really receives a single name.",
+          "rationale": "Weakens the contract to fit a wrong value; callers relying on the list contract (e.g. `length()`) would then break."
+        },
+        {
+          "id": "use-any-type",
+          "text": "Change the type to `any` so both a string and a list are accepted.",
+          "rationale": "Erases the type contract entirely, trading a clear diagnostic today for confusing runtime behaviour later."
+        },
+        {
+          "id": "fix-the-value",
+          "text": "Wrap the value as `[\"payments\"]` so it satisfies the declared list contract.",
+          "rationale": "The declared type is the contract; the diagnostic points at a value that violates it, so repair the value, not the constraint."
+        }
+      ],
+      "answer": "fix-the-value",
+      "explanation": "When a value violates a declared type contract, fix the value to satisfy the contract rather than weakening the type.",
+      "difficulty": "intermediate",
+      "learningObjective": "Read a validate type diagnostic and repair the value instead of the contract.",
+      "references": [
+        "https://opentofu.org/docs/cli/commands/validate/"
+      ]
+    },
+    {
+      "id": "S13-Q-03",
+      "section": "S13",
+      "prompt": "A variable is declared but never used anywhere. `tofu validate` passes. What does this tell you about the static-analysis toolchain?",
+      "options": [
+        {
+          "id": "lint-adds-semantics",
+          "text": "Validity and convention are different contracts: the declaration is legal HCL, so a linter like TFLint is needed to flag it as misleading.",
+          "rationale": "TFLint applies semantic and convention rules outside OpenTofu's validity contract — it complements validate rather than replacing it."
+        },
+        {
+          "id": "validate-bug",
+          "text": "It is a gap in `tofu validate` that a stricter validate configuration would close.",
+          "rationale": "Unused declarations are valid by design; validate checks syntax and native type contracts, not repository conventions."
+        },
+        {
+          "id": "lint-supersedes",
+          "text": "It shows TFLint should replace `validate` in the pipeline, since the linter is a strict superset.",
+          "rationale": "The section states TFLint complements validate; the linter does not re-implement OpenTofu's native type and syntax checking."
+        }
+      ],
+      "answer": "lint-adds-semantics",
+      "explanation": "Valid HCL can still be suspicious; TFLint layers convention and semantic rules on top of validate's native contracts.",
+      "difficulty": "intermediate",
+      "learningObjective": "Explain why linting is layered on top of validation rather than replacing it.",
+      "references": [
+        "https://github.com/terraform-linters/tflint"
+      ]
+    },
+    {
+      "id": "S14-Q-01",
+      "section": "S14",
+      "prompt": "When choosing an IaC security scanner as a team standard, why is maintenance status a first-class selection axis?",
+      "options": [
+        {
+          "id": "archived-incident",
+          "text": "Adopting an archived, read-only tool is a self-inflicted incident: its rules stop evolving with the platforms it scans.",
+          "rationale": "The section's cautionary tale is a scanner that went read-only — a long feature list is worthless once the project is dead."
+        },
+        {
+          "id": "features-first",
+          "text": "It is secondary — the tool with the broadest rule checklist catches the most, whoever maintains it.",
+          "rationale": "Feature breadth today says nothing about tomorrow; the section warns that maintenance beats a long feature checklist."
+        },
+        {
+          "id": "popularity-proxy",
+          "text": "Because the most recommended tool in community posts is usually the safest long-term bet.",
+          "rationale": "Tool lists rot — the section opens by warning against picking scanners by last year's blog post."
+        }
+      ],
+      "answer": "archived-incident",
+      "explanation": "Scanners are compared on coverage, speed, policy language, ecosystem, and maintenance — and a dead project fails the axis that matters most over time.",
+      "difficulty": "introductory",
+      "learningObjective": "Select security scanners by durable axes, with maintenance status as a first-class criterion.",
+      "references": [
+        "https://trivy.dev/"
+      ]
+    },
+    {
+      "id": "S14-Q-02",
+      "section": "S14",
+      "prompt": "A security group is missing the org-required `cost_center` tag, yet Trivy and Checkov both pass it. What is the right fix?",
+      "options": [
+        {
+          "id": "update-rulepacks",
+          "text": "Update both scanners' rule packs — a current ruleset would include the tag requirement.",
+          "rationale": "No generic rule pack will ever encode your organization's tag names; the gap is structural, not a stale-rules problem."
+        },
+        {
+          "id": "module-is-fine",
+          "text": "Nothing — two independent scanners agreeing green means the module meets policy.",
+          "rationale": "Scanner green only covers common cloud hygiene; organization-specific promises are outside every generic ruleset."
+        },
+        {
+          "id": "encode-in-rego",
+          "text": "Encode the rule yourself as an OPA/Conftest Rego policy — generic scanners cannot know org-specific requirements.",
+          "rationale": "Required tags, naming, and allow-lists are org policy; Conftest lets you write the deny rule scanner authors will never ship."
+        }
+      ],
+      "answer": "encode-in-rego",
+      "explanation": "Misconfiguration scanners encode common cloud hygiene, so organization-specific rules like required tags belong in your own Rego policy via Conftest/OPA.",
+      "difficulty": "intermediate",
+      "learningObjective": "Separate generic misconfiguration scanning from organization policy as code.",
+      "references": [
+        "https://www.conftest.dev/"
+      ]
+    },
+    {
+      "id": "S14-Q-03",
+      "section": "S14",
+      "prompt": "Trivy and Checkov scan the same module: findings largely overlap, but each reports issues the other misses. How should you interpret this?",
+      "options": [
+        {
+          "id": "one-misconfigured",
+          "text": "A discrepancy signals a misconfigured scanner — rerun until both report identical findings.",
+          "rationale": "Expecting identical output misunderstands scanners; they will never converge because they encode different judgments."
+        },
+        {
+          "id": "different-rulepacks",
+          "text": "Neither is wrong: they encode different rule packs, so the unique edges are exactly where a second opinion adds value.",
+          "rationale": "The section shows the same tree producing different unique findings; diffing two scanners is worthwhile when blast radius is high."
+        },
+        {
+          "id": "more-findings-wins",
+          "text": "The scanner with more findings is more accurate and should become the sole standard.",
+          "rationale": "Finding counts drift as rule packs churn; count is a property of the ruleset's opinions, not of accuracy."
+        }
+      ],
+      "answer": "different-rulepacks",
+      "explanation": "Overlap is large but edges differ because each tool ships its own rule pack — disagreement at the margins is expected, not an error.",
+      "difficulty": "advanced",
+      "learningObjective": "Interpret differing findings from multiple scanners as rule-pack differences rather than tool failure.",
+      "references": [
+        "https://www.checkov.io/"
+      ]
+    },
+    {
+      "id": "S16-Q-01",
+      "section": "S16",
+      "prompt": "Why is `command = plan` the recommended default for a `tofu test` run?",
+      "options": [
+        {
+          "id": "plan-proves-behaviour",
+          "text": "Because a plan run already proves real resource behaviour without the cost of creating anything.",
+          "rationale": "Overstates plan: it proves configuration and planned values, but API behaviour and post-apply values only exist after creation."
+        },
+        {
+          "id": "plan-fast-no-side-effects",
+          "text": "Plan runs are fast and create no infrastructure, so reserve `apply` for claims only observable after creation.",
+          "rationale": "The rule is 'prefer plan until the claim requires apply' — apply earns its cost only when the assertion needs created state."
+        },
+        {
+          "id": "apply-needs-cleanup-code",
+          "text": "Because apply runs leave resources behind unless you write explicit teardown steps into the test file.",
+          "rationale": "The test framework's cleanup destroys what an apply run creates; the real costs of apply are time, side effects, and needing a reachable API."
+        }
+      ],
+      "answer": "plan-fast-no-side-effects",
+      "explanation": "Plan runs prove configuration and planned values cheaply; apply is reserved for post-apply values and resource behaviour.",
+      "difficulty": "introductory",
+      "learningObjective": "Choose between plan and apply test commands based on what the claim requires.",
+      "references": [
+        "https://opentofu.org/docs/cli/commands/test/"
+      ]
+    },
+    {
+      "id": "S16-Q-02",
+      "section": "S16",
+      "prompt": "A test file sets `project = \"crmapp\"` in a root `variables` block; one `run` block sets `project = \"orders\"` in its own `variables` block. What do the other runs see?",
+      "options": [
+        {
+          "id": "root-value-stands",
+          "text": "They still see `\"crmapp\"` — a run-level block overrides inputs for that run only, describing one scenario's delta.",
+          "rationale": "Root variables establish the shared fixture; a run-level override is scoped to its run, so the suite reads as a set of cases."
+        },
+        {
+          "id": "later-runs-inherit",
+          "text": "Runs after the overriding one see `\"orders\"`, because runs execute in order and carry variable changes forward.",
+          "rationale": "Confuses execution order with variable scope; a run-level variables block never leaks into other runs."
+        },
+        {
+          "id": "conflict-error",
+          "text": "The suite errors, because a run may not redeclare a variable the root block already sets.",
+          "rationale": "Overriding is the intended mechanism — per-run variables exist precisely to vary one scenario against a shared fixture."
+        }
+      ],
+      "answer": "root-value-stands",
+      "explanation": "Root variables define the shared fixture and a run-level variables block overrides them for that single run only.",
+      "difficulty": "intermediate",
+      "learningObjective": "Apply the two variable scopes in native test files: shared fixture versus per-run delta.",
+      "references": [
+        "https://opentofu.org/docs/cli/commands/test/"
+      ]
+    },
+    {
+      "id": "S16-Q-03",
+      "section": "S16",
+      "prompt": "In a negative test, why does `expect_failures` require naming the specific checkable object (like `var.project`) instead of just accepting any failed plan?",
+      "options": [
+        {
+          "id": "performance-scoping",
+          "text": "Naming the object lets the runner skip evaluating the rest of the configuration, keeping the negative test fast.",
+          "rationale": "The targeting is about correctness of the signal, not speed — the whole run is still planned."
+        },
+        {
+          "id": "any-error-passes",
+          "text": "It is a convenience: any error in the run would satisfy `expect_failures` either way.",
+          "rationale": "This is exactly the failure mode the design prevents; if any error passed, a broken provider could masquerade as a passing guardrail test."
+        },
+        {
+          "id": "prevent-masquerade",
+          "text": "So only the expected diagnostic from the object that owns the contract counts as success — an unrelated provider or syntax error still fails the suite.",
+          "rationale": "Targeting the owning variable, output, resource, or check distinguishes the guardrail firing from the configuration being broken for other reasons."
+        }
+      ],
+      "answer": "prevent-masquerade",
+      "explanation": "`expect_failures` passes only when the named checkable object produces the expected diagnostic, so unrelated breakage cannot look like success.",
+      "difficulty": "advanced",
+      "learningObjective": "Write negative tests that prove a specific guardrail fires without masking unrelated errors.",
+      "references": [
+        "https://opentofu.org/docs/cli/commands/test/"
+      ]
+    },
+    {
+      "id": "S17-Q-01",
+      "section": "S17",
+      "prompt": "What does replacing a real provider with `mock_provider` in a plan-only test suite buy you — and what does it not?",
+      "options": [
+        {
+          "id": "speed-not-fidelity",
+          "text": "Speed and isolation with zero credentials or Docker — but no proof of how a real API behaves.",
+          "rationale": "Mocked plan tests sit in the unit/contract layer: they evaluate configuration without crossing a service boundary, so real-API risks stay unproven."
+        },
+        {
+          "id": "replaces-integration",
+          "text": "Full coverage: a green mocked suite means the equivalent integration tests would also pass.",
+          "rationale": "A mock invents values and never exercises permissions, quotas, or lifecycle — green mocks cannot stand in for a service answering."
+        },
+        {
+          "id": "better-than-emulator",
+          "text": "Higher fidelity than an emulator, because mocks are defined by the provider's own schema.",
+          "rationale": "Inverted: an emulator answers real API calls; a mock crosses no service boundary at all, trading fidelity for speed."
+        }
+      ],
+      "answer": "speed-not-fidelity",
+      "explanation": "Mocking moves tests into the cheap unit/contract lane at the cost of proving nothing about a real service API.",
+      "difficulty": "introductory",
+      "learningObjective": "Place mocked plan tests on the testing pyramid and state their limits.",
+      "references": [
+        "https://opentofu.org/docs/cli/commands/test/"
+      ]
+    },
+    {
+      "id": "S17-Q-02",
+      "section": "S17",
+      "prompt": "In a mocked plan test, why add `defaults` via `mock_resource` (or pin values with `override_resource`)?",
+      "options": [
+        {
+          "id": "skip-user-variables",
+          "text": "To replace the test's input variables so runs need no `variables` blocks.",
+          "rationale": "Confuses two mechanisms: variables arrange inputs, while mock defaults and overrides supply provider-computed attributes."
+        },
+        {
+          "id": "make-computed-assertable",
+          "text": "To give computed attributes (ids, ARNs) concrete values a plan would otherwise leave unknown, so assertions can read them.",
+          "rationale": "A plan cannot invent server-side values; defaults and overrides pin them so contract assertions compare concrete data."
+        },
+        {
+          "id": "speed-up-apply",
+          "text": "To pre-create the resources faster than the real provider would.",
+          "rationale": "Nothing is created in a mocked plan run at all; mocking removes creation rather than accelerating it."
+        }
+      ],
+      "answer": "make-computed-assertable",
+      "explanation": "Mock defaults and overrides pin computed attributes that a plan would leave unknown, making them assertable.",
+      "difficulty": "intermediate",
+      "learningObjective": "Use mock defaults and overrides to make computed values assertable in plan-only tests.",
+      "references": [
+        "https://opentofu.org/docs/cli/commands/test/"
+      ]
+    },
+    {
+      "id": "S17-Q-03",
+      "section": "S17",
+      "prompt": "Your mocked plan suite is fully green. Which class of claim still requires escalating to a real (or emulated) apply?",
+      "options": [
+        {
+          "id": "planned-attribute-values",
+          "text": "Claims about planned attribute values, since mocks distort what the plan computes.",
+          "rationale": "Backwards — planned configuration values are exactly what mocked plan tests prove well; mocks fill only what the plan cannot know."
+        },
+        {
+          "id": "nothing-remaining",
+          "text": "None — with good mock defaults, the unit lane covers the same risks as an apply.",
+          "rationale": "A mock would happily invent values the service never returns; green mocks are silent about everything at the API boundary."
+        },
+        {
+          "id": "api-lifecycle-claims",
+          "text": "Claims about API behaviour, permissions, quotas, or teardown — risks that only exist when a real service answers.",
+          "rationale": "Mocking is a cheaper boundary, not a moral upgrade: escalate when the defect cannot appear without a service API."
+        }
+      ],
+      "answer": "api-lifecycle-claims",
+      "explanation": "A green mock never proves permissions, quotas, lifecycle, or teardown — those defects only exist at a real service boundary.",
+      "difficulty": "intermediate",
+      "learningObjective": "Decide when a claim requires escalating from mocked plan tests to a real apply.",
+      "references": [
+        "https://opentofu.org/docs/cli/commands/test/"
+      ]
+    },
+    {
+      "id": "S19-Q-01",
+      "section": "S19",
+      "prompt": "Why should a CI pipeline run static and unit lanes before the LocalStack integration lane?",
+      "options": [
+        {
+          "id": "integration-first-fidelity",
+          "text": "It shouldn't — integration has the highest fidelity, so running it first catches the most defects per run.",
+          "rationale": "Fidelity is not the ordering criterion; spending emulator minutes on a change that fails `fmt -check` wastes the whole pipeline's budget."
+        },
+        {
+          "id": "cheap-fails-first",
+          "text": "So cheaper, faster failures stop the build before slower lanes spend minutes and cloud-free lanes stay free of service dependencies.",
+          "rationale": "Ordering mirrors the pyramid's economics: fail on seconds-cheap checks before paying for a service container."
+        },
+        {
+          "id": "order-cosmetic",
+          "text": "Order is cosmetic — all jobs run concurrently anyway, so arrangement only affects the UI.",
+          "rationale": "Even with concurrent jobs, the design principle stands: lanes are separated so expensive evidence is only gathered when cheap evidence passes."
+        }
+      ],
+      "answer": "cheap-fails-first",
+      "explanation": "Pipelines light the pyramid in order so cheap failures stop the build before slower, service-dependent lanes spend their cost.",
+      "difficulty": "introductory",
+      "learningObjective": "Order CI stages to fail on the cheapest evidence first.",
+      "references": [
+        "https://docs.github.com/en/actions"
+      ]
+    },
+    {
+      "id": "S19-Q-02",
+      "section": "S19",
+      "prompt": "A CI job runs plain `tofu fmt` (no `-check`) on a branch with formatting drift and exits zero. What actually happened?",
+      "options": [
+        {
+          "id": "false-green",
+          "text": "The formatter rewrote the runner's disposable workspace and reported success — the branch still carries drift; this is a false green.",
+          "rationale": "Rewriting is a repair, not a gate: the fixed files vanish with the runner while the unformatted commit merges anyway."
+        },
+        {
+          "id": "auto-fixed-branch",
+          "text": "CI auto-corrected the branch: the reformatted files were committed back, so the drift is gone.",
+          "rationale": "Assumes CI pushes its workspace changes; without an explicit commit-back step the rewrite dies with the runner."
+        },
+        {
+          "id": "no-drift-existed",
+          "text": "Exit zero proves there was no drift — plain `fmt` fails when it has to change files.",
+          "rationale": "Plain `fmt` exits zero after successfully rewriting; only `-check` turns drift into a non-zero exit."
+        }
+      ],
+      "answer": "false-green",
+      "explanation": "Without `-check`, fmt repairs a throwaway workspace and exits zero while the branch keeps its drift — rewriting alone is not a gate.",
+      "difficulty": "intermediate",
+      "learningObjective": "Detect and fix the false-green formatting gate in a CI pipeline.",
+      "references": [
+        "https://opentofu.org/docs/cli/commands/fmt/"
+      ]
+    },
+    {
+      "id": "S19-Q-03",
+      "section": "S19",
+      "prompt": "Why does the unit CI job deliberately skip integration test files, running them only in a separate job with a LocalStack service container?",
+      "options": [
+        {
+          "id": "integration-optional",
+          "text": "Because integration tests are optional extras that only need to run before releases, not on every push.",
+          "rationale": "Integration is a required voting job in the same pipeline; the split is about isolation of failure signals, not about frequency."
+        },
+        {
+          "id": "isolate-failure-signal",
+          "text": "So the unit lane stays credential- and emulator-free, and a missing or unhealthy emulator can never masquerade as a unit failure.",
+          "rationale": "Separating lanes keeps each job's red meaningful: unit red means the contract broke, integration red means the service boundary broke."
+        },
+        {
+          "id": "too-slow-for-ci",
+          "text": "Because apply-based tests are too slow and stateful to run in CI at all, so they remain a laptop-only step.",
+          "rationale": "The whole point of the service container is that integration runs in CI — declared in the workflow, health-checked, not a laptop-only promise."
+        }
+      ],
+      "answer": "isolate-failure-signal",
+      "explanation": "Keeping integration files out of the unit job isolates failure signals: unit stays deterministic and cloud-free while the service-backed job owns the API boundary.",
+      "difficulty": "advanced",
+      "learningObjective": "Structure CI jobs so each testing layer produces an unambiguous failure signal.",
+      "references": [
+        "https://docs.localstack.cloud/"
+      ]
+    },
+    {
+      "id": "S20-Q-01",
+      "section": "S20",
+      "prompt": "Your team adopts Terramate for its OpenTofu monorepo. Where does the state for each stack live afterwards?",
+      "options": [
+        {
+          "id": "terramate-cloud-state",
+          "text": "Terramate takes over state storage and locking, so the backend blocks can be removed.",
+          "rationale": "Confuses an orchestrator with a TACO state service — the section's non-negotiable is that Terramate does NOT manage state."
+        },
+        {
+          "id": "backend-unchanged",
+          "text": "Exactly where it was: each stack's configured backend, with locking and encryption still owned by OpenTofu.",
+          "rationale": "Correct — Terramate orchestrates runs above tofu; backend, lock, and encryption stay untouched."
+        },
+        {
+          "id": "merged-root-state",
+          "text": "Terramate merges the stacks into one shared state file at the monorepo root.",
+          "rationale": "Mistakes orchestration for consolidation — stacks stay separate roots with separate state files so blast radius stays small."
+        }
+      ],
+      "answer": "backend-unchanged",
+      "explanation": "Terramate orchestrates runs but does not manage state — backends, locking, and encryption remain OpenTofu concerns.",
+      "difficulty": "introductory",
+      "learningObjective": "State what Terramate does and does not take over when layered above OpenTofu.",
+      "references": [
+        "https://terramate.io/docs/"
+      ]
+    },
+    {
+      "id": "S20-Q-02",
+      "section": "S20",
+      "prompt": "A colleague argues you don't need an orchestrator: \"just extract more modules.\" Why does that not solve the multi-root scaling problem?",
+      "options": [
+        {
+          "id": "modules-too-slow",
+          "text": "Modules slow down plans, so at scale you must replace them with generated code.",
+          "rationale": "Invents a performance problem the section never raises — modules stay; the gap is a missing layer, not module overhead."
+        },
+        {
+          "id": "modules-single-root",
+          "text": "Modules reuse logic inside one root; they don't discover, generate boilerplate for, order, or filter many roots.",
+          "rationale": "Correct — orchestration across many roots is a different layer from logic reuse within a root."
+        },
+        {
+          "id": "modules-no-state",
+          "text": "Modules cannot have their own state, so each one still needs its own backend block.",
+          "rationale": "Muddles modules with roots — state belongs to a root/stack, and duplicated backend blocks are the DRY tax, not a module limitation."
+        }
+      ],
+      "answer": "modules-single-root",
+      "explanation": "Modules reuse logic within a root, while the scaling pains — many stacks, DRY tax, ordering — live across roots, which is Terramate's layer.",
+      "difficulty": "intermediate",
+      "learningObjective": "Distinguish module reuse inside a root from orchestration across many roots.",
+      "references": [
+        "https://terramate.io/docs/"
+      ]
+    },
+    {
+      "id": "S20-Q-03",
+      "section": "S20",
+      "prompt": "Why does the workshop's monorepo keep one root per environment/team boundary instead of one big root, even though that creates many tofu runs?",
+      "options": [
+        {
+          "id": "blast-radius",
+          "text": "Each leaf gets its own run and its own state file, so a mistake is contained to one blast-radius boundary.",
+          "rationale": "Correct — many stacks exist precisely to keep blast radius small; Terramate then absorbs the resulting DRY and ordering costs."
+        },
+        {
+          "id": "terramate-requires",
+          "text": "Terramate can only operate when every environment is a separate root, so the tool forces the split.",
+          "rationale": "Reverses cause and effect — the split is a deliberate design choice; Terramate exists to make an already-split monorepo manageable."
+        },
+        {
+          "id": "avoid-locking",
+          "text": "Splitting roots removes the need for state locking, since small states never conflict.",
+          "rationale": "False comfort — each stack's state still needs locking; splitting shrinks contention but doesn't eliminate the locking concern."
+        }
+      ],
+      "answer": "blast-radius",
+      "explanation": "One root per boundary keeps each run and state file small so failures stay contained; Terramate manages the resulting many-stack overhead.",
+      "difficulty": "intermediate",
+      "learningObjective": "Explain why multi-root layouts are chosen despite their orchestration cost.",
+      "references": [
+        "https://terramate.io/docs/"
+      ]
+    },
+    {
+      "id": "S21-Q-01",
+      "section": "S21",
+      "prompt": "You add a new directory stacks/db/ with a valid main.tf, but `terramate list` does not show it. What is the most likely cause?",
+      "options": [
+        {
+          "id": "needs-reindex",
+          "text": "Terramate caches discovery — you need to re-initialize the project so it rescans the tree.",
+          "rationale": "Assumes a stale index — discovery is evaluated from the files each run; nothing needs rescanning."
+        },
+        {
+          "id": "tf-files-invalid",
+          "text": "The OpenTofu code has an error, and Terramate skips stacks that fail validation.",
+          "rationale": "Conflates discovery with validation — Terramate discovers via metadata, not by parsing or validating the tofu code."
+        },
+        {
+          "id": "missing-stack-block",
+          "text": "The directory has no stack {} declaration, so Terramate silently skips it.",
+          "rationale": "Correct — discovery is a declaration, not a folder walk; without stack {} the directory simply never appears."
+        }
+      ],
+      "answer": "missing-stack-block",
+      "explanation": "Discovery requires a stack {} declaration — directories without one are silently skipped, with no error.",
+      "difficulty": "introductory",
+      "learningObjective": "Recognize that stack discovery is declarative via stack {}, not a folder convention.",
+      "references": [
+        "https://terramate.io/docs/"
+      ]
+    },
+    {
+      "id": "S21-Q-02",
+      "section": "S21",
+      "prompt": "Your team wants to run commands against all networking-related stacks without hard-coding their paths in scripts. Which stack metadata supports this?",
+      "options": [
+        {
+          "id": "use-tags",
+          "text": "tags — declare them per stack, then select with --tags in list (and later run) filters.",
+          "rationale": "Correct — tags are the selection keys that decouple filtering from directory paths."
+        },
+        {
+          "id": "use-name-glob",
+          "text": "name — set names to a common prefix and glob-match them from the shell.",
+          "rationale": "Name is a human label for lists and docs; prefix-globbing rebuilds path spaghetti in a different field."
+        },
+        {
+          "id": "use-description",
+          "text": "description — Terramate matches filter keywords against stack descriptions.",
+          "rationale": "Description is prose for humans and reports; it is not a selection mechanism."
+        }
+      ],
+      "answer": "use-tags",
+      "explanation": "Tags are the filter handles — `terramate list --tags networking` selects stacks without naming any paths.",
+      "difficulty": "intermediate",
+      "learningObjective": "Choose the right stack metadata field for path-free stack selection.",
+      "references": [
+        "https://terramate.io/docs/"
+      ]
+    },
+    {
+      "id": "S21-Q-03",
+      "section": "S21",
+      "prompt": "Why does the workshop recommend committing an explicit UUID in each stack's id field, given that an empty stack {} is already enough to be discovered?",
+      "options": [
+        {
+          "id": "id-enables-run",
+          "text": "Stacks without an id are listed but cannot be targeted by terramate run.",
+          "rationale": "Overstates the field — an empty stack {} is a fully operable stack; id is about identity, not runnability."
+        },
+        {
+          "id": "id-stable-identity",
+          "text": "The id keeps the stack's identity stable when the directory is renamed or moved.",
+          "rationale": "Correct — paths and names can change; the tracked UUID is what survives reorganisation."
+        },
+        {
+          "id": "id-encrypts-state",
+          "text": "The UUID is used to key the stack's state file so runs from other stacks cannot read it.",
+          "rationale": "Imports a state-management role Terramate does not have — state, locking, and encryption stay with OpenTofu."
+        }
+      ],
+      "answer": "id-stable-identity",
+      "explanation": "An explicit tracked UUID gives the stack a stable identity across renames and moves, independent of its path.",
+      "difficulty": "intermediate",
+      "learningObjective": "Explain the purpose of stable stack ids in an evolving monorepo.",
+      "references": [
+        "https://terramate.io/docs/"
+      ]
+    },
+    {
+      "id": "S22-Q-01",
+      "section": "S22",
+      "prompt": "A teammate edits stacks/app/_backend.tf directly to change the state path, ignoring the DO NOT EDIT banner. What happens on the next `terramate generate`?",
+      "options": [
+        {
+          "id": "edit-overwritten",
+          "text": "The hand edit is overwritten from the blueprint — the fix belongs in the generate_hcl block or globals, then regenerate.",
+          "rationale": "Correct — generated files are outputs; the blueprint and globals are the source of truth."
+        },
+        {
+          "id": "edit-preserved",
+          "text": "Generate detects the manual change and skips that file to avoid clobbering local work.",
+          "rationale": "Wishful merge semantics — generation re-emits from the blueprint; hand edits in generated files don't survive."
+        },
+        {
+          "id": "edit-conflict-error",
+          "text": "Generate refuses to run and reports a conflict until the file is reverted.",
+          "rationale": "Imagines a guard that isn't the model — the banner is the contract, and regeneration simply restores the blueprint's output."
+        }
+      ],
+      "answer": "edit-overwritten",
+      "explanation": "Hand-editing generated files is a bug — the next generate rewrites them from the blueprint, so changes go in the blueprint or globals.",
+      "difficulty": "introductory",
+      "learningObjective": "Treat generated files as outputs and route changes through blueprints and globals.",
+      "references": [
+        "https://terramate.io/docs/"
+      ]
+    },
+    {
+      "id": "S22-Q-02",
+      "section": "S22",
+      "prompt": "Every stack should use the shared backend path except stacks/app, which needs its own state file name. What is the DRY way to achieve this?",
+      "options": [
+        {
+          "id": "copy-generate-block",
+          "text": "Copy the generate_hcl block into stacks/app and change the path in the copy.",
+          "rationale": "Reintroduces the copy-paste tax codegen exists to remove — two blueprints will now drift apart."
+        },
+        {
+          "id": "leaf-global-override",
+          "text": "Add a globals block in stacks/app that redefines only backend_path — the closer definition wins.",
+          "rationale": "Correct — globals inherit root-to-leaf and a leaf may override a single key; the one blueprint stays shared."
+        },
+        {
+          "id": "hand-write-backend",
+          "text": "Delete the generated file in stacks/app and hand-write its backend.tf there.",
+          "rationale": "Opts one stack out of generation, resurrecting the rot-between-stacks problem for exactly that leaf."
+        }
+      ],
+      "answer": "leaf-global-override",
+      "explanation": "Globals inherit hierarchically down the tree — a leaf overrides just the differing key while the single generate blueprint stays shared.",
+      "difficulty": "intermediate",
+      "learningObjective": "Use hierarchical globals overrides instead of duplicating blueprints or files.",
+      "references": [
+        "https://terramate.io/docs/"
+      ]
+    },
+    {
+      "id": "S22-Q-03",
+      "section": "S22",
+      "prompt": "In a generate_hcl \"_backend.tf\" block, when is the reference global.backend_path resolved into a concrete string?",
+      "options": [
+        {
+          "id": "at-tofu-plan",
+          "text": "When tofu plan runs — OpenTofu evaluates the global like any other variable.",
+          "rationale": "Treats globals like tofu variables — OpenTofu never sees globals; it only reads the already-emitted .tf file."
+        },
+        {
+          "id": "at-generate-time",
+          "text": "When `terramate generate` runs — the emitted file contains the literal value, not the reference.",
+          "rationale": "Correct — globals are evaluated at generate time, and the committed output is plain concrete HCL."
+        },
+        {
+          "id": "at-run-time",
+          "text": "When `terramate run` wraps the command — the value is injected into each stack's environment.",
+          "rationale": "Confuses codegen with run-time injection — nothing is substituted at run; the file was finalized when it was generated."
+        }
+      ],
+      "answer": "at-generate-time",
+      "explanation": "Globals resolve when terramate generate evaluates the blueprint — the emitted file carries a concrete string that OpenTofu reads as ordinary HCL.",
+      "difficulty": "advanced",
+      "learningObjective": "Explain when generation-time evaluation happens versus when OpenTofu reads the result.",
+      "references": [
+        "https://terramate.io/docs/"
+      ]
+    },
+    {
+      "id": "S23-Q-01",
+      "section": "S23",
+      "prompt": "The app stack declares after = [\"tag:networking\"] and the network stack (tagged networking) declares no ordering at all. What does `terramate run` do?",
+      "options": [
+        {
+          "id": "one-edge-enough",
+          "text": "Runs network first, then app — one declared edge is enough; network needs no matching before.",
+          "rationale": "Correct — after and before are two ends of the same edge; declaring either side orders both stacks."
+        },
+        {
+          "id": "needs-both-sides",
+          "text": "Order is undefined until network also declares before = [\"tag:app\"] to confirm the edge.",
+          "rationale": "Assumes edges must be declared on both ends — that would duplicate the same edge, not strengthen it."
+        },
+        {
+          "id": "alphabetical-fallback",
+          "text": "Runs stacks alphabetically because a one-sided ordering declaration is ignored.",
+          "rationale": "Mixes up discovery listing with the run-graph — a single after edge fully determines the ordering."
+        }
+      ],
+      "answer": "one-edge-enough",
+      "explanation": "after and before declare the same edge from opposite ends, so one side's declaration is sufficient to order the run.",
+      "difficulty": "introductory",
+      "learningObjective": "Read after/before declarations as single edges on the run-graph.",
+      "references": [
+        "https://terramate.io/docs/"
+      ]
+    },
+    {
+      "id": "S23-Q-02",
+      "section": "S23",
+      "prompt": "`terramate run` fails with \"cycle detected: /stacks/app -> /stacks/network -> /stacks/app\". What is the correct fix?",
+      "options": [
+        {
+          "id": "add-middle-stack",
+          "text": "Introduce a third stack between the two so the dependency can flow through it.",
+          "rationale": "The classic wrong instinct the section warns against — routing a cycle through more nodes still leaves a cycle."
+        },
+        {
+          "id": "force-run-order",
+          "text": "Override the graph by running the stacks individually in the order you know is right.",
+          "rationale": "Ignores the error instead of fixing the declared graph — the broken edges remain for the next person and for CI."
+        },
+        {
+          "id": "remove-one-edge",
+          "text": "Read the cycle path, delete one of the two mutual dependencies, and re-check with list --run-order.",
+          "rationale": "Correct — the graph must stay acyclic; the fix is removing an edge, then verifying the DAG."
+        }
+      ],
+      "answer": "remove-one-edge",
+      "explanation": "Cycles fail the run fast by design — the fix is to remove one edge from the printed path and re-verify with --run-order, not to work around it.",
+      "difficulty": "intermediate",
+      "learningObjective": "Diagnose and repair ordering cycles in the stack run-graph.",
+      "references": [
+        "https://terramate.io/docs/"
+      ]
+    },
+    {
+      "id": "S23-Q-03",
+      "section": "S23",
+      "prompt": "Before applying across the fleet, you want to verify that dependents will actually wait for their dependencies. Why is plain `terramate list` output not proof?",
+      "options": [
+        {
+          "id": "list-not-run-order",
+          "text": "Plain list shows discovery order, not execution order — use list --run-order or the experimental run-graph to see the DAG.",
+          "rationale": "Correct — only the run-order and run-graph views reflect the after/before edges a run will honour."
+        },
+        {
+          "id": "list-ignores-undeclared",
+          "text": "list hides stacks that have no ordering declarations, so the output is incomplete.",
+          "rationale": "list shows every discovered stack regardless of edges — the problem is what the ordering means, not missing rows."
+        },
+        {
+          "id": "list-needs-init",
+          "text": "list can't compute order until every stack has run tofu init at least once.",
+          "rationale": "Ordering comes from declared Terramate metadata, not from OpenTofu's initialization state."
+        }
+      ],
+      "answer": "list-not-run-order",
+      "explanation": "Plain list reflects discovery, not the DAG — list --run-order and experimental run-graph are the tools that show actual execution order.",
+      "difficulty": "intermediate",
+      "learningObjective": "Inspect the run-graph before executing ordered runs across stacks.",
+      "references": [
+        "https://terramate.io/docs/"
+      ]
+    },
+    {
+      "id": "S24-Q-01",
+      "section": "S24",
+      "prompt": "Why does the workshop recommend `terramate run --changed` as the PR gate in a monorepo, instead of planning every stack on every PR?",
+      "options": [
+        {
+          "id": "changed-scopes-pr",
+          "text": "It plans only the stacks the branch actually moved versus the default branch, keeping CI cheap and review focused.",
+          "rationale": "Correct — PR-scoped runs leave untouched stacks quiet; full-fleet runs are for nightlies or releases."
+        },
+        {
+          "id": "changed-skips-state",
+          "text": "It avoids acquiring state locks for stacks that didn't change, which full runs would corrupt.",
+          "rationale": "Full runs don't corrupt state — the motivation is cost and PR scope, and state handling stays with OpenTofu either way."
+        },
+        {
+          "id": "changed-faster-plan",
+          "text": "Plans in changed stacks execute faster because Terramate diffs the state file first.",
+          "rationale": "Misplaces the mechanism — selection comes from Git changes vs the baseline branch, not from reading state."
+        }
+      ],
+      "answer": "changed-scopes-pr",
+      "explanation": "--changed uses Git to select only stacks the branch moved relative to the configured default branch, so a one-stack PR plans one stack.",
+      "difficulty": "introductory",
+      "learningObjective": "Apply Git-based change detection to scope monorepo PR runs.",
+      "references": [
+        "https://terramate.io/docs/"
+      ]
+    },
+    {
+      "id": "S24-Q-02",
+      "section": "S24",
+      "prompt": "You run `terramate run --changed --tags=app -- tofu plan` on a branch that only touched the network stack. What happens?",
+      "options": [
+        {
+          "id": "runs-both-union",
+          "text": "Both stacks plan — the flags combine as a union of changed stacks and app-tagged stacks.",
+          "rationale": "Assumes union semantics — combined filters intersect, so a stack must satisfy both conditions."
+        },
+        {
+          "id": "empty-success",
+          "text": "Nothing plans and the command succeeds — the intersection of changed and app-tagged stacks is empty.",
+          "rationale": "Correct — filters intersect, and an empty selection is a successful no-op with no Entering lines, not an error."
+        },
+        {
+          "id": "error-no-match",
+          "text": "The run fails with an error because no stack matched the combined filters.",
+          "rationale": "Treats empty selection as a failure — the section is explicit that empty selection is success, not a crash."
+        }
+      ],
+      "answer": "empty-success",
+      "explanation": "--changed and --tags combine as an intersection, and an empty selection succeeds quietly with no stacks entered.",
+      "difficulty": "intermediate",
+      "learningObjective": "Predict run selection when change and tag filters are combined.",
+      "references": [
+        "https://terramate.io/docs/"
+      ]
+    },
+    {
+      "id": "S24-Q-03",
+      "section": "S24",
+      "prompt": "With an uncommitted edit in the worktree, `terramate run --changed` fails with \"repository has uncommitted files\". Why does it fail closed instead of running anyway?",
+      "options": [
+        {
+          "id": "dirty-corrupts-git",
+          "text": "Running with a dirty tree would corrupt Git's index, so Terramate protects the repository.",
+          "rationale": "Invents a Git-safety issue — the tree is fine; the refusal is about the trustworthiness of the changed-set calculation."
+        },
+        {
+          "id": "honest-selection",
+          "text": "Uncommitted files make the Git-derived changed set unreliable, so refusing keeps local and CI selection honest — commit or discard, then retry.",
+          "rationale": "Correct — change detection baselines on commits; a dirty tree would make selection lie, so the run fails closed."
+        },
+        {
+          "id": "flag-workaround",
+          "text": "It's a temporary safety default — the intended workflow is to pass an override flag that ignores dirt.",
+          "rationale": "The section explicitly warns against hunting for an ignore-dirt flag — the fix is committing or discarding, not bypassing."
+        }
+      ],
+      "answer": "honest-selection",
+      "explanation": "Change detection compares commits, so a dirty worktree fails closed to keep the changed-set honest — the remedy is commit or discard, never a bypass.",
+      "difficulty": "advanced",
+      "learningObjective": "Explain why change detection refuses dirty worktrees and how to resolve it.",
+      "references": [
+        "https://terramate.io/docs/"
+      ]
+    },
+    {
+      "id": "S26-Q-01",
+      "section": "S26",
+      "prompt": "In the capstone, what role does Terramate play in the base path that everyone must complete?",
+      "options": [
+        {
+          "id": "terramate-gates-verify",
+          "text": "It orchestrates the capstone apply, so the verify task requires Terramate on PATH.",
+          "rationale": "Turns the stretch into a gate — the design criterion is the opposite: the unit lane must pass with Terramate absent."
+        },
+        {
+          "id": "optional-stretch",
+          "text": "None — the base path is plain OpenTofu, and Terramate is an optional stretch that must not be needed for verification to pass.",
+          "rationale": "Correct — the capstone's base path is plain tofu, with Day-3 orchestration offered only as a stretch."
+        },
+        {
+          "id": "terramate-runs-tests",
+          "text": "It drives the two tofu test lanes, splitting unit and integration across stacks.",
+          "rationale": "Confuses the orchestrator with the test framework — the test lanes are native tofu test, independent of Terramate."
+        }
+      ],
+      "answer": "optional-stretch",
+      "explanation": "The capstone's base path is plain OpenTofu — Terramate is an optional stretch, and verification stays green with it absent.",
+      "difficulty": "introductory",
+      "learningObjective": "Identify the capstone's base path and the optional role of orchestration.",
+      "references": [
+        "https://opentofu.org/docs/"
+      ]
+    },
+    {
+      "id": "S26-Q-02",
+      "section": "S26",
+      "prompt": "The capstone's encryption block keeps enforced = true commented out in the state block. What is the trade-off of flipping it on?",
+      "options": [
+        {
+          "id": "enforced-perf",
+          "text": "It switches to a stronger cipher, trading slower plans for better protection.",
+          "rationale": "Misreads the knob — the method stays the same; enforced governs whether unencrypted data is tolerated at all."
+        },
+        {
+          "id": "enforced-migrates",
+          "text": "It automatically re-encrypts and rotates existing state files across all environments.",
+          "rationale": "Assigns it a migration job it doesn't have — it's a refusal gate on plaintext, not a rotation mechanism."
+        },
+        {
+          "id": "enforced-refuses-plaintext",
+          "text": "OpenTofu then refuses plaintext state — production hardening, but everyone must have the passphrase first.",
+          "rationale": "Correct — enforced rejects unencrypted state, so it's flipped only once the whole team can decrypt."
+        }
+      ],
+      "answer": "enforced-refuses-plaintext",
+      "explanation": "enforced makes OpenTofu refuse plaintext state, which hardens production but requires every operator to hold the key first.",
+      "difficulty": "intermediate",
+      "learningObjective": "Weigh when to enforce state encryption in a team setting.",
+      "references": [
+        "https://opentofu.org/docs/"
+      ]
+    },
+    {
+      "id": "S26-Q-03",
+      "section": "S26",
+      "prompt": "A learner on a locked-down laptop with no Docker wants to prove the capstone's naming and labels contract. Which test lane applies, and why does it work there?",
+      "options": [
+        {
+          "id": "integration-mocked",
+          "text": "The integration lane — its apply calls are automatically mocked when LocalStack is unreachable.",
+          "rationale": "Assumes a silent fallback — the integration lane genuinely applies and needs the LocalStack endpoint healthy."
+        },
+        {
+          "id": "unit-plan-mock",
+          "text": "The unit lane — it runs at plan with a mock provider and fixed suffixes, so no Docker or live endpoint is needed.",
+          "rationale": "Correct — plan-command tests with a mocked provider verify the contract entirely offline."
+        },
+        {
+          "id": "neither-needs-apply",
+          "text": "Neither — names and tags only exist after apply, so the contract can't be checked without infrastructure.",
+          "rationale": "Misses the point of fixing suffixes in unit tests: names are known at plan, so the contract is checkable before any apply."
+        }
+      ],
+      "answer": "unit-plan-mock",
+      "explanation": "The unit lane runs plan-command tests against a mock provider with fixed suffixes, proving the naming and labels contract without Docker or LocalStack.",
+      "difficulty": "intermediate",
+      "learningObjective": "Match the capstone's unit and integration test lanes to their environment requirements.",
+      "references": [
+        "https://opentofu.org/docs/"
+      ]
+    }
+  ]
+}
