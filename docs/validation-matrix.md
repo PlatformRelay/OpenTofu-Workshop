@@ -74,7 +74,7 @@ Host support is a separate claim from lab validation.
 | [`day-1/05-state-encryption.md`](../labs/day-1/05-state-encryption.md) | S05 State encryption | `localstack ✓` · `mock ✓` | None for mock path | `local` + `random` providers; encryption keys local | `unrun` |
 | [`day-1/07-modules.md`](../labs/day-1/07-modules.md) | S07 Modules | `mock ✓ (no docker)` | None | `local` + `random` providers | `unrun` |
 | [`day-1/08-naming-labels.md`](../labs/day-1/08-naming-labels.md) | S08 Naming & labelling module | `localstack ✓` · `mock ✓` | Docker for Step 4 LocalStack path | `modules/naming`; LocalStack AWS provider | `unrun` |
-| [`day-1/09-best-practices.md`](../labs/day-1/09-best-practices.md) | S09 Best practices | `mock ✓ (no docker)` | None | `local` provider | `unrun` |
+| [`day-1/09-best-practices.md`](../labs/day-1/09-best-practices.md) | S09 Best practices | `mock ✓ (no docker)` | None (`unzip` optional) | `local` + `archive` providers | `unrun` |
 | [`day-1/10-differentiators.md`](../labs/day-1/10-differentiators.md) | S10 OpenTofu differentiators | `localstack ✓` | Docker + LocalStack | OpenTofu ≥1.9; `:4566` | `unrun` |
 | [`day-1/11-taco-landscape.md`](../labs/day-1/11-taco-landscape.md) | S11 The TACO landscape | `paper ✓` | None (pen / notes) | n/a | `unrun` |
 | [`day-2/12-testing-pyramid.md`](../labs/day-2/12-testing-pyramid.md) | S12 Why test IaC + testing pyramid | `mock ✓ (no docker)` | None | in-lab `main.tftest.hcl` | `unit-tested` |

@@ -95,7 +95,7 @@ hide: false
 ---
 
 ---
-# DAY1-FIT: SKIP S09 (-50) in delivery; recommended must remain hide:false.
+# DAY1-FIT: SKIP S09 (-65) in delivery; recommended must remain hide:false.
 # S09 · Best practices · recommended · Day 1
 src: ./pages/S09-best-practices/index.md
 hide: false

@@ -162,12 +162,12 @@
       "sectionTitle": "S09 Best practices",
       "day": 1,
       "environment": "`mock ✓ (no docker)`",
-      "tools": "None",
-      "pinned": "`local` provider",
+      "tools": "None (`unzip` optional)",
+      "pinned": "`local` + `archive` providers",
       "validationState": "unrun",
-      "estimatedDurationMin": 30,
+      "estimatedDurationMin": 45,
       "automationTier": "mock-only",
-      "cleanupCommand": "cd labs/day-1/09-best-practices"
+      "cleanupCommand": "cd \"$(git rev-parse --show-toplevel)\""
     },
     {
       "id": "day-1/10-differentiators",
