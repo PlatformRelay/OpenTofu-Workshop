@@ -63,6 +63,34 @@ test('README routes timing tables to the runbook instead of hosting them', () =>
   assert.match(runbook, /\| Order \| Action \| Minutes \| Running total \|/, 'runbook must host the fit-plan table')
 })
 
+test('README pitches running the workshop for your team', () => {
+  const readme = readFileSync(resolve(ROOT, 'README.md'), 'utf8')
+  assert.match(
+    readme,
+    /## Run this workshop for your team/,
+    'README must carry the adoption pitch section',
+  )
+  const pitch = readme.split('## Run this workshop for your team')[1].split('\n## ')[0]
+  assert.match(pitch, /\*\*What you get:\*\*/, 'pitch must say what an adopter gets')
+  assert.match(pitch, /\*\*How to deliver it:\*\*/, 'pitch must say how to deliver')
+  assert.match(pitch, /\*\*Fork and customize:\*\*/, 'pitch must point at forking/customizing')
+  assert.match(
+    pitch,
+    /\]\(docs\/facilitator-runbook\.md\)/,
+    'pitch must route adopters to the facilitator runbook',
+  )
+})
+
+test('README contributing section names the small-fix fast path', () => {
+  const readme = readFileSync(resolve(ROOT, 'README.md'), 'utf8')
+  assert.match(readme, /\]\(CONTRIBUTING\.md\)/, 'README must link CONTRIBUTING.md')
+  assert.match(
+    readme,
+    /fast path/i,
+    'README must mention the CONTRIBUTING small-fix fast path (FASTPATH-F2)',
+  )
+})
+
 test('README has no controlled-beta warning', () => {
   const readme = readFileSync(resolve(ROOT, 'README.md'), 'utf8')
   assert.doesNotMatch(

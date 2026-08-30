@@ -94,6 +94,31 @@ above.
 | Facilitator | [Facilitator runbook](https://platformrelay.github.io/OpenTofu-Workshop/facilitator-runbook/) (clone: [docs/facilitator-runbook.md](docs/facilitator-runbook.md)) | [3-day deck](https://platformrelay.github.io/OpenTofu-Workshop/deck/3day/), the scope and timing warning below, and [Associate alignment](https://platformrelay.github.io/OpenTofu-Workshop/associate-alignment/) (design check, not exam prep) |
 | Contributor | [Contributor guide](AGENT.md) | [Template gallery](slides-templates.md) / `task dev:templates` and the [decision index](docs/decisions/README.md) |
 
+## Run this workshop for your team
+
+This is not only a deck to read — it is a delivery kit built so that someone
+who is not the author can teach it in-house.
+
+- **What you get:** a slide library with a pre-boiled three-day cut, a
+  standalone lab per section (LocalStack or `mock_provider` — no cloud
+  account, no bill), a [facilitator runbook](docs/facilitator-runbook.md)
+  with delivery order, timing arithmetic, per-section checkpoints, and a
+  panic-reset drill, plus a [syllabus](docs/syllabus.md) mapping every
+  section to its lab.
+- **How to deliver it:** clone, run `task setup`, rehearse with
+  `task dev:3day`, then follow the
+  [runbook](docs/facilitator-runbook.md) — including its
+  [Day 1 fit plan](docs/facilitator-runbook.md#day-1-fit-plan) — for the
+  standard three-day delivery.
+- **Fork and customize:** the library is a superset with several cuts — flip
+  `hide:` toggles, compose your own deck (`pnpm deck -- --range S05-S09`),
+  restyle the local Slidev theme, and redistribute freely: the
+  [0BSD licence](LICENSE) requires no attribution, so your fork can be fully
+  yours.
+
+Found a rough edge while delivering it? See [Contributing](#contributing) —
+small fixes take the fast path.
+
 ## Deck choices
 
 The repository uses a **superset + boil-down** model: one section library,
@@ -165,7 +190,12 @@ setup/                bootstrap, lab runner, and environment guides
 
 ## Contributing
 
-Read the [contributor guide](AGENT.md) for conventions, the lab authoring
+Fixing a typo, a broken link, or a wrong command? **Just open a PR** —
+[CONTRIBUTING.md](CONTRIBUTING.md) starts with a small-fix fast path: no
+required reading, no commit-message conventions, no local toolchain;
+maintainers squash-merge and format the message. For substantive changes
+(slides, labs, modules, scripts), read [CONTRIBUTING.md](CONTRIBUTING.md) and
+the [contributor guide](AGENT.md) for conventions, the lab authoring
 contract, the Definition of Done, and guardrails. In short: OpenTofu-first
 (`tofu`), vendor-neutral, Conventional Commits + gitmoji, and every lab task
 carries a spoiler and a panic reset.
