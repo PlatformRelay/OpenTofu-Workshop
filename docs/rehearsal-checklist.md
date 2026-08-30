@@ -56,14 +56,14 @@ Two more things to keep straight before you start:
 | [ ] | S06 | core | [06-variables](../labs/day-1/06-variables.md) | none | validation failure / wrong type | [ ] |
 | [ ] | S15 | core | [15-conditions-checks](../labs/day-1/15-conditions-checks.md) | none | precondition / check block | [ ] |
 | [ ] | S04 | core | [04-state](../labs/day-1/04-state.md) | none | state drift / wrong backend assumption | [ ] |
-| [ ] | S05 | core | [05-state-encryption](../labs/day-1/05-state-encryption.md) | none | encryption mis-config | [ ] |
+| [ ] | S05 | core | [05-state-encryption](../labs/day-1/05-state-encryption.md) | LocalStack for optional Step 6 (KMS) | encryption mis-config / wrong KMS key id | [ ] |
 | [ ] | S07 | core | [07-modules](../labs/day-1/07-modules.md) | none | module input/output mismatch | [ ] |
 | [ ] | S08 | core | [08-naming-labels](../labs/day-1/08-naming-labels.md) | LocalStack for Step 4 | naming rule violation | [ ] |
 | [ ] | S09 | recommended | [09-best-practices](../labs/day-1/09-best-practices.md) | none | anti-pattern in config | [ ] |
 | [ ] | S10 | recommended | [10-differentiators](../labs/day-1/10-differentiators.md) | LocalStack | feature contrast step fails | [ ] |
 | [ ] | S11 | optional | [11-taco-landscape](../labs/day-1/11-taco-landscape.md) | none (paper) | n/a — decision exercise | n/a |
 
-**Day 1 LocalStack:** confirm `task lab:up` before S00 bucket step and S08 Step 4 / S10.
+**Day 1 LocalStack:** confirm `task lab:up` before S00 bucket step, S05 Step 6 (optional KMS), and S08 Step 4 / S10.
 
 ## Day 2 — Test pyramid → scanners → CI honesty
 

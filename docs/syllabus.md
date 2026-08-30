@@ -57,7 +57,7 @@ stage 3) · `apply` → stage 0 (full lifecycle at stage 3) · state → stage 6
 | 4 | S06 · Variables, validation & types | `labs/day-1/06-variables/` | **typed, validated and sensitive `variable`s** — the project's own inputs |
 | 5 | S15 · Validation, preconditions & checks | `labs/day-1/15-conditions-checks/` | `precondition`, `postcondition`, `check` |
 | 6 | S04 · State | `labs/day-1/04-state/` | **state**, drift, backends |
-| 7 | S05 · State encryption | `labs/day-1/05-state-encryption/` | encrypted state and encrypted plan |
+| 7 | S05 · State encryption | `labs/day-1/05-state-encryption/` | encrypted state and encrypted plan (optional Step 6: `aws_kms` key provider on LocalStack) |
 | 8 | S07 · Modules | `labs/day-1/07-modules/` | **`module`** — `./modules/service-manifest` consumed twice |
 | 9 | S08 · Naming & labelling module | `examples/naming-labels-demo/` | one naming + labelling taxonomy — and the first `tofu test` run, with an aliased `mock_provider` |
 | 10 | S12, S13 | `labs/day-2/12-testing-pyramid/`, `13-static-analysis/` | **testing as a discipline** — the pyramid, `fmt`, TFLint, pre-commit |
