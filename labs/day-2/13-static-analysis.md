@@ -13,7 +13,7 @@ module, read each planted defect, repair it, and finish with a clean local gate.
 
 ## Prerequisites
 
-- OpenTofu ≥1.8 (`tofu version`).
+- OpenTofu ≥1.9 (`tofu version`).
 - TFLint ≥0.58 (`tflint --version`).
 - A terminal at the repository root. No credentials, Docker, or cloud account.
 
@@ -29,7 +29,7 @@ The tracked fixture starts broken on purpose:
 <!-- source: labs/day-2/13-static-analysis/messy/main.tf -->
 ```hcl
 terraform {
- required_version = ">= 1.8"
+ required_version = ">= 1.9"
 }
 
 variable "service_names" {
@@ -72,8 +72,8 @@ main.tf
 +++ new/main.tf
 @@ -1,11 +1,11 @@
  terraform {
-- required_version = ">= 1.8"
-+  required_version = ">= 1.8"
+- required_version = ">= 1.9"
++  required_version = ">= 1.9"
  }
 ```
 
@@ -193,7 +193,7 @@ The final file is:
 
 ```hcl
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
 }
 
 variable "service_names" {

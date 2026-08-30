@@ -81,7 +81,7 @@ as **desired state**. `cat` it so you read exactly what you're applying:
 <!-- source: labs/day-1/01-iac-fork/main.tf -->
 ```hcl
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
   required_providers {
     local  = { source = "hashicorp/local" }
     random = { source = "hashicorp/random" }

@@ -94,6 +94,12 @@
 #    32. skewed ci.yml tofu_version → exit !=0 AND pin drift named
 #   SEC-4 offline pin (no network; live verify stays in terratest Dockerfile):
 #    33. versions.env TOFU_VERSION matches committed artifact/SUMS fixture
+#   version-floor skew (US-D-VERSION-FLOOR / section 11):
+#    33a. clean tree → exit 0 AND "version floor: consumers state" (gate ARMED)
+#    33b. bootstrap MIN_TOFU skewed away from TOFU_FLOOR → exit !=0 AND
+#         "floor skew: bootstrap MIN_TOFU" named
+#    33c. a planted lab artifact demanding more than the floor → exit !=0 AND
+#         the file and its ">= 99.0" ceiling violation named
 #   preflight robustness (verify.sh section 1):
 #    34. a FAILING `tofu version` probe → exit !=0 AND the failure NAMED AND the
 #        run reaching its summary (never the 4-line silent death that cost a revert)
@@ -333,6 +339,17 @@ build_root() {
     "$root/labs/day-2/13-static-analysis/messy/main.tf"
   cp "$REPO_ROOT/setup/localstack.md" "$root/setup/localstack.md"
   cp "$REPO_ROOT/docs/decisions/README.md" "$root/docs/decisions/README.md"
+  # Section 11 (US-D-VERSION-FLOOR) needle-checks these floor consumers, and a
+  # missing consumer file is a FAILURE by design — so the temp root must carry
+  # them. The S00 page's annotated fence is DISARMED on the way in for the same
+  # reason as 00-setup.md above: its source workdir is deliberately not copied.
+  cp "$REPO_ROOT/docs/setup.md" "$root/docs/setup.md"
+  cp "$REPO_ROOT/docs/validation-matrix.md" "$root/docs/validation-matrix.md"
+  mkdir -p "$root/pages/S00-welcome" "$root/pages/S19-testing-cicd"
+  sed 's/<!-- source: /<!-- source-disarmed: /' \
+    "$REPO_ROOT/pages/S00-welcome/index.md" >"$root/pages/S00-welcome/index.md"
+  sed 's/<!-- source: /<!-- source-disarmed: /' \
+    "$REPO_ROOT/pages/S19-testing-cicd/index.md" >"$root/pages/S19-testing-cicd/index.md"
   plant_pages_fixture "$root"
   plant_templates_fixture "$root"
   mkdir -p "$root/test-bin"
@@ -599,6 +616,25 @@ m_pin_ci_drift() {
   tofu_pin="$TOFU_VERSION"
   perl -pi -e "s/tofu_version: \"\Q${tofu_pin}\E\"/tofu_version: \"9.9.9\"/" \
     "$root/.github/workflows/ci.yml"
+}
+
+# --- version-floor skew (US-D-VERSION-FLOOR / verify.sh section 11) ---------
+
+m_floor_clean() { :; }
+
+m_floor_bootstrap_skew() { # MIN_TOFU no longer states TOFU_FLOOR → needle red
+  local root="$1"
+  perl -pi -e 's/^MIN_TOFU="[0-9.]+"/MIN_TOFU="1.7"/' "$root/setup/bootstrap.sh"
+}
+
+m_floor_ceiling() { # a lab artifact demanding more than the floor → scan red
+  local root="$1"
+  # A Terramate global, not a .tf file, so section 3's validate sweep (which
+  # inits every lab dir holding .tf) stays out of the blast radius and the
+  # red provably comes from the section-11 ceiling scan.
+  mkdir -p "$root/labs/day-1/floor-ceiling-selftest"
+  printf 'globals {\n  terraform_version      = ">= 99.0"\n}\n' \
+    >"$root/labs/day-1/floor-ceiling-selftest/globals.tm.hcl"
 }
 
 m_drift_lf() {     # change the source only → block no longer matches
@@ -1785,7 +1821,7 @@ run_case "init failure names BOTH provider-cache causes" fail "a COLD or partial
 run_case "tofu version probe failure is named, not a silent death" fail "tofu version probe failed" m_tofu_version_probe_fails "simulated toolchain probe failure" "verify FAILED"
 # The other half of the same fix: a noisy-but-HEALTHY probe must parse cleanly.
 # Pinning only the failure path would let the parse regress to stderr-first.
-run_case "noisy tofu stderr does not corrupt the parsed version" pass "tofu v1.10.3 (>= 1.8)" m_tofu_version_stderr_noise
+run_case "noisy tofu stderr does not corrupt the parsed version" pass "tofu v1.10.3 (>= 1.9)" m_tofu_version_stderr_noise
 run_case "§5 prose fake module ref ignored" pass "no modules/|examples/ references in labs (all HCL is scratch/inline) — nothing to drift-check yet" m_smoke_prose_fake_module
 run_case "§5 HCL source missing module armed" fail "lab ref missing on disk: modules/does-not-exist" m_smoke_hcl_missing_source
 run_case "§5 chdir/cd/DIR missing example armed" fail "lab ref missing on disk: examples/does-not-exist" m_smoke_chdir_missing_example
@@ -1793,6 +1829,9 @@ run_case "toolchain pin drift clean" pass "toolchain pins: all listed consumers 
 run_case "toolchain pin drift Dockerfile armed" fail "pin drift: TOFU_VERSION (Dockerfile default) in setup/terratest/Dockerfile does not match versions.env" m_pin_drift
 run_case "toolchain pin drift compose LocalStack armed" fail "pin drift: LOCALSTACK_VERSION (compose image) in docker-compose.yml does not match versions.env" m_pin_compose_drift
 run_case "toolchain pin drift ci.yml armed" fail "pin drift: TOFU_VERSION (ci.yml setup-opentofu) in .github/workflows/ci.yml does not match versions.env" m_pin_ci_drift
+run_case "version floor clean" pass "version floor: consumers state" m_floor_clean
+run_case "version floor bootstrap skew armed" fail "floor skew: bootstrap MIN_TOFU in setup/bootstrap.sh does not state the floor" m_floor_bootstrap_skew
+run_case "version floor ceiling armed" fail "demands >= 99.0, above the workshop floor" m_floor_ceiling
 
 # --- release script self-tests (US-P-REL) --------------------------------------
 # Run against the live repo (not the temp verify.sh copy): CI verify-unit invokes

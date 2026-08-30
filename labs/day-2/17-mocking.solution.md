@@ -71,7 +71,7 @@ sed -n '1,60p' labs/day-2/17-mocking/main.tf
 <!-- source: labs/day-2/17-mocking/main.tf -->
 ```hcl
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
 
   required_providers {
     aws = {

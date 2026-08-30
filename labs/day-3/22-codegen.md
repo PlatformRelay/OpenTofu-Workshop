@@ -18,7 +18,7 @@ boilerplate is generated.
 ## Prerequisites
 
 - Lab 21 completed conceptually (tagged stacks, `terramate list`).
-- OpenTofu ≥1.8 (`tofu version`).
+- OpenTofu ≥1.9 (`tofu version`).
 - Terramate on `PATH` (`task setup` / `bash setup/bootstrap.sh`).
 - A terminal at the repository root.
 
@@ -38,7 +38,7 @@ Root globals (tracked):
 <!-- source: labs/day-3/22-codegen/globals.tm.hcl -->
 ```hcl
 globals {
-  terraform_version      = ">= 1.8"
+  terraform_version      = ">= 1.9"
   local_provider_version = "~> 2.5"
   backend_path           = "terraform.tfstate"
 }

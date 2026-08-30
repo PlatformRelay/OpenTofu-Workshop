@@ -19,7 +19,7 @@ gates, on your own time.
 
 ## Prerequisites
 
-- OpenTofu ≥ 1.8 (`tofu version`). Spoilers captured on **1.12.3** (Part B
+- OpenTofu ≥ 1.9 (`tofu version`). Spoilers captured on **1.12.3** (Part B
   spoilers on **1.12.5**).
 - Docker with Compose v2 for Steps 5–6 (`docker compose version`).
 - Ports `4566` free (or LocalStack already healthy from earlier labs).

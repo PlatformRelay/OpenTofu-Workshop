@@ -17,7 +17,7 @@ tracked file and fails the build if the two drift apart.
 
 ## Prerequisites
 
-- `tofu` ≥ 1.8 (`task setup` installs it). Check: `tofu version`.
+- `tofu` ≥ 1.9 (`task setup` installs it). Check: `tofu version`.
 
 ## Files used
 
@@ -33,7 +33,7 @@ immediately above the fence ties the block to its source; drift fails `task veri
 # labs/fixtures/drift-demo/main.tf — reference workdir for the slide↔lab drift lane.
 # A self-contained, provider-free config so `tofu fmt`/`validate` run offline.
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
 }
 
 locals {

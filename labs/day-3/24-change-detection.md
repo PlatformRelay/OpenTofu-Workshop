@@ -19,7 +19,7 @@ No Docker required. Extends the S23 orchestration monorepo; do **not** edit
 ## Prerequisites
 
 - Lab 23 completed conceptually (`after` / run-order).
-- OpenTofu ≥1.8 (`tofu version`).
+- OpenTofu ≥1.9 (`tofu version`).
 - Terramate on `PATH` (`task setup` / `bash setup/bootstrap.sh`).
 - A terminal at the repository root.
 

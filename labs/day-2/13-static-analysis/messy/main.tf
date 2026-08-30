@@ -1,5 +1,5 @@
 terraform {
- required_version = ">= 1.8"
+ required_version = ">= 1.9"
 }
 
 variable "service_names" {

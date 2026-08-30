@@ -44,7 +44,7 @@ Compose DNS name `localstack` inside the container?
 <!-- source: labs/day-2/18-terratest-cost/main.tf -->
 ```hcl
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
 
   required_providers {
     aws = {
@@ -224,7 +224,7 @@ sed -n '1,40p' labs/day-2/18-terratest-cost/cost/main.tf
 # Cost-estimation fixture for the optional Infracost stretch.
 # Not applied by the Terratest suite — pricing is inferred from HCL only.
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
 
   required_providers {
     aws = {

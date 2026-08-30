@@ -30,7 +30,7 @@ verified. The config lives in this repo at `labs/day-1/05-state-encryption/`:
 
 ## Prerequisites
 
-- `tofu` ≥ 1.8 (`task setup` installs it). Check: `tofu version`.
+- `tofu` ≥ 1.9 (`task setup` installs it). Check: `tofu version`.
 - `jq` for inspecting state (optional but used in a spoiler).
 - Docker — **optional Step 6 only**, for LocalStack's KMS. Check: `docker version`.
 - Run everything **from the repo clone** — Steps 0–5 need no Docker and no cloud.

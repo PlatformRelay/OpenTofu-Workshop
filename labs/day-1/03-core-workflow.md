@@ -41,7 +41,7 @@ the dependency graph a second edge. It retires at stage 4, which says so.
 
 ## Prerequisites
 
-- `tofu` ≥ 1.8 (`task setup` installs it). Check: `tofu version`.
+- `tofu` ≥ 1.9 (`task setup` installs it). Check: `tofu version`.
 - Network access the first time (`tofu init` downloads the `local` + `random`
   providers from the registry). No Docker, no cloud, no AWS.
 - Run everything **from the repo clone**.
@@ -89,7 +89,7 @@ manifest before the summary.
 <!-- source: labs/day-1/03-core-workflow/main.tf -->
 ```hcl
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
   required_providers {
     local  = { source = "hashicorp/local" }
     random = { source = "hashicorp/random" }

@@ -91,7 +91,7 @@ task verify
 # → bash scripts/verify.sh
 ```
 
-- OpenTofu ≥ 1.8 preflight
+- OpenTofu ≥ 1.9 preflight
 - `tofu fmt -check` (enforcement)
 - `validate` per module/example
 - `tofu test` plan/mock only

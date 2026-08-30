@@ -46,7 +46,7 @@ task setup
 tofu version
 ```
 
-**Task:** Confirm `tofu` is at least 1.8.
+**Task:** Confirm `tofu` is at least 1.9 (the workshop floor).
 
 <details><summary>Solution / expected output</summary>
 
@@ -72,7 +72,7 @@ minimum OpenTofu version and pins every provider the lab uses:
 <!-- source: labs/day-1/00-setup/versions.tf -->
 ```hcl
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
 
   required_providers {
     aws = {

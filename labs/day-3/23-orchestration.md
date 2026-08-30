@@ -18,7 +18,7 @@ No Docker required. Extends the S22 codegen monorepo; do **not** edit
 ## Prerequisites
 
 - Lab 22 completed conceptually (globals + `generate_hcl`).
-- OpenTofu ≥1.8 (`tofu version`).
+- OpenTofu ≥1.9 (`tofu version`).
 - Terramate on `PATH` (`task setup` / `bash setup/bootstrap.sh`).
 - A terminal at the repository root.
 

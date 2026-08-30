@@ -18,6 +18,8 @@
 #   6. slide ↔ lab/pages drift ENFORCEMENT (annotated ```hcl blocks diffed vs source;
 #      pages/** fences may carry magic-move metadata like ```hcl {none|…})
 #   10. toolchain pin drift (versions.env consumers — US-P-PINS)
+#   11. version-floor skew (TOFU_FLOOR consumers + per-artifact ceiling —
+#       US-D-VERSION-FLOOR)
 #
 # Everything degrades to "nothing to check yet → pass" while the content dirs
 # are empty, so this is safe to wire into CI from day one.
@@ -81,6 +83,16 @@ FAILURES=0
 CHECKS=0
 fail() { bad "$*"; FAILURES=$((FAILURES + 1)); }
 pass() { ok "$*"; CHECKS=$((CHECKS + 1)); }
+
+# THE workshop version floor (US-D-VERSION-FLOOR). Single definition: the
+# preflight gate below enforces it on the running toolchain, and section 11
+# asserts every consumer that restates it (bootstrap MIN_TOFU, docs, deck)
+# still says the same number — so the floor cannot silently re-diverge the way
+# the 1.8/1.9 split did. Labs may declare LOWER per-artifact floors (honest
+# feature minimums the workshop floor satisfies); no lab may demand more,
+# except a step that discloses it inline (Lab 04's S3 stretch, >= 1.10
+# use_lockfile — satisfied by the versions.env pin, and stated in the lab).
+TOFU_FLOOR="1.9"
 
 title "OpenTofu Workshop · verify (unit lane)"
 
@@ -414,7 +426,7 @@ if have tofu; then
   # a warning first: a proxy notice, TF_LOG, a dyld message. Then line 1 is the
   # warning, `$2` is a word out of it, min_version strips it to empty, and a
   # perfectly good toolchain reds the gate with "tofu <junk> is below the
-  # required 1.8". That would be a NEW spurious-red path introduced by the very
+  # required floor". That would be a NEW spurious-red path introduced by the very
   # change meant to remove one — so stderr goes to a file, out of the parser's
   # way, and is echoed only when the probe actually fails.
   TOFU_VER_RC=0
@@ -429,10 +441,10 @@ if have tofu; then
     # whole of the evidence, and dropping either half is how this became a
     # mystery in the first place.
     { printf '%s\n' "$TOFU_VER_OUT"; cat "$TOFU_VER_ERR"; } | sed 's/^/    /'
-  elif min_version "${TOFU_VER#v}" "1.8"; then
-    pass "tofu ${TOFU_VER} (>= 1.8)"
+  elif min_version "${TOFU_VER#v}" "$TOFU_FLOOR"; then
+    pass "tofu ${TOFU_VER} (>= $TOFU_FLOOR)"
   else
-    fail "tofu ${TOFU_VER} is below the required 1.8"
+    fail "tofu ${TOFU_VER} is below the required $TOFU_FLOOR"
   fi
   rm -f "$TOFU_VER_ERR"
 else
@@ -1090,6 +1102,76 @@ else
   if [ "$PIN_FAILURES" -eq 0 ]; then
     pass "toolchain pins: all listed consumers match versions.env"
   fi
+fi
+
+# ---------------------------------------------------------------------------
+# 11. Version-floor skew (US-D-VERSION-FLOOR)
+#     TOFU_FLOOR (defined at the top, enforced by the preflight) is THE floor.
+#     Two halves, mirroring the E2 defect class this replaces ("build check 1"
+#     in docs/claims-verification.md §K):
+#       (a) every consumer that RESTATES the floor still states this number —
+#           an INVENTORY of needles, like section 10, not a count;
+#       (b) no tracked lab/module/example artifact DEMANDS more than the floor
+#           via required_version / Terramate's terraform_version global. Lower
+#           per-artifact floors are deliberate (honest feature minimums, see
+#           docs/claims-verification.md); higher ones are the defect where a
+#           learner satisfies setup and still hard-fails a lab. Per-STEP needs
+#           above the floor live in prose with an inline disclosure (Lab 04's
+#           S3 stretch, use_lockfile >= 1.10) — prose is not scanned here.
+# ---------------------------------------------------------------------------
+heading "Version-floor skew (TOFU_FLOOR=$TOFU_FLOOR)"
+FLOOR_FAILURES=0
+floor_fail() {
+  fail "$1"
+  FLOOR_FAILURES=$((FLOOR_FAILURES + 1))
+}
+floor_expect() {
+  local file="$1" needle="$2" label="$3"
+  if [ ! -f "$file" ]; then
+    floor_fail "floor skew: missing consumer file for $label: $file"
+  elif ! grep -qF -- "$needle" "$file"; then
+    floor_fail "floor skew: $label in ${file#"$REPO_ROOT"/} does not state the floor $TOFU_FLOOR (expected fragment: $needle)"
+  fi
+}
+
+floor_expect "$REPO_ROOT/setup/bootstrap.sh" \
+  "MIN_TOFU=\"${TOFU_FLOOR}\"" "bootstrap MIN_TOFU"
+floor_expect "$REPO_ROOT/docs/setup.md" \
+  "OpenTofu ≥${TOFU_FLOOR}" "setup guide toolchain row"
+floor_expect "$REPO_ROOT/README.md" \
+  "OpenTofu ≥${TOFU_FLOOR}" "README toolchain row"
+floor_expect "$REPO_ROOT/docs/validation-matrix.md" \
+  "≥ **${TOFU_FLOOR}** (\`setup/bootstrap.sh\`)" "validation-matrix canonical pin row"
+floor_expect "$REPO_ROOT/pages/S00-welcome/index.md" \
+  "tofu ≥ ${TOFU_FLOOR}" "S00 required-toolchain card"
+floor_expect "$REPO_ROOT/pages/S19-testing-cicd/index.md" \
+  "OpenTofu ≥ ${TOFU_FLOOR} preflight" "S19 preflight bullet"
+
+# (b) ceiling scan: no artifact may require more than the floor. The floor is
+# padded to three components because min_version is a plain sort -V compare
+# ("1.9" < "1.9.0" there, which would false-red every X.Y.0 pin). Terramate's
+# own required_version lines (">= 0.14.0", a Terramate CLI bound, not tofu)
+# match the pattern too; they pass the same ceiling check trivially and are
+# deliberately left in the sweep rather than special-cased.
+FLOOR_SCANNED=0
+for floor_dir in labs modules examples; do
+  [ -d "$REPO_ROOT/$floor_dir" ] || continue
+  while IFS= read -r floor_hit; do
+    floor_file="${floor_hit%%:*}"
+    floor_rest="${floor_hit#*:}"
+    floor_lineno="${floor_rest%%:*}"
+    floor_req="$(printf '%s\n' "${floor_hit}" | sed -E 's/.*">= ([0-9][0-9.]*)".*/\1/')"
+    FLOOR_SCANNED=$((FLOOR_SCANNED + 1))
+    if ! min_version "${TOFU_FLOOR}.0" "$floor_req"; then
+      floor_fail "floor skew: ${floor_file#"$REPO_ROOT"/}:${floor_lineno} demands >= ${floor_req}, above the workshop floor ${TOFU_FLOOR}"
+    fi
+  done < <(grep -rn -E '(required_version|terraform_version)[[:space:]]*=[[:space:]]*">= [0-9][0-9.]*"' \
+    --include='*.tf' --include='*.tofu' --include='*.tm.hcl' \
+    --exclude-dir='.terraform' "$REPO_ROOT/$floor_dir" || true)
+done
+
+if [ "$FLOOR_FAILURES" -eq 0 ]; then
+  pass "version floor: consumers state $TOFU_FLOOR and no artifact ($FLOOR_SCANNED version pins scanned) demands more"
 fi
 
 # ---------------------------------------------------------------------------

@@ -21,7 +21,7 @@ into install guidance, never into a blocked Day 3.
 
 ## Prerequisites
 
-- OpenTofu ≥ 1.8 (`tofu version`).
+- OpenTofu ≥ 1.9 (`tofu version`).
 - **pre-commit ≥ 3.5** for Steps 3–5 (`pre-commit --version`). Missing? Step 3
   gives install guidance and a facilitator demo-only path.
 - A terminal at the repository root. `tenv` and `terraform-docs` are **not**
@@ -43,7 +43,7 @@ The fixture (tracked, canonically formatted — you break it later on purpose):
 <!-- source: labs/day-3/28-ecosystem-tooling/main.tf -->
 ```hcl
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
 }
 
 variable "docs_owner" {
@@ -95,9 +95,9 @@ tofu version
 
 tenv resolves versions from its arguments or from a version file such as
 `.opentofu-version`, so each project can pin its own engine. This workshop
-deliberately does **not** make tenv part of `task setup` — any `tofu ≥ 1.8`
-works here. tenv is the take-it-to-work tool for estates where projects pin
-different engine versions.
+deliberately does **not** make tenv part of `task setup` — any `tofu ≥ 1.9`
+(the workshop floor) works here. tenv is the take-it-to-work tool for estates
+where projects pin different engine versions.
 
 No tenv installed? Nothing to do — this step is read-only. To try it later:
 `brew install tenv`, or grab a release from the `tofuutils/tenv` GitHub page.

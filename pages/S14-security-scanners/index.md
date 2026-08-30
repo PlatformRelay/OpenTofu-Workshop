@@ -234,7 +234,7 @@ layout: code-annotated
 
 ```hcl {none|17-19|21-28|30-47|49-52}
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
 
   required_providers {
     aws = {

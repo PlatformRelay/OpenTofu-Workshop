@@ -32,8 +32,8 @@ tenv tofu use 1.10.3
 tofu version
 ```
 
-The workshop keeps tenv **out of `task setup`** on purpose: `tofu ≥ 1.8` runs
-most labs, and Labs 06 and 10 need ≥ 1.9. tenv earns its place at work, where
+The workshop keeps tenv **out of `task setup`** on purpose: `tofu ≥ 1.9` — the
+workshop floor — runs every lab. tenv earns its place at work, where
 different projects pin different engine versions (e.g. via `.opentofu-version`
 files).
 

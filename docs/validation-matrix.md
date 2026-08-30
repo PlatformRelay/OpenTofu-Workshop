@@ -47,7 +47,7 @@ Host support is a separate claim from lab validation.
 
 | Host path | Automated coverage | Live validation procedure | State |
 | --- | --- | --- | --- |
-| macOS / Linux + OpenTofu ≥1.8 | `scripts/verify.sh` unit lane, `lab-contract`, deck manifest | Fresh-host `task setup` + `task verify` | `unit-tested` (Day-1 mock path) / `unrun` (LocalStack + tools) |
+| macOS / Linux + OpenTofu ≥1.9 | `scripts/verify.sh` unit lane, `lab-contract`, deck manifest | Fresh-host `task setup` + `task verify` | `unit-tested` (Day-1 mock path) / `unrun` (LocalStack + tools) |
 | Windows 11 + WSL 2 + Ubuntu + Docker Desktop | Documented only | WSL path rehearsal: Lab 00, one LocalStack lab, cleanup | `unrun` |
 | Managed device / no Docker | Mock-only labs (`mock ✓`) | Facilitator-issued notes; skip LocalStack steps | `unrun` |
 
@@ -55,7 +55,7 @@ Host support is a separate claim from lab validation.
 
 | Key | Value |
 | --- | --- |
-| OpenTofu | ≥ **1.8** (`setup/bootstrap.sh`) |
+| OpenTofu | ≥ **1.9** (`setup/bootstrap.sh`) |
 | LocalStack | `:4566` health at `/_localstack/health` (`Taskfile.yaml`) |
 | Terramate | Spoilers pinned ~**0.17.x** (facilitator runbook) |
 | Day-2 scanners | TFLint, Trivy, Checkov, Conftest on `PATH` when teaching S13–S14 |
@@ -64,7 +64,7 @@ Host support is a separate claim from lab validation.
 
 | Lab | Section | Environment | Tools / deps | Pinned versions / URLs | State |
 | --- | --- | --- | --- | --- | --- |
-| [`day-1/00-setup.md`](../labs/day-1/00-setup.md) | S00 Welcome & setup | `localstack ✓` · `local ✓ (no docker)` | Docker or k8s LocalStack route | OpenTofu ≥1.8; LocalStack `:4566` | `unrun` |
+| [`day-1/00-setup.md`](../labs/day-1/00-setup.md) | S00 Welcome & setup | `localstack ✓` · `local ✓ (no docker)` | Docker or k8s LocalStack route | OpenTofu ≥1.9; LocalStack `:4566` | `unrun` |
 | [`day-1/01-iac-fork.md`](../labs/day-1/01-iac-fork.md) | S01 Infrastructure as Code | `mock ✓ (no docker)` | None | `local` + `random` providers | `unrun` |
 | [`day-1/02-hcl-blocks.md`](../labs/day-1/02-hcl-blocks.md) | S02 HCL & building blocks | `mock ✓ (no docker)` | None | `local` + `random` providers | `unrun` |
 | [`day-1/03-core-workflow.md`](../labs/day-1/03-core-workflow.md) | S03 The core workflow | `mock ✓ (no docker)` | None | `local` + `random` providers | `unrun` |

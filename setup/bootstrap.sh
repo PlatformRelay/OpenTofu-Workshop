@@ -22,7 +22,14 @@ fi
 # ---------------------------------------------------------------------------
 # Minimum versions
 # ---------------------------------------------------------------------------
-MIN_TOFU="1.8"
+# MIN_TOFU is THE workshop floor (US-D-VERSION-FLOOR): cross-variable
+# validation (Lab 06) and provider for_each / -exclude (Lab 10) are 1.9
+# features. Lab 04's optional S3 stretch alone needs >= 1.10 (use_lockfile) and
+# says so inline — the pin (versions.env TOFU_VERSION) satisfies both. Keep
+# this value in lockstep with scripts/verify.sh TOFU_FLOOR and the floor
+# statements it gates (docs/setup.md, README.md, pages/S00) — verify.sh reds
+# on skew.
+MIN_TOFU="1.9"
 MIN_NODE="20"
 MIN_GO="1.22"
 

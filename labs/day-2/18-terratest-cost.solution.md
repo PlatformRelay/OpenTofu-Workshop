@@ -22,7 +22,7 @@ Compose DNS name `localstack` inside the container?
 <!-- source: labs/day-2/18-terratest-cost/main.tf -->
 ```hcl
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
 
   required_providers {
     aws = {
@@ -229,7 +229,7 @@ line to `"s3-crmapp-d-web-tt"` by hand instead of `git checkout`.
 # Cost-estimation fixture for the optional Infracost stretch.
 # Not applied by the Terratest suite — pricing is inferred from HCL only.
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
 
   required_providers {
     aws = {
@@ -382,7 +382,7 @@ infracost breakdown --path labs/day-2/18-terratest-cost/cost --no-color
 # Cost-estimation fixture for the optional Infracost stretch.
 # Not applied by the Terratest suite — pricing is inferred from HCL only.
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
 
   required_providers {
     aws = {

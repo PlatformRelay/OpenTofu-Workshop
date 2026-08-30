@@ -1,4 +1,11 @@
 terraform {
+  # Cross-variable validation (var.service's validation below reads
+  # var.environment — the beat Step 3 breaks on purpose) is an OpenTofu 1.9
+  # feature. Without this guard an older engine fails deep in HCL with
+  # "Invalid reference in variable validation" and no hint the engine is
+  # the cause.
+  required_version = ">= 1.9"
+
   required_providers {
     local  = { source = "hashicorp/local" }
     random = { source = "hashicorp/random" }

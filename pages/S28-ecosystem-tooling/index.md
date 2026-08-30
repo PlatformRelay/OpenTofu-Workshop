@@ -85,7 +85,7 @@ tofu version   # ← the pinned engine
 - **tenv** — successor to `tfenv`/`tofuenv`; one binary manages **OpenTofu,
   Terraform, Terragrunt, Terramate, Atmos**.
 - Resolves versions per project (args, env, or an `.opentofu-version` file).
-- **Not** part of `task setup` here — `tofu ≥ 1.8` runs most labs (Labs 06 and 10 need ≥ 1.9). Adopt
+- **Not** part of `task setup` here — any `tofu ≥ 1.9` (the workshop floor) runs every lab. Adopt
   it at work.
 
 <!--
@@ -96,8 +96,8 @@ the laptop half of the same idea: tenv, the actively maintained successor to
 tfenv and tofuenv, is one binary that manages OpenTofu, Terraform, Terragrunt, Terramate,
 and Atmos, and resolves the wanted version per project — from arguments or a
 version file like dot-opentofu-version. Be explicit about the boundary: this
-workshop deliberately does not require tenv — any tofu one-point-eight or newer
-runs most labs, and Labs 06 and 10 need one-point-nine — so the takeaway is a
+workshop deliberately does not require tenv — any tofu one-point-nine or newer,
+the workshop floor, runs every lab — so the takeaway is a
 pattern to carry to work, not a new setup step. If the room saw the canonical
 cut: S01's migration beat already named tenv as the engine manager for running
 Terraform and OpenTofu side by side during a switch — this slide is that
@@ -226,7 +226,7 @@ own hooks catch **and fix** it:
 <!-- source: labs/day-3/28-ecosystem-tooling/main.tf -->
 ```hcl
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
 }
 
 variable "docs_owner" {

@@ -13,7 +13,7 @@
       "day": 1,
       "environment": "`localstack ✓` · `local ✓ (no docker)`",
       "tools": "Docker or k8s LocalStack route",
-      "pinned": "OpenTofu ≥1.8; LocalStack `:4566`",
+      "pinned": "OpenTofu ≥1.9; LocalStack `:4566`",
       "validationState": "unrun",
       "estimatedDurationMin": 20,
       "automationTier": "mixed",

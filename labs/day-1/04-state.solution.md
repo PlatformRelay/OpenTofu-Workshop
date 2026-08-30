@@ -45,7 +45,7 @@ dotfiles by default.)
 <!-- source: labs/day-1/04-state/main.tf -->
 ```hcl
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
   required_providers {
     random = { source = "hashicorp/random" }
     local  = { source = "hashicorp/local" }

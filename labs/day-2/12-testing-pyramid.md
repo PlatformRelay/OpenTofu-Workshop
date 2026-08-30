@@ -13,7 +13,7 @@ contract test, deliberately break its assertion, and restore the fast green sign
 
 ## Prerequisites
 
-- OpenTofu ≥ 1.8 (`tofu version`).
+- OpenTofu ≥ 1.9 (`tofu version`).
 - A terminal at the repository root. No Docker, credentials, or cloud account.
 
 ## Files used
@@ -54,7 +54,7 @@ a lightweight contract check is also defensible if you state that boundary.
 <!-- source: labs/day-2/12-testing-pyramid/main.tf -->
 ```hcl
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
 }
 
 variable "expected_category" {

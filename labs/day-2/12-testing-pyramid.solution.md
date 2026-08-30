@@ -42,7 +42,7 @@ a lightweight contract check is also defensible if you state that boundary.
 <!-- source: labs/day-2/12-testing-pyramid/main.tf -->
 ```hcl
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
 }
 
 variable "expected_category" {

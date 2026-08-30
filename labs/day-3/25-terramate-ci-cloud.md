@@ -19,7 +19,7 @@ No Docker, no GitHub Actions runner, no cloud account required.
 ## Prerequisites
 
 - Lab 24 completed conceptually (`--changed` / dirty-worktree).
-- OpenTofu ≥1.8 (`tofu version`).
+- OpenTofu ≥1.9 (`tofu version`).
 - Terramate on `PATH` (`task setup` / `bash setup/bootstrap.sh`).
 - A terminal at the repository root.
 - Optional: `actionlint` on `PATH` for YAML validation.

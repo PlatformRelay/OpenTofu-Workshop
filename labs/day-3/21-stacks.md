@@ -19,7 +19,7 @@ uses the `local` provider like S20.
 ## Prerequisites
 
 - Lab 20 completed conceptually (empty `terramate list` until `stack {}`).
-- OpenTofu ≥1.8 (`tofu version`).
+- OpenTofu ≥1.9 (`tofu version`).
 - Terramate on `PATH` (`task setup` / `bash setup/bootstrap.sh`).
 - A terminal at the repository root.
 

@@ -1,7 +1,7 @@
 # Cost-estimation fixture for the optional Infracost stretch.
 # Not applied by the Terratest suite — pricing is inferred from HCL only.
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
 
   required_providers {
     aws = {

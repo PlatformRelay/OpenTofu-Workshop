@@ -17,7 +17,7 @@ S08 tie-in).
 
 ## Prerequisites
 
-- `tofu` ≥ 1.8 (`task setup` installs it). Check: `tofu version`.
+- `tofu` ≥ 1.9 (`task setup` installs it). Check: `tofu version`.
 - Docker (Step 4 only) for LocalStack. Check: `docker version`.
 - `jq` for inspecting tags (optional; used in a spoiler).
 

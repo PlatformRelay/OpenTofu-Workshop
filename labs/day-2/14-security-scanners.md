@@ -15,7 +15,7 @@ rule the scanners miss.
 
 ## Prerequisites
 
-- OpenTofu ≥1.8 (`tofu version`).
+- OpenTofu ≥1.9 (`tofu version`).
 - Trivy, Checkov, and Conftest on `PATH` (`task setup` / `bash setup/bootstrap.sh`).
 - A terminal at the repository root. No credentials, Docker, or cloud account.
 
@@ -52,7 +52,7 @@ S13 messy-fixture pattern — security defects instead of format/type/lint defec
 <!-- source: labs/day-2/14-security-scanners/messy/main.tf -->
 ```hcl
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
 
   required_providers {
     aws = {

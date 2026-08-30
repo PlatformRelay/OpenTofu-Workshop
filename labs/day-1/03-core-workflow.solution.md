@@ -42,7 +42,7 @@ manifest before the summary.
 <!-- source: labs/day-1/03-core-workflow/main.tf -->
 ```hcl
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
   required_providers {
     local  = { source = "hashicorp/local" }
     random = { source = "hashicorp/random" }

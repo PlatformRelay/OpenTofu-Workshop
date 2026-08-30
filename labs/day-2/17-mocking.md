@@ -15,7 +15,7 @@ restore the tracked file.
 
 ## Prerequisites
 
-- OpenTofu 1.8 or newer (`tofu version`) — authoring used **1.12.3**
+- OpenTofu 1.9 or newer (`tofu version`) — authoring used **1.12.3**
 - A shell at the workshop repository root
 - **No** cloud account, **no** AWS credentials, **no** LocalStack
 - Docker may be installed, but this lab must succeed with the workshop
@@ -89,7 +89,7 @@ sed -n '1,60p' labs/day-2/17-mocking/main.tf
 <!-- source: labs/day-2/17-mocking/main.tf -->
 ```hcl
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
 
   required_providers {
     aws = {

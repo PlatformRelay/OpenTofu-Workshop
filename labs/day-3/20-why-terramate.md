@@ -18,7 +18,7 @@ skeleton (stacks, codegen, orchestration, change detection, CI).
 
 ## Prerequisites
 
-- OpenTofu ≥1.8 (`tofu version`).
+- OpenTofu ≥1.9 (`tofu version`).
 - Terramate on `PATH` (`task setup` / `bash setup/bootstrap.sh`).
 - A terminal at the repository root. No credentials, Docker, or cloud account.
 
@@ -62,7 +62,7 @@ Matching provider boilerplate (also duplicated across stacks):
 <!-- source: labs/day-3/20-why-terramate/stacks/network/providers.tf -->
 ```hcl
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
 
   required_providers {
     local = {

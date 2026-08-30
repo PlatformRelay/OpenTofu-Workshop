@@ -115,7 +115,7 @@ globals {
 ```hcl
 # Root
 globals {
-  terraform_version      = ">= 1.8"
+  terraform_version      = ">= 1.9"
   local_provider_version = "~> 2.5"
   backend_path           = "terraform.tfstate"
 }
@@ -124,7 +124,7 @@ globals {
 ```hcl
 # Root globals.tm.hcl
 globals {
-  terraform_version      = ">= 1.8"
+  terraform_version      = ">= 1.9"
   local_provider_version = "~> 2.5"
   backend_path           = "terraform.tfstate"
 }
@@ -230,7 +230,7 @@ layout: code-annotated
 <!-- source: labs/day-3/22-codegen/globals.tm.hcl -->
 ```hcl {1|2-3|4|1-5}
 globals {
-  terraform_version      = ">= 1.8"
+  terraform_version      = ">= 1.9"
   local_provider_version = "~> 2.5"
   backend_path           = "terraform.tfstate"
 }
@@ -343,7 +343,7 @@ generate_hcl "_providers.tf" {
 // TERRAMATE: GENERATED AUTOMATICALLY DO NOT EDIT
 
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
   required_providers {
     local = {
       source  = "hashicorp/local"

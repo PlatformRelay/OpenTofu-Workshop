@@ -73,7 +73,7 @@ sed -n '1,160p' labs/day-2/16-tofu-test/tests/integration.tftest.hcl
 <!-- source: labs/day-2/16-tofu-test/main.tf -->
 ```hcl
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
 
   required_providers {
     aws = {

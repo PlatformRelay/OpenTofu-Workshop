@@ -29,8 +29,8 @@ main.tf
 +++ new/main.tf
 @@ -1,11 +1,11 @@
  terraform {
-- required_version = ">= 1.8"
-+  required_version = ">= 1.8"
+- required_version = ">= 1.9"
++  required_version = ">= 1.9"
  }
 ```
 
@@ -156,7 +156,7 @@ The final file is:
 
 ```hcl
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
 }
 
 variable "service_names" {

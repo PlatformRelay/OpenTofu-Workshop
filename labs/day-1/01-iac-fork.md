@@ -43,7 +43,7 @@ the lab that drops it says so.
 
 ## Prerequisites
 
-- `tofu` ≥ 1.8 (`task setup` installs it). Check: `tofu version`.
+- `tofu` ≥ 1.9 (`task setup` installs it). Check: `tofu version`.
 - Network access the first time (`tofu init` downloads the `local` + `random`
   providers from the registry). No Docker, no cloud, no AWS.
 - Run everything **from the repo clone**.
@@ -126,7 +126,7 @@ as **desired state**. `cat` it so you read exactly what you're applying:
 <!-- source: labs/day-1/01-iac-fork/main.tf -->
 ```hcl
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
   required_providers {
     local  = { source = "hashicorp/local" }
     random = { source = "hashicorp/random" }

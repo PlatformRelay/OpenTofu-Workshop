@@ -71,7 +71,7 @@ plaintext-in-state beat.
 
 ## Prerequisites
 
-- `tofu` ≥ 1.8 (`task setup` installs it). Check: `tofu version`.
+- `tofu` ≥ 1.9 (`task setup` installs it). Check: `tofu version`.
 - `jq` and `grep` on `PATH` (both ship with macOS/Linux) — used to read the raw
   state JSON.
 - Network access the first time (`tofu init` downloads the `random` + `local`
@@ -133,7 +133,7 @@ dotfiles by default.)
 <!-- source: labs/day-1/04-state/main.tf -->
 ```hcl
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
   required_providers {
     random = { source = "hashicorp/random" }
     local  = { source = "hashicorp/local" }

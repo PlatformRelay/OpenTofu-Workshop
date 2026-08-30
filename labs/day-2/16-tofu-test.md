@@ -14,7 +14,7 @@ against the repository's pinned LocalStack 4.9.2.
 
 ## Prerequisites
 
-- OpenTofu 1.8 or newer (`tofu version`)
+- OpenTofu 1.9 or newer (`tofu version`)
 - Docker with Compose v2 (`docker compose version`)
 - Ports `4566` free
 - A shell at the workshop repository root
@@ -90,7 +90,7 @@ sed -n '1,160p' labs/day-2/16-tofu-test/tests/integration.tftest.hcl
 <!-- source: labs/day-2/16-tofu-test/main.tf -->
 ```hcl
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
 
   required_providers {
     aws = {
