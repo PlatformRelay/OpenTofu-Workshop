@@ -1435,6 +1435,7 @@ OpenTofu will perform the following actions:
 }
 
 Plan: 0 to add, 0 to change, 0 to destroy, 1 to forget.
+...
 ```
 
 A whole new plan verb: **`. forget`**, with its own column in the tally —

@@ -610,6 +610,7 @@ $ tofu plan
   . resource "local_file" "build_info" {
 ...
 Plan: 0 to add, 0 to change, 0 to destroy, 1 to forget.
+...
 ```
 
 Adding `lifecycle { destroy = false }` keeps the identical forget plan and

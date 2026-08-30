@@ -1,5 +1,6 @@
 # Learner-generated artifacts from running this lab in place — never committed.
-# The lab's canonical HCL is main.tf + bundle.tf (tracked, drift-checked).
+# The lab's canonical HCL is main.tf + bundle.tf + rename.tf + retire.tf
+# (tracked, drift-checked).
 # Everything below is regenerated on init/apply, or is the scratch receipts.tf
 # from the unknown-count break→fix.
 receipts.tf
