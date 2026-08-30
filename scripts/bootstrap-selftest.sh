@@ -134,6 +134,28 @@ set -e
 printf '%s\n' "$out" | grep -q 'trivy.*unusable'
 printf '%s\n' "$out" | grep -q 'terramate.*0.13.0'
 
+# REL-1: a REQUIRED tool whose version probe fails must be named — never a
+# wordless mid-report exit 1 under set -euo pipefail. Restore trivy first so
+# the failing pnpm probe is the ONLY defect: the final exit code must come
+# from the required-tool re-check, not a leftover Day-2/3 breakage.
+fake trivy 'Version: 0.64.1'
+cat >"$BIN/pnpm" <<'EOF'
+#!/bin/sh
+exit 7
+EOF
+chmod +x "$BIN/pnpm"
+set +e
+out="$(run_bootstrap)"
+status=$?
+set -e
+[ "$status" -ne 0 ] || { echo 'failing required version probe must exit non-zero' >&2; exit 1; }
+printf '%s\n' "$out" | grep -q 'pnpm.*unusable'
+printf '%s\n' "$out" | grep -q 'version probe failed'
+# The report must run to completion: later sections and the final verdict.
+printf '%s\n' "$out" | grep -q 'terramate.*0.13.0'
+printf '%s\n' "$out" | grep -q 'NOT READY'
+fake pnpm '11.9.0'
+
 # Explicit install mode exercises failure continuation with a fake Homebrew.
 fake uname 'Darwin'
 cat >"$BIN/brew" <<'EOF'
@@ -188,6 +210,25 @@ set -e
 printf '%s\n' "$with_go_out" | grep -q 'Host Go ready'
 printf '%s\n' "$with_go_out" | grep -q 'lab:terratest:host'
 
+# REL-1 (--with-go lane): a failing go version probe must be named too.
+cat >"$BIN/go" <<'EOF'
+#!/bin/sh
+exit 7
+EOF
+chmod +x "$BIN/go"
+set +e
+broken_go_out="$(PATH="$BIN:$SYSBIN" CI=true BOOTSTRAP_AUTO_INSTALL=never \
+  BOOTSTRAP_WITH_GO=1 bash "$ROOT/setup/bootstrap.sh" 2>&1)"
+broken_go_status=$?
+set -e
+[ "$broken_go_status" -ne 0 ] || {
+  echo 'failing go version probe must exit non-zero' >&2
+  exit 1
+}
+printf '%s\n' "$broken_go_out" | grep -q 'go.*unusable'
+printf '%s\n' "$broken_go_out" | grep -q 'version probe failed'
+printf '%s\n' "$broken_go_out" | grep -q 'NOT READY'
+
 # BOOTSTRAP_WITH_GO=1 without Go → non-zero and install hint.
 # Regression harness: GHA-style host go on legacy PATH (actions run 30149989911).
 LEAKBIN="$TMP/leak-go"
@@ -221,4 +262,4 @@ set -e
 printf '%s\n' "$missing_go_out" | grep -q 'go.*missing'
 printf '%s\n' "$missing_go_out" | grep -q 'Missing optional host Go'
 
-echo 'bootstrap self-test PASSED — versions, idempotence, missing, corrupt, install-failure, and optional Go paths'
+echo 'bootstrap self-test PASSED — versions, idempotence, missing, corrupt, failing-required-probe, install-failure, and optional Go paths'

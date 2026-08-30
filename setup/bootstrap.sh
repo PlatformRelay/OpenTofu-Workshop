@@ -151,16 +151,23 @@ VERSION_WARN=""  # tools present but below minimum
 heading "Required tools"
 for t in $REQUIRED; do
   if have "$t"; then
-    v="$(tool_version "$t")"
-    case "$t" in
-      tofu)
-        if min_version "$v" "$MIN_TOFU"; then ok "tofu   ${v:-?}  (>= $MIN_TOFU)"
-        else bad "tofu   ${v:-?}  (needs >= $MIN_TOFU)"; VERSION_WARN="$VERSION_WARN tofu"; fi ;;
-      node)
-        if min_version "$v" "$MIN_NODE"; then ok "node   ${v:-?}  (>= $MIN_NODE)"
-        else bad "node   ${v:-?}  (needs >= $MIN_NODE)"; VERSION_WARN="$VERSION_WARN node"; fi ;;
-      *) ok "$(printf '%-6s %s' "$t" "${v:-present}")" ;;
-    esac
+    v=""
+    probe_status=0
+    v="$(tool_version "$t")" || probe_status=$?
+    if [ "$probe_status" -ne 0 ]; then
+      bad "$(printf '%-6s unusable' "$t")  (version probe failed)"
+      MISSING="$MISSING $t"
+    else
+      case "$t" in
+        tofu)
+          if min_version "$v" "$MIN_TOFU"; then ok "tofu   ${v:-?}  (>= $MIN_TOFU)"
+          else bad "tofu   ${v:-?}  (needs >= $MIN_TOFU)"; VERSION_WARN="$VERSION_WARN tofu"; fi ;;
+        node)
+          if min_version "$v" "$MIN_NODE"; then ok "node   ${v:-?}  (>= $MIN_NODE)"
+          else bad "node   ${v:-?}  (needs >= $MIN_NODE)"; VERSION_WARN="$VERSION_WARN node"; fi ;;
+        *) ok "$(printf '%-6s %s' "$t" "${v:-present}")" ;;
+      esac
+    fi
   else
     bad "$(printf '%-6s missing' "$t")"
     MISSING="$MISSING $t"
@@ -187,15 +194,24 @@ GO_VERSION_WARN=""
 if [ "$WITH_GO" = 1 ]; then
   heading "Optional host Go (BOOTSTRAP_WITH_GO / --with-go)"
   if have go; then
-    v="$(tool_version go)"
-    # go version prints "go1.23.6" — strip the "go" prefix for min_version.
-    v_num="${v#go}"
-    if min_version "$v_num" "$MIN_GO"; then
-      ok "go     ${v:-?}  (>= $MIN_GO)"
-      note "Native Terratest: task lab:up && task lab:terratest:host DIR=…"
+    v=""
+    probe_status=0
+    v="$(tool_version go)" || probe_status=$?
+    if [ "$probe_status" -ne 0 ]; then
+      bad "go     unusable  (version probe failed)"
+      GO_MISSING="go"
+      info "→ $(install_hint go)"
+      note "Container lane (no host Go): task lab:terratest DIR=…"
     else
-      bad "go     ${v:-?}  (needs >= $MIN_GO)"
-      GO_VERSION_WARN="go"
+      # go version prints "go1.23.6" — strip the "go" prefix for min_version.
+      v_num="${v#go}"
+      if min_version "$v_num" "$MIN_GO"; then
+        ok "go     ${v:-?}  (>= $MIN_GO)"
+        note "Native Terratest: task lab:up && task lab:terratest:host DIR=…"
+      else
+        bad "go     ${v:-?}  (needs >= $MIN_GO)"
+        GO_VERSION_WARN="go"
+      fi
     fi
   else
     bad "go     missing"
@@ -295,7 +311,17 @@ fi
 heading "Summary"
 # Re-check required tools after any install attempt.
 STILL_MISSING=""
-for t in $REQUIRED; do have "$t" || STILL_MISSING="$STILL_MISSING $t"; done
+for t in $REQUIRED; do
+  probe_status=0
+  if have "$t"; then
+    tool_version "$t" >/dev/null || probe_status=$?
+  else
+    probe_status=127
+  fi
+  if [ "$probe_status" -ne 0 ]; then
+    STILL_MISSING="$STILL_MISSING $t"
+  fi
+done
 DAY_STILL_MISSING=""
 for t in $DAY_TOOLS; do
   v=""
@@ -313,10 +339,16 @@ GO_STILL_MISSING=""
 GO_STILL_WARN=""
 if [ "$WITH_GO" = 1 ]; then
   if have go; then
-    v="$(tool_version go)"
-    v_num="${v#go}"
-    if ! min_version "$v_num" "$MIN_GO"; then
-      GO_STILL_WARN="go"
+    v=""
+    probe_status=0
+    v="$(tool_version go)" || probe_status=$?
+    if [ "$probe_status" -ne 0 ]; then
+      GO_STILL_MISSING="go"
+    else
+      v_num="${v#go}"
+      if ! min_version "$v_num" "$MIN_GO"; then
+        GO_STILL_WARN="go"
+      fi
     fi
   else
     GO_STILL_MISSING="go"
