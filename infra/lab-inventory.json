@@ -165,7 +165,7 @@
       "tools": "None (`unzip` optional)",
       "pinned": "`local` + `archive` providers",
       "validationState": "unrun",
-      "estimatedDurationMin": 45,
+      "estimatedDurationMin": 60,
       "automationTier": "mock-only",
       "cleanupCommand": "cd \"$(git rev-parse --show-toplevel)\""
     },

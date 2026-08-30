@@ -126,7 +126,7 @@ frontmatter and lab headers — no rehearsal has timed them, so treat them as a
 budget, not a stopwatch.
 
 The README fit plan's **400 is a different figure**: it is Day-1 **slide**
-runtime only (`dayOneFitTotal()`), compressed from 695. Day-1 lab time (250) is
+runtime only (`dayOneFitTotal()`), compressed from 705. Day-1 lab time (250) is
 untouched by it, so a fit-plan Day 1 still runs **650** of slides+labs. Use 400
 to check the deck against the day; use 790 to plan the day itself. Note that 400
 does not fit either: since S01 grew, the compressed deck is 10 minutes over the
@@ -141,7 +141,7 @@ does not fit either: since S01 grew, the compressed deck is 10 minutes over the
 | Priority | Action | Source |
 | --- | --- | --- |
 | 1 | Skip **S11** (optional; already `hide: true`) | README fit plan row 1 (−35) |
-| 2 | Skip **S10**, then **S09** at their `DAY1-FIT` markers | README rows 2–3 (−55, −65) |
+| 2 | Skip **S10**, then **S09** at their `DAY1-FIT` markers | README rows 2–3 (−55, −75) |
 | 3 | Compress S00–S03, S06, S15, S04, S05, S07 at markers until slide time is ≤400 | README rows 4–12 |
 | Keep | **S08** at 65 min — flagship synthesis | `slides-3day.md` marker |
 
@@ -292,7 +292,7 @@ share of the day. **3-day cut** = compress / skip from the fit plan or `hide:` i
 | S05 | State encryption | core | 60 → **45** | 25 | Compress | Prove ciphertext on disk; what does `enforced = true` change? | PBKDF2 lab key handling; fallback migrate; optional +10 min KMS step (Lab 05 Step 6) |
 | S07 | Modules | core | 60 → **50** | 35 | Compress | What is the module contract (inputs/outputs)? Demo registry/OCI only | No registry network on runnable path |
 | S08 | Naming & labelling | core | **65** | 30 | Keep | Mock plan green, then LocalStack apply — validation enforces convention? | Step 4 needs LocalStack; panic-reset safe |
-| S09 | Best practices | recommended | 65 | 45 | **Skip** | (If run) `count` vs `for_each` — which rebuilds on middle removal? And inside a `dynamic` block, why does `each.*` fail? | Only if time returns; lab 09 authors a `dynamic` block hands-on (archive provider, still no Docker) |
+| S09 | Best practices | recommended | 75 | 60 | **Skip** | (If run) `count` vs `for_each` — which rebuilds on middle removal? And what does a `removed` block's plan tally say that a destroy's doesn't? | Only if time returns; lab 09 authors a `dynamic` block and runs `moved`/`removed` refactors hands-on (archive provider, still no Docker) |
 | S10 | Differentiators | recommended | 55 | 55 | **Skip** | (If run) Provider `for_each` / `-exclude` / `import` adoption — needs live LocalStack | Heavy emulator use |
 | S11 | TACO landscape | optional | 35 | 20 | **Skip** (`hide`) | (If run) Constraints-first platform pick — paper only | No tooling |
 
