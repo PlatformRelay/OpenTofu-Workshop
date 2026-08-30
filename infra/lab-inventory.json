@@ -101,12 +101,12 @@
       "section": "S04",
       "sectionTitle": "S04 State",
       "day": 1,
-      "environment": "`mock ✓ (no docker)`",
-      "tools": "None",
-      "pinned": "`random` + `local` providers",
+      "environment": "`mock ✓ (no docker)` · `localstack ✓ (Stretch)`",
+      "tools": "Docker for the S3-backend Stretch",
+      "pinned": "`random` + `local` providers; Stretch: OpenTofu ≥1.10 (`use_lockfile`), LocalStack `:4566`",
       "validationState": "unrun",
       "estimatedDurationMin": 25,
-      "automationTier": "mock-only",
+      "automationTier": "mixed",
       "cleanupCommand": "cd labs/day-1/04-state"
     },
     {

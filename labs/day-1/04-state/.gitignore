@@ -1,8 +1,10 @@
 # Learner-generated artifacts from running this lab in place — never committed.
-# The lab's canonical HCL is main.tf (tracked, drift-checked). Everything below
-# is generated at apply time or by the backend migration in this lab. The state
-# file MUST NEVER be committed: it holds the generated secret in plaintext.
-# The tracked files are main.tf and terraform.tfvars.
+# The lab's canonical HCL is main.tf + backend.tf (tracked, drift-checked);
+# backend-s3.tf.off is the tracked-but-inert Stretch variant. Everything below
+# is generated at apply time, by the backend migration in this lab, or by the
+# Stretch's backend swap. The state file MUST NEVER be committed: it holds the
+# generated secret in plaintext.
+# The tracked files are main.tf, backend.tf, backend-s3.tf.off, terraform.tfvars.
 .terraform/
 .terraform.lock.hcl
 terraform.tfstate
@@ -12,6 +14,8 @@ terraform.tfstate.*
 state/
 build/
 out/
-main.tf.bak
+backend.tf.bak
+backend.tf.off
+backend-s3.tf
 crash.log
 crash.*.log

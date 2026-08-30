@@ -4,13 +4,11 @@ terraform {
     random = { source = "hashicorp/random" }
     local  = { source = "hashicorp/local" }
   }
-
-  # State lives on the LOCAL backend by default. This explicit block names the
-  # path so we can migrate it later with `tofu init -migrate-state`.
-  backend "local" {
-    path = "terraform.tfstate"
-  }
 }
+
+# NOTE: where this project's state lives is declared in backend.tf (sibling
+# file) — kept separate so the backend can be swapped without touching the
+# config the S04 slides teach.
 
 # SPINE — carried forward from stage 5. The state you are about to read is your
 # own project's state, not a fresh demo's.

@@ -70,7 +70,7 @@ Host support is a separate claim from lab validation.
 | [`day-1/03-core-workflow.md`](../labs/day-1/03-core-workflow.md) | S03 The core workflow | `mock ✓ (no docker)` | None | `local` + `random` providers | `unrun` |
 | [`day-1/06-variables.md`](../labs/day-1/06-variables.md) | S06 Variables, validation & types | `mock ✓ (no docker)` | None | `local` + `random` providers | `unrun` |
 | [`day-1/15-conditions-checks.md`](../labs/day-1/15-conditions-checks.md) | S15 Validation, preconditions & checks | `mock ✓ (no docker)` | None | `local` + `random` providers | `unrun` |
-| [`day-1/04-state.md`](../labs/day-1/04-state.md) | S04 State | `mock ✓ (no docker)` | None | `random` + `local` providers | `unrun` |
+| [`day-1/04-state.md`](../labs/day-1/04-state.md) | S04 State | `mock ✓ (no docker)` · `localstack ✓ (Stretch)` | Docker for the S3-backend Stretch | `random` + `local` providers; Stretch: OpenTofu ≥1.10 (`use_lockfile`), LocalStack `:4566` | `unrun` |
 | [`day-1/05-state-encryption.md`](../labs/day-1/05-state-encryption.md) | S05 State encryption | `localstack ✓` · `mock ✓` | None for mock path; Docker for optional Step 6 (KMS) | `local` + `random` providers; pbkdf2 keys local, optional `aws_kms` via LocalStack `:4566` | `unrun` |
 | [`day-1/07-modules.md`](../labs/day-1/07-modules.md) | S07 Modules | `mock ✓ (no docker)` | None | `local` + `random` providers | `unrun` |
 | [`day-1/08-naming-labels.md`](../labs/day-1/08-naming-labels.md) | S08 Naming & labelling module | `localstack ✓` · `mock ✓` | Docker for Step 4 LocalStack path | `modules/naming`; LocalStack AWS provider | `unrun` |

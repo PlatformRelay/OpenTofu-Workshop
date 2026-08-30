@@ -198,8 +198,9 @@ one machine and offers no locking when two people share it. Remote backends put
 state in shared storage — S3, GCS, an HTTP backend, Postgres — which unlocks team
 access, server-side at-rest encryption, and locking. Click: you switch backends by
 editing the backend block and running tofu init -migrate-state; OpenTofu copies the
-state across and re-points the directory. We can't stand up S3 here, so the lab
-migrates between two LOCAL paths with the exact same mechanic. (~4 min)
+state across and re-points the directory. The lab's numbered steps migrate between
+two LOCAL paths with this exact mechanic; its optional stretch then does the real
+thing — backend "s3" against LocalStack, with use_lockfile locking. (~4 min)
 Then: "Remote backends unlock the thing local can't do safely: locking."
 -->
 

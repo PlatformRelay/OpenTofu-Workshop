@@ -1,0 +1,30 @@
+# STRETCH VARIANT — inert while the name ends in ".off" (OpenTofu only reads
+# *.tf). Activate it by parking the local backend and copying this file in:
+#
+#   mv backend.tf backend.tf.off
+#   cp backend-s3.tf.off backend-s3.tf
+#
+# It points the SAME project state at LocalStack's S3 (:4566) with OpenTofu's
+# native S3 locking — `use_lockfile` needs OpenTofu >= 1.10 (no DynamoDB table).
+terraform {
+  backend "s3" {
+    bucket = "tofu-state"
+    key    = "day-1/04-state/terraform.tfstate"
+    region = "us-east-1"
+
+    # LocalStack wiring: static test credentials, path-style addressing, and
+    # skip every validation handshake that would need real AWS.
+    access_key                  = "test"
+    secret_key                  = "test"
+    endpoints                   = { s3 = "http://localhost:4566" }
+    use_path_style              = true
+    skip_credentials_validation = true
+    skip_requesting_account_id  = true
+    skip_metadata_api_check     = true
+    skip_region_validation      = true
+
+    # OpenTofu >= 1.10: native S3 locking via a sibling `.tflock` object held
+    # for the duration of any state-writing operation.
+    use_lockfile = true
+  }
+}

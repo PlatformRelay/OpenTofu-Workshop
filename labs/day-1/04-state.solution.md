@@ -23,12 +23,14 @@ ls
 
 ```console
 $ ls
-main.tf  terraform.tfvars
+backend-s3.tf.off  backend.tf  main.tf  terraform.tfvars
 ```
 
-`main.tf` and `terraform.tfvars` are tracked in the repo. Everything below runs
-against these exact files. (`.gitignore` is present too; `ls` hides dotfiles by
-default.)
+`main.tf`, `backend.tf` and `terraform.tfvars` are tracked in the repo — plus
+`backend-s3.tf.off`, the Stretch's inert S3 variant (OpenTofu only reads `*.tf`,
+so a `.off` file is invisible to every step until you activate it). Everything
+below runs against these exact files. (`.gitignore` is present too; `ls` hides
+dotfiles by default.)
 
 </details>
 
@@ -47,13 +49,11 @@ terraform {
     random = { source = "hashicorp/random" }
     local  = { source = "hashicorp/local" }
   }
-
-  # State lives on the LOCAL backend by default. This explicit block names the
-  # path so we can migrate it later with `tofu init -migrate-state`.
-  backend "local" {
-    path = "terraform.tfstate"
-  }
 }
+
+# NOTE: where this project's state lives is declared in backend.tf (sibling
+# file) — kept separate so the backend can be swapped without touching the
+# config the S04 slides teach.
 
 # SPINE — carried forward from stage 5. The state you are about to read is your
 # own project's state, not a fresh demo's.
@@ -113,6 +113,27 @@ output "db_password" {
   description = "The generated secret — sensitive, so redacted in CLI output."
   value       = random_password.session.result
   sensitive   = true
+}
+```
+
+The backend — *where* this state lives — is deliberately split into its own
+file, `backend.tf`, so the rest of the lab can migrate it without touching the
+config above:
+
+<!-- source: labs/day-1/04-state/backend.tf -->
+```hcl
+# Where this project's state lives — kept in its OWN file so the backend can be
+# swapped without touching main.tf (the config the S04 slides teach).
+#
+# Step 5 edits the path below (a learner edit — cleanup reverts it). The
+# Stretch parks this whole file as backend.tf.off and activates the S3 variant
+# from backend-s3.tf.off instead — same migration, real remote backend.
+terraform {
+  # State lives on the LOCAL backend by default. This explicit block names the
+  # path so we can migrate it later with `tofu init -migrate-state`.
+  backend "local" {
+    path = "terraform.tfstate"
+  }
 }
 ```
 
@@ -289,12 +310,14 @@ client-side so what lands on disk is ciphertext, not this.
 ### Step 5 — Migrate the backend: `tofu init -migrate-state`
 
 You switch where state lives by editing the `backend {}` block and re-initialising.
-We can't stand up S3 here, so migrate between two **local paths** — the mechanic
-is identical. Move the state into a `state/` subdirectory:
+Here, migrate between two **local paths** — the mechanic is identical for any
+backend, and the optional **Stretch** at the end replays exactly this step
+against a real (emulated) S3 bucket, locking included. Move the state into a
+`state/` subdirectory:
 
 ```bash
-# edit the backend path in main.tf (a learner edit — cleanup reverts it)
-sed -i.bak 's#path = "terraform.tfstate"#path = "state/terraform.tfstate"#' main.tf
+# edit the backend path in backend.tf (a learner edit — cleanup reverts it)
+sed -i.bak 's#path = "terraform.tfstate"#path = "state/terraform.tfstate"#' backend.tf
 tofu init -migrate-state
 ```
 
@@ -528,20 +551,69 @@ told your 2 a.m. hotfix apart from its own work.
 
 ## Cleanup / panic reset
 
-Destroy the (local-only) resources, restore the tracked `main.tf`, and remove all
-generated residue — including the state file that holds the plaintext secret. No
-cloud resources exist, so nothing to bill or leak:
+Destroy the (local-only) resources, restore the tracked `backend.tf`, and remove
+all generated residue — including the state file that holds the plaintext secret.
+No cloud resources exist, so nothing to bill or leak. This block is safe from
+**any** point in the lab, including mid-stretch (the stretch lines are no-ops if
+you never started it):
 
 ```bash
 cd labs/day-1/04-state
-tofu destroy -auto-approve                       # backend still points at the Step-5 state/ location
-mv -f main.tf.bak main.tf 2>/dev/null || true    # revert the Step 5 backend edit
-rm -rf .terraform .terraform.lock.hcl state out main.tf.bak
+tofu destroy -auto-approve || true                    # best-effort — see the note below
+rm -f backend-s3.tf                                   # stretch: retire the activated S3 variant (the tracked .off stays)
+mv -f backend.tf.off backend.tf 2>/dev/null || true   # stretch: un-park the local backend
+mv -f backend.tf.bak backend.tf 2>/dev/null || true   # revert the Step 5 backend edit
+rm -rf .terraform .terraform.lock.hcl state out backend.tf.bak
 find . -maxdepth 1 -name 'terraform.tfstate*' -delete   # all root state incl. secret-bearing *.<ts>.backup (shell-agnostic)
+task lab:down 2>/dev/null || true                     # stretch: stop LocalStack if you started it
 git status --short .      # expect: no output
 ```
 
 ## Stretch (optional)
+
+### The real thing — this state, in S3, with locking (`localstack ✓`)
+
+Full narrative, tasks, and verbatim spoilers live in the participant lab
+(Stretch, beats S-1 to S-4). The complete command sequence, from the end of
+Step 7, with the outcome each beat must produce:
+
+```bash
+# S-1 — swap the backend, break first (bucket does not exist yet)
+task lab:up
+mv backend.tf backend.tf.off
+cp backend-s3.tf.off backend-s3.tf
+tofu init -migrate-state          # FAILS: "S3 bucket does not exist." — and
+                                  # "The data in both the source and the
+                                  # destination remain unmodified."
+
+# S-2 — fix: create the bucket, migrate, prove the object exists
+docker exec opentofu-workshop-localstack awslocal s3 mb s3://tofu-state
+tofu init -migrate-state          # answer: yes
+docker exec opentofu-workshop-localstack awslocal s3 ls --recursive s3://tofu-state
+tofu plan                         # No changes.
+
+# S-3 — two actors, one state
+rm out/checkout.env               # Terminal A: drift…
+tofu apply                        # …then hold the lock at the approval prompt
+docker exec opentofu-workshop-localstack awslocal s3 ls --recursive s3://tofu-state
+                                  # Terminal B: state object + .tflock object
+tofu plan                         # Terminal B: "Error acquiring the state lock"
+                                  # with Lock Info (ID / Path / Operation / Who)
+                                  # Terminal A: answer yes → lock object gone,
+                                  # Terminal B's plan works again
+
+# S-4 — migrate back home
+rm backend-s3.tf
+mv backend.tf.off backend.tf
+tofu init -migrate-state          # OVERWRITE prompt (state at both ends); yes
+tofu state list                   # all three addresses, back on local
+```
+
+Then run the normal Cleanup / panic reset — its stretch lines are no-ops when
+the swap is already unwound, and `task lab:down` removes the LocalStack volumes
+(the bucket still holds a plaintext-state copy until it does).
+
+### Smaller stretches
 
 - Rename the resource cleanly with `state mv`. Pick the **auxiliary** pet, never a
   spine address: rename it **everywhere in `main.tf`** — the block label
@@ -634,14 +706,15 @@ Destroy complete! Resources: 3 destroyed.
 ```
 
 The generated state (with its plaintext secret), `.terraform`, the rendered
-`out/` file, the migrated `state/` dir, and the `main.tf.bak` from Step 5 are all
-gitignored or removed; the panic reset leaves the tracked `main.tf` and
-`terraform.tfvars` exactly as CI verified them
-(backend path back to `terraform.tfstate`). Order matters: `tofu destroy` runs
-**before** reverting `main.tf`, so the backend still points at the migrated
-`state/` location and the destroy actually removes the resources. The `find`
-sweep catches every `terraform.tfstate*` in the root — including the timestamped
-`.backup` that `tofu state rm` leaves — so no plaintext-secret file survives.
+`out/` file, the migrated `state/` dir, and the `backend.tf.bak` from Step 5 are
+all gitignored or removed; the panic reset leaves the tracked `main.tf`,
+`backend.tf`, `backend-s3.tf.off` and `terraform.tfvars` exactly as CI verified
+them (backend path back to `terraform.tfstate`). Order matters: `tofu destroy`
+runs **before** the file restores, so whatever backend is active *right now* —
+the migrated `state/` path, or the stretch's S3 bucket — is the one the destroy
+reads, and it actually removes the resources. The `find` sweep catches every
+`terraform.tfstate*` in the root — including the timestamped `.backup` that
+`tofu state rm` leaves — so no plaintext-secret file survives.
 
 </details>
 
@@ -703,16 +776,21 @@ matters and why re-running apply without changes reports zero additions.
 
 If a step fails mid-lab, prefer the documented panic reset before editing tracked files by hand:
 
-Destroy the (local-only) resources, restore the tracked `main.tf`, and remove all
-generated residue — including the state file that holds the plaintext secret. No
-cloud resources exist, so nothing to bill or leak:
+Destroy the (local-only) resources, restore the tracked `backend.tf`, and remove
+all generated residue — including the state file that holds the plaintext secret.
+No cloud resources exist, so nothing to bill or leak. This block is safe from
+**any** point in the lab, including mid-stretch (the stretch lines are no-ops if
+you never started it):
 
 ```bash
 cd labs/day-1/04-state
-tofu destroy -auto-approve                       # backend still points at the Step-5 state/ location
-mv -f main.tf.bak main.tf 2>/dev/null || true    # revert the Step 5 backend edit
-rm -rf .terraform .terraform.lock.hcl state out main.tf.bak
+tofu destroy -auto-approve || true                    # best-effort: everything real is local to this dir
+rm -f backend-s3.tf                                   # stretch: retire the activated S3 variant (the tracked .off stays)
+mv -f backend.tf.off backend.tf 2>/dev/null || true   # stretch: un-park the local backend
+mv -f backend.tf.bak backend.tf 2>/dev/null || true   # revert the Step 5 backend edit
+rm -rf .terraform .terraform.lock.hcl state out backend.tf.bak
 find . -maxdepth 1 -name 'terraform.tfstate*' -delete   # all root state incl. secret-bearing *.<ts>.backup (shell-agnostic)
+task lab:down 2>/dev/null || true                     # stretch: stop LocalStack if you started it
 git status --short .      # expect: no output
 ```
 
@@ -731,14 +809,23 @@ Destroy complete! Resources: 3 destroyed.
 ```
 
 The generated state (with its plaintext secret), `.terraform`, the rendered
-`out/` file, the migrated `state/` dir, and the `main.tf.bak` from Step 5 are all
-gitignored or removed; the panic reset leaves the tracked `main.tf` and
-`terraform.tfvars` exactly as CI verified them
-(backend path back to `terraform.tfstate`). Order matters: `tofu destroy` runs
-**before** reverting `main.tf`, so the backend still points at the migrated
-`state/` location and the destroy actually removes the resources. The `find`
-sweep catches every `terraform.tfstate*` in the root — including the timestamped
-`.backup` that `tofu state rm` leaves — so no plaintext-secret file survives.
+`out/` file, the migrated `state/` dir, and the `backend.tf.bak` from Step 5 are
+all gitignored or removed; the panic reset leaves the tracked `main.tf`,
+`backend.tf`, `backend-s3.tf.off` and `terraform.tfvars` exactly as CI verified
+them (backend path back to `terraform.tfstate`). Order matters: `tofu destroy`
+runs **before** the file restores, so whatever backend is active *right now* —
+the migrated `state/` path, or the stretch's S3 bucket — is the one the destroy
+reads, and it actually removes the resources.
+
+**Why `|| true` on the destroy is honest, not sloppy:** every resource in this
+lab is local to this directory — two random values and one rendered file under
+`out/`. If the destroy cannot reach its state (say you panic mid-stretch after
+`task lab:down` wiped the bucket), nothing real survives it anyway: `rm -rf …
+out` removes the only artifact, and the random values die with the state. The
+`find` sweep catches every `terraform.tfstate*` in the root — including the
+timestamped `.backup` that `tofu state rm` leaves — so no plaintext-secret file
+survives either. The stretch lines are ordered restore-S3-variant-out-first so
+the directory never ends up with **two** active backend files.
 </details>
 
 Re-enter `labs/day-1/04-state/` and replay from the failing step once the environment is clean. For provider or module download errors, run `tofu init -upgrade` in the workdir and retry `tofu plan`.
@@ -747,6 +834,10 @@ Re-enter `labs/day-1/04-state/` and replay from the failing step once the enviro
 
 ### Commands / manifest
 
+- Migrate this state to a real (emulated) S3 backend and back: `task lab:up`,
+  park `backend.tf` as `backend.tf.off`, `cp backend-s3.tf.off backend-s3.tf`,
+  create the `tofu-state` bucket, `tofu init -migrate-state` each way — full
+  sequence in "The real thing" above.
 - Rename the resource cleanly with `state mv`. Rename it **everywhere in `main.tf`** —
 - Inspect the whole state as JSON with `tofu show -json | jq` and find every
 
@@ -779,8 +870,29 @@ tofu plan
 
 When the stretch applies cleanly, `tofu plan` afterward shows no further changes and stretch-specific outputs appear in state as described in the spoiler blocks above.
 
+For the S3 stretch specifically: after S-2 the bucket lists
+`day-1/04-state/terraform.tfstate` and `tofu plan` reports `No changes`; during
+S-3 the bucket additionally lists `day-1/04-state/terraform.tfstate.tflock` and
+the second actor's `tofu plan` fails with `Error acquiring the state lock` plus
+a `Lock Info` dossier (ID, Path, `Operation: OperationTypeApply`, `Who:
+user@host`); after the holder approves, the `.tflock` object is absent and the
+second plan succeeds; after S-4, `tofu state list` prints all three addresses
+from the local backend again and the panic reset leaves `git status --short .`
+empty.
+
 ### Explanation
 
 Stretch tasks extend the same exercise with additional constraints or outputs; they
 remain optional because they reuse the core method and only deepen the analysis once
 the guided path already converged.
+
+The S3 stretch works because backend migration is destination-agnostic: `tofu
+init -migrate-state` inspects both ends before writing, so the missing-bucket
+break fails closed, and the copy prompt is the same one Step 5 produced for a
+local path. Locking then holds because `use_lockfile = true` (OpenTofu ≥ 1.10)
+takes the lock with an atomic conditional `PutObject` of a sibling `.tflock`
+object — the second actor's write hits the failed precondition (HTTP 412), so
+its operation stops instead of racing, and releasing the lock is just deleting
+that object when the holder's operation completes. Migrating back triggers the
+overwrite prompt because migration copies rather than moves: the stale local
+snapshot still exists, so OpenTofu asks which of the two states wins.
