@@ -5,7 +5,9 @@ rather than copying ephemeral resource names, IDs, or timestamps literally.
 
 ## Guided solutions
 
-Work from the tracked workdir `labs/day-3/26-capstone/` unless a step says otherwise.
+Work from the repository root; the tracked capstone workdir is `examples/capstone/`
+and every command below targets it with `tofu -chdir=examples/capstone` or explicit
+paths, so no `cd` is needed.
 
 ### Step 1 — Tour the settled colony
 
@@ -331,13 +333,17 @@ matters and why re-running apply without changes reports zero additions.
 If a step fails mid-lab, reset generated artifacts and retry:
 
 ```bash
-cd labs/day-3/26-capstone
-tofu destroy -auto-approve || true
-rm -rf .terraform .terraform.lock.hcl terraform.tfstate terraform.tfstate.*
-cd ../../..
+export TF_VAR_state_passphrase='a-long-demo-passphrase-1234'
+# Best effort — ignore failures if state/emulator is already gone
+tofu -chdir=examples/capstone destroy -auto-approve -no-color || true
+rm -rf examples/capstone/.terraform
+rm -f examples/capstone/*.tfstate examples/capstone/*.tfstate.*
 ```
 
-Re-enter `labs/day-3/26-capstone/` and replay from the failing step. For provider errors, run `tofu init -upgrade` and retry `tofu plan`.
+The tracked `examples/capstone/.terraform.lock.hcl` stays put — it pins provider
+versions and must survive a reset. Replay from the failing step (every command runs
+from the repo root). For provider errors, run `tofu -chdir=examples/capstone init`
+and retry `tofu -chdir=examples/capstone plan`.
 
 ## Stretch solution
 
@@ -346,11 +352,10 @@ Re-enter `labs/day-3/26-capstone/` and replay from the failing step. For provide
 - Read [`examples/capstone/stretch/README.md`](../../examples/capstone/stretch/README.md)
 - Flip `enforced = true` in `providers.tf`, drop the passphrase, and watch
 
-Example verification from the workdir:
+Example verification from the repo root:
 
 ```bash
-cd labs/day-3/26-capstone
-tofu plan
+tofu -chdir=examples/capstone plan
 ```
 
 ### Expected state / output

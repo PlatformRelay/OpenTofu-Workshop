@@ -5,7 +5,9 @@ rather than copying ephemeral resource names, IDs, or timestamps literally.
 
 ## Guided solutions
 
-Work from the tracked workdir `labs/day-1/08-naming-labels/` unless a step says otherwise.
+Work from the repository root; the tracked workdir is `examples/naming-labels-demo/`,
+reached with `tofu -chdir=examples/naming-labels-demo` (or an explicit `cd` where a
+step says so).
 
 ### Step 1 — Read the contract
 
@@ -239,7 +241,7 @@ task lab:down          # stop LocalStack and remove its volumes
 
 Nothing is created on real AWS, so there is nothing to bill or leak.
 
-Re-enter `labs/day-1/08-naming-labels/` and replay from the failing step. To fully reset generated state, run `tofu destroy -auto-approve` when the lab created resources, then `tofu init -upgrade` and retry `tofu plan`.
+Replay from the failing step (every command runs from the repo root). To fully reset generated state, run `tofu -chdir=examples/naming-labels-demo destroy -auto-approve` when the lab created resources, then `tofu -chdir=examples/naming-labels-demo init` and retry the plan.
 
 ## Stretch solution
 
@@ -249,11 +251,10 @@ Re-enter `labs/day-1/08-naming-labels/` and replay from the failing step. To ful
 - Swap the naming profile: pass a `resource_short_names` map override (as the
 - Flip `enforced = true` in `examples/naming-labels-demo/providers.tf`, drop the
 
-Example verification from the workdir:
+Example verification from the repo root:
 
 ```bash
-cd labs/day-1/08-naming-labels
-tofu plan
+tofu -chdir=examples/naming-labels-demo plan
 ```
 
 ### Expected state / output

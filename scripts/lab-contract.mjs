@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
+import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { dirname, relative, resolve } from 'node:path';
+import { dirname, posix, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -174,6 +175,97 @@ function headingSlugs(markdown) {
   return slugs;
 }
 
+const LOCKFILE = '.terraform.lock.hcl';
+
+let trackedLockfileCache;
+function trackedLockfiles(repoRoot) {
+  if (trackedLockfileCache === undefined) {
+    try {
+      trackedLockfileCache = new Set(
+        execFileSync('git', ['-C', repoRoot, 'ls-files', '--', `*${LOCKFILE}`], { encoding: 'utf8' })
+          .split('\n')
+          .filter(Boolean),
+      );
+    } catch {
+      // No git on PATH / not a checkout: a pristine tree only contains committed
+      // files, so "exists on disk" is the honest fallback for "tracked".
+      trackedLockfileCache = null;
+    }
+  }
+  return trackedLockfileCache;
+}
+
+function isTrackedLockfile(repoRelative, repoRoot) {
+  const tracked = trackedLockfiles(repoRoot);
+  if (tracked !== null) return tracked.has(repoRelative);
+  return existsSync(resolve(repoRoot, repoRelative));
+}
+
+function stripShellQuotes(token) {
+  return token.replace(/^["']+|["']+$/g, '');
+}
+
+// Repo-relative path resolution, clamped at the repo root ('' = root), so that
+// `cd ../../..` from a lab dir lands back at the root instead of escaping it.
+function resolveRepoRelative(cwd, target) {
+  return posix.resolve('/', cwd, target).slice(1);
+}
+
+// Layer guard (audit REL-3, recurrence of the day-2 lockfile class): every
+// bash/sh/console block in a lab or solution is contracted to run verbatim from
+// the repo root. Within each block we track the literal `cd` context and red on
+// (a) `cd` into a directory that does not exist in the repo — the failed cd
+// leaves the learner executing the REST of the block from the wrong directory —
+// and (b) `rm` of a `.terraform.lock.hcl` that is git-tracked at the resolved
+// path. Targets containing variables/globs/tilde are unresolvable statically
+// and make the cd context unknown rather than guessed.
+export function workdirHazards(markdown, repoRoot = REPO_ROOT) {
+  const errors = [];
+  let fenceLanguage = null;
+  let cwd = '';
+  markdown.split('\n').forEach((line, index) => {
+    const fence = line.match(/^\s*(?:```+|~~~+)(\S*)/);
+    if (fence) {
+      if (fenceLanguage === null) {
+        fenceLanguage = fence[1];
+        cwd = ''; // each block starts at the repo root per the lab contract
+      } else {
+        fenceLanguage = null;
+      }
+      return;
+    }
+    if (fenceLanguage === null || !/^(?:bash|sh|console)$/.test(fenceLanguage)) return;
+    const command = line.replace(/^\s*\$\s*/, '').trim();
+    if (!command || command.startsWith('#')) return;
+    for (const segment of command.split(/&&|\|\||;/)) {
+      const parts = segment.trim().split(/\s+/);
+      if (parts[0] === 'cd') {
+        const target = stripShellQuotes(parts[1] ?? '');
+        if (!target || /[$~*]/.test(target) || target.startsWith('/') || target === '-') {
+          cwd = null; // unresolvable — stop judging until the next block
+          continue;
+        }
+        const next = cwd === null ? null : resolveRepoRelative(cwd, target);
+        if (next !== null && !existsSync(resolve(repoRoot, next))) {
+          errors.push(`line ${index + 1}: cd into nonexistent directory: ${target}`);
+        }
+        cwd = next;
+      } else if (parts[0] === 'rm') {
+        for (const raw of parts.slice(1)) {
+          const token = stripShellQuotes(raw);
+          if (token.startsWith('-') || !token.endsWith(LOCKFILE)) continue;
+          if (cwd === null || /[$~*]/.test(token) || token.startsWith('/')) continue;
+          const resolved = resolveRepoRelative(cwd, token);
+          if (isTrackedLockfile(resolved, repoRoot)) {
+            errors.push(`line ${index + 1}: rm of git-tracked lockfile: ${resolved}`);
+          }
+        }
+      }
+    }
+  });
+  return errors;
+}
+
 function unsafeCommands(markdown) {
   const errors = [];
   markdown.split('\n').forEach((line, index) => {
@@ -219,6 +311,7 @@ export function auditLab(labPath) {
   }
 
   errors.push(...unsafeCommands(markdown).map((error) => `${display}: ${error}`));
+  errors.push(...workdirHazards(markdown).map((error) => `${display}: ${error}`));
 
   const solutionPath = absoluteLab.replace(/\.md$/, '.solution.md');
   const solutionName = solutionPath.split('/').at(-1);
@@ -229,6 +322,8 @@ export function auditLab(labPath) {
 
   const solution = readFileSync(solutionPath, 'utf8');
   errors.push(...unsafeCommands(solution).map((error) =>
+    `${relative(REPO_ROOT, solutionPath)}: ${error}`));
+  errors.push(...workdirHazards(solution).map((error) =>
     `${relative(REPO_ROOT, solutionPath)}: ${error}`));
 
   const solutionHeadings = headings(solution);
