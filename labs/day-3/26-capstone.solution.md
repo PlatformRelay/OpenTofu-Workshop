@@ -254,6 +254,163 @@ the half-apply. Nothing was created on real AWS.
 
 ---
 
+### Part B — build variant: author the colony's 4th resource (stretch / homework)
+
+Part B is assessed by gates, not by matching bytes — any implementation that
+satisfies the contract and greens the commands below is correct. The tracked
+reference lives at [`examples/capstone-build/`](../../examples/capstone-build/);
+its two drop-in files are reproduced here byte-identically (drift-checked).
+
+`examples/capstone/colony_events.tf` — one valid implementation:
+
+<!-- source: examples/capstone-build/colony_events.tf -->
+```hcl
+# =============================================================================
+# capstone BUILD VARIANT — the colony's 4th resource (Lab 26 · Part B)
+# -----------------------------------------------------------------------------
+# Drop-in extension for examples/capstone: an SNS events topic whose name is
+# composed by modules/naming and whose tags reuse the SAME shared module.labels
+# instance as the rest of the colony. This file is ONE valid implementation of
+# the Part B contract — a learner submission passes on green gates, not on
+# matching these bytes. It references var.project / var.environment /
+# module.labels from the surrounding root, so it works both dropped into
+# examples/capstone/ and standalone next to context.tf in this reference root.
+# =============================================================================
+
+variable "events_suffix" {
+  description = "Optional explicit suffix for the events topic name. Null -> random 4-hex suffix."
+  type        = string
+  default     = null
+}
+
+module "events_name" {
+  source = "../../modules/naming"
+
+  resource_type = "aws_sns_topic"
+  project       = var.project
+  environment   = var.environment
+  description   = "events"
+  suffix        = var.events_suffix
+}
+
+resource "aws_sns_topic" "events" {
+  name = module.events_name.name
+  tags = module.labels.tags
+}
+
+output "events_topic_name" {
+  description = "Composed SNS events-topic name."
+  value       = module.events_name.name
+}
+
+# Same guardrail style as the colony root's colony_labels_complete: the
+# extension must carry the full taxonomy because it reuses the shared
+# module.labels instance — a hand-written tags literal fails this check.
+check "events_labels_complete" {
+  assert {
+    condition = alltrue([
+      for k in ["environment", "criticality", "project", "service", "owner", "cost-center"] :
+      contains(keys(aws_sns_topic.events.tags), k)
+    ])
+    error_message = "events topic is missing one or more required taxonomy keys"
+  }
+}
+```
+
+`examples/capstone/tests/build.tftest.hcl` — one valid implementation:
+
+<!-- source: examples/capstone-build/tests/build.tftest.hcl -->
+```hcl
+# =============================================================================
+# capstone BUILD VARIANT — unit test for the events topic (no cloud, no Docker)
+# -----------------------------------------------------------------------------
+# command = plan + ALIASED mock_provider "aws", mirroring the capstone's
+# tests/unit.tftest.hcl. A FIXED events_suffix makes the composed topic name
+# known at plan, so the naming contract is asserted without an apply. Drop-in
+# for examples/capstone/tests/ — it only references addresses that exist in
+# both roots (module.events_name, aws_sns_topic.events, the shared labels).
+# =============================================================================
+
+mock_provider "aws" { alias = "mock" }
+
+run "build_unit_plan" {
+  command   = plan
+  providers = { aws = aws.mock }
+
+  variables {
+    project       = "colony"
+    environment   = "dev"
+    events_suffix = "f7a9"
+  }
+
+  assert {
+    condition     = module.events_name.name == "sns-colony-d-events-f7a9"
+    error_message = "events topic name should be sns-colony-d-events-f7a9"
+  }
+
+  assert {
+    condition     = aws_sns_topic.events.name == module.events_name.name
+    error_message = "the topic must take its name from the naming module, not a literal"
+  }
+
+  assert {
+    condition = alltrue([
+      for k in ["environment", "criticality", "project", "service", "owner", "cost-center"] :
+      contains(keys(aws_sns_topic.events.tags), k)
+    ])
+    error_message = "events topic tags must carry the full shared label taxonomy"
+  }
+
+  assert {
+    condition     = aws_sns_topic.events.tags["managed-by"] == "opentofu"
+    error_message = "events topic should inherit managed-by = opentofu from the shared labels"
+  }
+}
+```
+
+Assessment commands and their green output (captured on OpenTofu **1.12.5**):
+
+```console
+$ tofu -chdir=examples/capstone fmt -check -diff
+$ tofu -chdir=examples/capstone validate -no-color
+Success! The configuration is valid.
+
+$ tofu -chdir=examples/capstone test -filter=tests/build.tftest.hcl -no-color
+tests/build.tftest.hcl... pass
+  run "build_unit_plan"... pass
+
+Success! 1 passed, 0 failed.
+
+$ tofu -chdir=examples/capstone test -filter=tests/unit.tftest.hcl -filter=tests/encryption.tftest.hcl -no-color
+tests/encryption.tftest.hcl... pass
+  run "encryption_contract_plan"... pass
+  run "state_passphrase_too_short_rejected"... pass
+tests/unit.tftest.hcl... pass
+  run "unit_plan_with_mock"... pass
+
+Success! 3 passed, 0 failed.
+```
+
+With the extension in place `tofu -chdir=examples/capstone plan` reports
+**8 to add** (the shipped 6, plus your topic and its naming `random_id`).
+The three likely failure modes and their real diagnoses (unknown
+`resource_type` → naming-module precondition; unset `events_suffix` →
+`Unknown condition run` at plan; hand-written `tags` literal →
+`Check block assertion failed` in `tofu test`) are spoilered in the lab's
+Part B gallery — the fix for each is in the contract itself.
+
+Cleanup is a plain remove, because both authored files are untracked:
+
+```bash
+rm -f examples/capstone/colony_events.tf examples/capstone/tests/build.tftest.hcl
+git status --porcelain -- examples/capstone
+```
+
+`git status --porcelain` prints nothing afterward — no tracked file (including
+`examples/capstone/.terraform.lock.hcl`) was ever modified.
+
+---
+
 ## Expected observations
 
 - Capstone plans with an **aliased `mock_provider`** — no Docker for the unit lane.

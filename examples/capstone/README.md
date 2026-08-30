@@ -70,6 +70,15 @@ tofu test -filter=tests/unit.tftest.hcl
 tofu test -filter=tests/integration.tftest.hcl
 ```
 
+## Build variant (Lab 26 · Part B)
+
+The capstone lab's optional **build variant** has you author the colony's 4th
+resource (an SNS events topic) as two drop-in files in this directory, judged
+by the same fmt/validate/test gates. Spec:
+[`labs/day-3/26-capstone.md`](../../labs/day-3/26-capstone.md) · Part B.
+Tracked reference implementation:
+[`examples/capstone-build/`](../capstone-build/).
+
 ## Stretch — Terramate orchestration
 
 See [`stretch/README.md`](./stretch/README.md). Optional; ignored by
