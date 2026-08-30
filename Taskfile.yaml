@@ -8,7 +8,7 @@
 # (OpenTofu), and the `verify` "tested workshop" gate. Every task has a `desc:`
 # so it shows up in `task --list`. Pass a target dir to lab:* with DIR=...,
 # e.g. `task lab:plan DIR=examples/naming-labels-demo` or a lab workdir
-# `task lab:validate DIR=labs/day-1/NN-topic` (see AGENT.md · lab workdir &
+# `task lab:validate DIR=labs/day-1/NN-topic` (see docs/authoring-guide.md · lab workdir &
 # drift contract; the verify.sh self-test fixture lives at labs/fixtures/drift-demo).
 version: "3"
 

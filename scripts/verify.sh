@@ -827,7 +827,7 @@ fi
 
 # ---------------------------------------------------------------------------
 # 6. Slide ↔ lab/pages drift ENFORCEMENT (annotated fenced blocks)
-#    Contract (see AGENT.md · "Lab workdir & drift contract"): a fenced ```hcl
+#    Contract (see docs/authoring-guide.md · "Lab workdir & drift contract"): a fenced ```hcl
 #    block may be tied to a tracked source file by an HTML comment marker on the
 #    line immediately above the fence:
 #
@@ -924,7 +924,7 @@ else
 
   if [ "$ANNOTATED" -eq 0 ]; then
     warn "no annotated \`\`\`hcl blocks found — drift enforcement is a no-op. (pass)"
-    info "Annotate a block with '<!-- source: PATH -->' above its fence to enforce it (see AGENT.md)."
+    info "Annotate a block with '<!-- source: PATH -->' above its fence to enforce it (see docs/authoring-guide.md)."
   elif [ "$DRIFTED" -eq 0 ]; then
     pass "all ${ANNOTATED} annotated block(s) match their source files — no slide↔lab drift"
   else

@@ -20,3 +20,5 @@ Consequences.
 | [0012](./0012-s15-into-day-1.md) | S15 (validation & checks) re-sequenced into Day 1 | Accepted |
 | [0013](./0013-sibling-lab-solutions.md) | Sibling `NN-topic.solution.md` lab companions | Accepted |
 | [0014](./0014-deck-manifest-ssot.md) | Deck manifest SSoT & generated root decks | Accepted |
+| [0015](./0015-participant-quiz-spike.md) | Participant quiz prototype — schema & offline delivery first | Accepted |
+| [0016](./0016-authoring-contract-home.md) | Authoring contract in `docs/`, thin `AGENT.md` shim, ignore hygiene | Accepted |

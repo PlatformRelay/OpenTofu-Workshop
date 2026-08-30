@@ -18,7 +18,7 @@ weeks; building none leaves every referencing section without its headline visua
   not speculatively. *(All four now shipped — see Consequences.)*
 - **Sections never block on a component.** Every section that wants a diagram names its
   **magic-move fallback** so authoring proceeds with or without the component.
-- Component contract (see `AGENT.md`): a `step` prop bound to `$clicks`, out-of-range values
+- Component contract (see `docs/authoring-guide.md`): a `step` prop bound to `$clicks`, out-of-range values
   **clamped** — a component never throws or blanks a slide.
 
 ## Consequences

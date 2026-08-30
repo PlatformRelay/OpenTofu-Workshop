@@ -583,7 +583,7 @@ notes for this slide in the side panel — they never render here.
 
 - Notes live in the **last HTML comment** in a slide, at the very end of its markdown.
 - Each note carries three things: **what to say · a timing cue · the transition**.
-- Every content slide in a section gets one — see `AGENT.md`, DoD item 8.
+- Every content slide in a section gets one — see `docs/authoring-guide.md`, DoD item 8.
 
 <!--
 Say: This is the notes convention itself, demonstrated. If you're in presenter

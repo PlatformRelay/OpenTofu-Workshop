@@ -34,4 +34,4 @@ built the enforcement and US-F-LAB05 retrofitted the one pre-convention lab.
 - Slide/lab HCL is generated *from* the tracked file, never hand-synced; drift is a build failure.
 - Successive labs can extend the previous lab's workdir (e.g. S06 → S15 → S07), keeping one
   continuous, verified configuration across a day.
-- Authoring rules live in `AGENT.md` ("Lab workdir & drift contract").
+- Authoring rules live in `docs/authoring-guide.md` ("Lab workdir & drift contract").

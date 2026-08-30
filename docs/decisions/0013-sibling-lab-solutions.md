@@ -40,7 +40,7 @@ Rules carried forward from [0009](0009-lab-workdirs.md):
 
 - **Runnable HCL lives in the tracked workdir**; the participant lab references files
   by path and uses `<!-- source: … -->` drift markers where slide/lab fences must match
-  tracked `.tf` files ([AGENT.md](../../AGENT.md) · lab workdir & drift contract).
+  tracked `.tf` files ([authoring guide](../authoring-guide.md#lab-workdir--drift-contract) · lab workdir & drift contract).
 - **Panic reset stays safe** — `task lab:down` and `tofu destroy` where applicable.
 
 Rules for sibling solutions:

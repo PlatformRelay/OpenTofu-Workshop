@@ -54,7 +54,7 @@ hide-invariant violation on S18).
 - The two decks cannot silently disagree on a tier, and "hidden" can't drift from "optional" —
   the gate catches it.
 - A new section MUST set `tier`/`day`/`section` frontmatter **and** the `# SNN · … · tier · Day`
-  heading comment, or the tier gate fails. (The convention lives in `AGENT.md` under
+  heading comment, or the tier gate fails. (The convention lives in `docs/authoring-guide.md` under
   "Section headers & tiers".)
 - Re-tiering a section (e.g. the S15 re-sequence, [0012](./0012-s15-into-day-1.md)) is a
   change in `scripts/deck-manifest.mjs` + section frontmatter, then

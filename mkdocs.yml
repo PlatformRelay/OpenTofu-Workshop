@@ -82,6 +82,7 @@ nav:
   - Downloads & previews:
       - Live decks & PDFs: downloads.md
   - Project:
+      - Authoring guide: authoring-guide.md
       - Associate alignment: associate-alignment.md
       - Release process: release.md
       - Supply-chain policy: security/supply-chain.md

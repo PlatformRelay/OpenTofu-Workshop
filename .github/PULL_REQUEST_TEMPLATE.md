@@ -16,7 +16,7 @@
 
 ## Checklist
 
-- [ ] Read [`AGENT.md`](../AGENT.md) and followed the relevant contract (deck
+- [ ] Read the [authoring guide](../docs/authoring-guide.md) and followed the relevant contract (deck
       architecture / lab / module authoring rules, as applicable).
 - [ ] No employer, customer, or corporate brand names.
 - [ ] No tooling/AI attribution in content or commit messages (no `Co-Authored-By`).

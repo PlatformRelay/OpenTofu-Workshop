@@ -29,7 +29,7 @@ three-day arc, this is the single artefact carried along it.
 
 This page is the **canonical** copy of the stage map and the continuity rule.
 The [facilitator runbook](facilitator-runbook.md) repeats the table for delivery
-use and `AGENT.md` repeats the rule for authoring — edit here first, then
+use and the [authoring guide](authoring-guide.md) repeats the rule for authoring — edit here first, then
 propagate.
 
 ### Stage map
@@ -83,7 +83,7 @@ Labs do **not** share one mutating directory. Two physical constraints forbid it
 
 1. Every lab runs standalone from its own tracked workdir
    (`task lab:validate DIR=labs/day-N/NN-topic`) — the lab workdir contract in
-   `AGENT.md`.
+   the [authoring guide](authoring-guide.md#lab-workdir--drift-contract).
 2. The drift gate in `scripts/verify.sh` byte-compares an annotated slide or lab
    block against the **whole** source file, so a directory that mutates between
    sections has no stable snapshot for a slide to cite.
@@ -162,7 +162,7 @@ consecutive annotated fences, each byte-checked against its own whole file. The
 worked reference is `slides-templates.md:123-172` over
 `labs/fixtures/templates-demo/naming-step-1.tf`, `naming-step-2.tf` and
 `naming-step-3.tf`. Step snapshots for that purpose belong under
-`labs/fixtures/` (the carve-out in `AGENT.md`) — never as an excerpt of a lab
+`labs/fixtures/` (the carve-out in the [authoring guide](authoring-guide.md#lab-workdir--drift-contract)) — never as an excerpt of a lab
 workdir file, which the whole-file drift gate rejects.
 
 ## Superset vs canonical 3-day cut

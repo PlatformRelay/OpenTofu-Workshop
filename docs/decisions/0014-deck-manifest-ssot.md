@@ -68,7 +68,7 @@ generator, not manual edits in `slides.md` / `slides-3day.md`.
 - Hand-editing generated deck import blocks is a CI failure, not a silent drift.
 - Release tags cannot export stale PDFs when the manifest and generated decks
   disagree — the gate runs on the tag workflow, not only on `main` CI.
-- Contributors should read `AGENT.md` · Repository map and run
+- Contributors should read `docs/authoring-guide.md` · Repository map and run
   `pnpm decks:generate && pnpm decks:check` after metadata changes.
 
 ## Related

@@ -22,7 +22,7 @@ use `pnpm deck -- --list`, then `pnpm deck -- --section S05` or
 `pnpm deck -- --range S05-S09` (`task deck -- …`). `--dry-run` resolves IDs and
 writes gitignored `.deck-selection.md` without starting Slidev. Without a TTY and
 `gum`, pass an explicit selector — the launcher never falls back to the superset.
-See [AGENT.md](../AGENT.md) · facilitator launcher.
+See the [authoring guide](authoring-guide.md#repository-map) · facilitator launcher.
 
 ---
 

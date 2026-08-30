@@ -87,4 +87,4 @@ facilitator never has to guess whether a gap is accidental.
    lightly via **S19** CI — HCP hands-on remains out-of-scope either way.
 
 See also the [facilitator runbook](facilitator-runbook.md) (S26 keep-row) and the
-[contributor guide](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/AGENT.md).
+[authoring guide](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/docs/authoring-guide.md).

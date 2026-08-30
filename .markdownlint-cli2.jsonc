@@ -17,7 +17,7 @@
     "default": true,
     // Labs embed long command lines, wide YAML blocks, and reference tables.
     "MD013": false,
-    // Labs use <details>/<summary> spoilers by authoring contract (AGENT.md).
+    // Labs use <details>/<summary> spoilers by authoring contract (docs/authoring-guide.md).
     "MD033": false,
     // Repeated step sub-headings ("Check", "Solution") recur under different
     // parent steps — allow duplicates as long as they are not siblings.

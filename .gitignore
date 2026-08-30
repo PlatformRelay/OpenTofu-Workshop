@@ -48,38 +48,17 @@ npm-debug.log*
 .env.*
 !.env.example
 
-# Working material / internal research — NOT part of the published deck.
-# Contains planning notes, source analysis, and agent handoff context; keep it local.
+# Untracked planning/working material — never published (ADR 0016).
 agent-context/
 
 # Local demo/reference clones (nested git repos) — facilitator rehearsal only.
 references/
 
-# Sibling git worktrees. Agent worktrees live under .claude/ (already ignored),
-# but .worktrees/ is the older convention, the directory still exists at the
-# root, and scripts/verify.sh's fmt fallback still excludes ./.worktrees/*. An
-# unignored worktree root means one `git add -A` stages another lane's entire
-# tree — including its copy of the deliberately-unformatted S13 fixture.
+# Legacy sibling-worktree root — an unignored root lets `git add -A` stage another lane's tree (ADR 0016).
 /.worktrees/
 
-# scripts/verify.sh's concurrency-guard lock directory (owner: scripts/verify.sh,
-# US-F-GATEHYG). Created for the duration of a run and removed on exit, so the
-# working tree would otherwise read as DIRTY for as long as any verify.sh runs —
-# and several gates in this repo, including this lane's own positive control,
-# use an empty `git status --porcelain` as evidence. A lock is never committable,
-# so this line is inert if that guard is never landed.
-#
-# The trailing `*` is load-bearing, not sloppiness. A SIGKILL between GATEHYG's
-# `mv` and its re-`mkdir` strands a `.verify.lock.stale.<pid>` sidecar, and there
-# is no reaper — measured NOT ignored by a bare `/.verify.lock`, so it would sit
-# untracked indefinitely. Every lane this session has used "porcelain is empty"
-# as delivery evidence, so a stray untracked file is not cosmetic here. Still
-# ROOT-ANCHORED by the leading slash: a `sub/.verify.lock` deeper in the tree is
-# correctly NOT ignored. Only over-reach is a hypothetical `.verify.locked`.
+# verify.sh concurrency-guard lock + stale sidecars; root-anchored, trailing * load-bearing (ADR 0016).
 /.verify.lock*
-
-# Keep deck docs even if ignored globally
-!AGENTS.md
 
 # OpenTofu working artifacts
 .terraform/
