@@ -9,7 +9,10 @@ supported (there is no `package-lock.json`).
 
 ## Prerequisites
 
-- **Node.js 22** (LTS) — [nodejs.org](https://nodejs.org/) or a version manager
+- **Node.js ≥20** — [nodejs.org](https://nodejs.org/) or a version manager.
+  The floor matches `task setup` (`MIN_NODE`), the README and the setup guide;
+  CI builds the published decks on Node **22** (LTS), so 22 is the
+  known-good choice
 - **Corepack** (ships with Node 16.13+) to activate the pinned pnpm
 - Optional: [Task](https://taskfile.dev) (`go-task`) for the `task …` aliases
 - Optional: a modern browser (Chrome, Firefox, Safari, Edge)
@@ -17,7 +20,7 @@ supported (there is no `package-lock.json`).
 Check versions:
 
 ```bash
-node -v    # expect v22.x
+node -v    # v20 or newer (CI builds on v22)
 corepack -v
 ```
 
