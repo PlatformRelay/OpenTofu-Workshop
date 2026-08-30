@@ -65,6 +65,21 @@ setup() {
   grep -qx 'scripts/verify-selftest\.sh' <<<"$matched"
 }
 
+# US-D-QUIZ-BANK (audit TEST-4): quiz:validate/test:quiz existed for months
+# wired into NOTHING — a broken bank or a dead validator shipped green. The
+# gate now lives in the lint job; this contract stops it silently falling out.
+# Comment-stripped and scoped to the lint job's own block, so neither prose in
+# ci.yml nor another job's steps can satisfy the greps.
+
+@test "ci.yml lint job runs the quiz validation plane" {
+  local wf="$ROOT/.github/workflows/ci.yml"
+  local exec_lines block
+  exec_lines="$(grep -v '^[[:space:]]*#' "$wf")"
+  block="$(awk '/^  lint:/{f=1; print; next} f && /^  [a-z-]+:$/{f=0} f' <<<"$exec_lines")"
+  grep -qF 'pnpm quiz:validate' <<<"$block"
+  grep -qF 'pnpm test:quiz' <<<"$block"
+}
+
 @test "release.yml serializes Release runs per ref (US-E-RELCONC)" {
   # v0.6.0 double-fired: one tag push raced two publish runs and one needed a
   # manual cancel (runs 32947408465/32947408182; audit RELSE-1). A top-level

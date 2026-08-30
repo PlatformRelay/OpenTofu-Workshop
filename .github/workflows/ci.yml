@@ -60,6 +60,11 @@ jobs:
       - run: pnpm lint
       - run: pnpm test:provenance
       - run: pnpm test:showcase
+      # Quiz plane (US-D-QUIZ-BANK, closes audit TEST-4): schema + semantic
+      # validation of the question bank, then its own test suite (floor rule,
+      # per-day export, participant copies stay answer-free).
+      - run: pnpm quiz:validate
+      - run: pnpm test:quiz
 
   lab-contract:
     name: Lab sibling-solution contract
