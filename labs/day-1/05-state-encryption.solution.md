@@ -22,11 +22,12 @@ ls
 
 ```console
 $ ls
-encryption.tf  main.tf  terraform.tfvars  variables.tf
+encryption-kms.tf.off  encryption.tf  main.tf  terraform.tfvars  variables.tf
 ```
 
-`main.tf`, `encryption.tf`, `variables.tf` and `terraform.tfvars` are tracked in
-the repo. Everything below runs against these exact files.
+`main.tf`, `encryption.tf`, `variables.tf`, `terraform.tfvars` and the optional
+Step 6 KMS variant `encryption-kms.tf.off` are tracked in the repo. Everything
+below runs against these exact files.
 
 </details>
 
