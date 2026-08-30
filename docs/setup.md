@@ -36,6 +36,19 @@ pnpm install --frozen-lockfile
 | Day 3 scale labs | Terramate |
 | Optional Terratest (S18) | Docker (container lane) — or host Go ≥1.22 |
 
+### One floor, one pin, honest spoilers
+
+- **Floor** — what the labs require: OpenTofu **≥1.9**, enforced by
+  `task setup` and the repo's verify gate. One documented exception: Lab 04's
+  *optional* S3 stretch needs ≥1.10 (`use_lockfile`) and says so inline.
+- **Pin** — what CI and the container lane actually run: **1.10.3**, from
+  [`versions.env`](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/versions.env),
+  the single pin file. The pin satisfies the floor (and the Lab 04 stretch).
+- **Spoilers** — each lab's pasted output states the OpenTofu version that
+  actually produced it, which may be newer than the pin (1.12.x captures are
+  common). Version banners in *your* output will show *your* version; every
+  behaviour the labs assert holds on any tofu at or above the floor.
+
 `gum`, `awslocal`, and the AWS CLI improve the local experience but are optional.
 Go is **not** installed by default. Terratest is container-first — see the
 [README](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/README.md)

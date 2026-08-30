@@ -105,6 +105,13 @@ Homebrew bash 5 first on `PATH`.
   second curriculum).
 - Commit messages follow `<gitmoji> <type>(<scope>): <subject>` (see `AGENT.md` for the
   full convention and examples).
+- **Spoilers are honest captures.** Pasted output comes from a real run and is
+  labeled with the OpenTofu version that actually produced it — which may be
+  newer than the `versions.env` pin a learner runs; that is fine as long as
+  the label says so. Machine-varying values (generated names/ids, request IDs,
+  version banners such as a lock's `Version:` line) are disclosed as varying,
+  and every omission carries a `...` elision marker. Never re-label a spoiler
+  to a version that did not produce it — re-capture instead.
 
 ## Code of Conduct
 
