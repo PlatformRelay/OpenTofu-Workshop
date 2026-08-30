@@ -12,6 +12,7 @@ import {
   validateDeckTierTruth,
   validateManifest,
   validatePlanningLanguage,
+  validateRunbookFitPlan,
   validateRunbookTimings,
   validateSectionFrontmatter,
   validateSyllabusCatalog,
@@ -129,6 +130,45 @@ describe('deck manifest validation', () => {
     assert.doesNotThrow(() => validatePlanningLanguage('No chain here.', manifest))
   })
 
+  it('requires the runbook to publish the fit-plan chain and day totals', () => {
+    const manifest = [
+      section('S00', { canonical: true, day: 1, slidesMinutes: 40, labMinutes: 20, compressedSlides: 25 }),
+      section('S01', { canonical: true, day: 1, slidesMinutes: 40, labMinutes: 20, compressedSlides: 30 }),
+    ]
+    // superset 80, fit 55; canonical day totals: day 1 = 80 + 40 = 120.
+    const runbook = `
+The arithmetic is explicit: **80 → 65**, then **65 → 55**.
+
+| Day | Slides | Labs | Slides+labs (planned) | Against the budget |
+| --- | ---: | ---: | ---: | --- |
+| 1 | 80 | 40 | **120** | over |
+| 2 | 0 | 0 | 0 | — |
+| 3 | 0 | 0 | 0 | — |
+`
+    assert.doesNotThrow(() => validateRunbookFitPlan(runbook, manifest))
+    // Absence is a failure, not a pass — unlike the README chain guard.
+    assert.throws(
+      () => validateRunbookFitPlan('No chain here.', manifest),
+      /must publish the Day 1 fit-plan/i,
+    )
+    assert.throws(
+      () => validateRunbookFitPlan(runbook.replace('**80 → 65**', '**70 → 65**'), manifest),
+      /chain starts at 70; expected 80/i,
+    )
+    assert.throws(
+      () => validateRunbookFitPlan(runbook.replace('**65 → 55**', '**65 → 50**'), manifest),
+      /chain ends at 50; expected 55/i,
+    )
+    assert.throws(
+      () => validateRunbookFitPlan(runbook.replace('**120**', '**121**'), manifest),
+      /Day 1 totals row claims 80\+40=121; expected 80\+40=120/i,
+    )
+    assert.throws(
+      () => validateRunbookFitPlan(runbook.replace('| 3 | 0 | 0 | 0 | — |', ''), manifest),
+      /day-totals table for days 1-3/i,
+    )
+  })
+
   it('validates deck tier truth with verify.sh-compatible errors', () => {
     const root = mkdtempSync(join(tmpdir(), 'ot-deck-'))
     writeFileSync(join(root, 'slides.md'), `---
@@ -184,6 +224,7 @@ hide: false
     const root = resolve(import.meta.dirname, '..')
     const runbook = readFileSync(join(root, 'docs/facilitator-runbook.md'), 'utf8')
     assert.doesNotThrow(() => validateRunbookTimings(workshopSections, runbook))
+    assert.doesNotThrow(() => validateRunbookFitPlan(runbook, workshopSections))
   })
 })
 

@@ -376,6 +376,52 @@ export function validateRunbookTimings(manifest, markdown) {
   return true
 }
 
+// US-O-README-SLIM moved the published day totals and the Day-1 fit plan out
+// of the README into docs/facilitator-runbook.md. The chain guard in
+// validatePlanningLanguage() is a no-op on a document without a chain, so the
+// runbook gets its own gate where absence is a FAILURE, not a pass: the fit
+// plan must be published there, its chain endpoints must equal the computed
+// superset/fit totals, and the day-totals table must match canonicalDayTotals()
+// for all three days.
+export function validateRunbookFitPlan(markdown, manifest = sections) {
+  const dayOneSuperset = dayOneSupersetSlidesTotal(manifest)
+  const dayOneFit = dayOneFitTotal(manifest)
+  const fitChains = [...markdown.matchAll(/\*\*\s*(\d+(?:\s*→\s*\d+)+)\s*\*\*/g)]
+    .map((match) => match[1].split('→').map((value) => Number(value.trim())))
+  if (!fitChains.length)
+    throw new Error('runbook must publish the Day 1 fit-plan arithmetic chain')
+  const chainStart = fitChains[0][0]
+  const chainEnd = fitChains.at(-1).at(-1)
+  if (chainStart !== dayOneSuperset)
+    throw new Error(`runbook fit-plan chain starts at ${chainStart}; expected ${dayOneSuperset}`)
+  if (chainEnd !== dayOneFit)
+    throw new Error(`runbook fit-plan chain ends at ${chainEnd}; expected ${dayOneFit}`)
+
+  const totals = canonicalDayTotals(manifest)
+  const seen = new Set()
+  for (const line of markdown.split('\n')) {
+    const cells = line.split('|').slice(1, -1).map((cell) => cell.trim())
+    if (cells.length < 4)
+      continue
+    const day = Number(cells[0])
+    const slides = Number(cells[1])
+    const lab = Number(cells[2])
+    const total = Number(cells[3].replaceAll('*', ''))
+    if (![1, 2, 3].includes(day) || !Number.isFinite(slides) || !Number.isFinite(lab) || !Number.isFinite(total))
+      continue
+    const expected = totals.get(day)
+    if (slides !== expected.slides || lab !== expected.lab || total !== expected.total) {
+      throw new Error(
+        `runbook Day ${day} totals row claims ${slides}+${lab}=${total}; expected ${expected.slides}+${expected.lab}=${expected.total}`,
+      )
+    }
+    seen.add(day)
+  }
+  if (seen.size !== 3)
+    throw new Error('runbook must publish the slides/labs day-totals table for days 1-3')
+  return true
+}
+
 export function canonicalDayTotals(manifest = sections) {
   const totals = new Map([1, 2, 3].map((day) => [day, { slides: 0, lab: 0, total: 0 }]))
   for (const section of manifest.filter((item) => item.canonical)) {
@@ -594,7 +640,9 @@ export function validateDocumentationTruth(manifest = sections, { repoRoot = res
   const syllabus = readFileSync(resolve(repoRoot, 'docs/syllabus.md'), 'utf8')
   validateSyllabusCatalog(manifest, syllabus)
   validateSyllabusTimings(manifest, syllabus)
-  validateRunbookTimings(manifest, readFileSync(resolve(repoRoot, 'docs/facilitator-runbook.md'), 'utf8'))
+  const runbook = readFileSync(resolve(repoRoot, 'docs/facilitator-runbook.md'), 'utf8')
+  validateRunbookTimings(manifest, runbook)
+  validateRunbookFitPlan(runbook, manifest)
   validatePlanningLanguage(readFileSync(resolve(repoRoot, 'README.md'), 'utf8'), manifest)
   validateDeckTierTruth(manifest, { repoRoot })
   return true

@@ -35,6 +35,34 @@ test('docs landing links live decks on Pages', () => {
   }
 })
 
+// US-O-README-SLIM: the README is a front door — the fit-plan and day-total
+// tables live in docs/facilitator-runbook.md, and the README routes to them.
+// The digits themselves are machine-checked by validateRunbookFitPlan() in
+// scripts/deck-manifest.mjs; this test pins the LOCATION so the tables cannot
+// silently migrate back and re-bloat the front door.
+test('README routes timing tables to the runbook instead of hosting them', () => {
+  const readme = readFileSync(resolve(ROOT, 'README.md'), 'utf8')
+  const runbook = readFileSync(resolve(ROOT, 'docs/facilitator-runbook.md'), 'utf8')
+  assert.doesNotMatch(
+    readme,
+    /### Day 1 fit plan|### Published day totals|Running total/,
+    'README must not host the fit-plan or day-total tables (they live in the runbook)',
+  )
+  assert.match(
+    readme,
+    /\]\(docs\/facilitator-runbook\.md#day-1-fit-plan\)/,
+    'README must link the runbook Day 1 fit plan',
+  )
+  assert.match(
+    readme,
+    /\]\(docs\/facilitator-runbook\.md#live-cut-order\)/,
+    'README must link the runbook day totals (live cut-order)',
+  )
+  assert.match(readme, /## Scope and timing \(known issue\)/, 'README keeps the scope-and-timing anchor')
+  assert.match(runbook, /### Day 1 fit plan/, 'runbook must host the Day 1 fit plan')
+  assert.match(runbook, /\| Order \| Action \| Minutes \| Running total \|/, 'runbook must host the fit-plan table')
+})
+
 test('README has no controlled-beta warning', () => {
   const readme = readFileSync(resolve(ROOT, 'README.md'), 'utf8')
   assert.doesNotMatch(

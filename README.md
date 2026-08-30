@@ -54,8 +54,9 @@ For the standard learner route:
 > capstone, are shipped (not stubs). Optional sections stay skippable via the
 > cut-order / `hide:` toggles. The section library is a deliberate **superset**
 > that runs longer than three days — read
-> [Scope and timing](#scope-and-timing-known-issue) and apply the
-> [Day 1 fit plan](#day-1-fit-plan) before facilitating.
+> [Scope and timing](#scope-and-timing-known-issue) and apply the runbook's
+> [Day 1 fit plan](docs/facilitator-runbook.md#day-1-fit-plan) before
+> facilitating.
 
 ### Prerequisites by workshop day
 
@@ -112,85 +113,17 @@ cut.
 
 > [!WARNING]
 > This repository is a **content superset**: the section library (`S00`–`S26`)
-> is deliberately **larger than fits in three days**. At a **390 min/day** budget
-> (6.5 h, ~50/50 explain-then-run), the full superset runs well over three days,
-> and even the canonical three-day cut **overflows on two of the three days** —
-> see the published totals below. That is a deliberate design choice ("choice
-> over fit"), not an oversight. For a standard delivery, start with the canonical
-> three-day cut; when trimming further, cut **`optional` first, then
-> `recommended`**, and keep `core`. Before facilitating Day 1, apply the
-> [executable Day 1 fit plan](#day-1-fit-plan).
-
-### Published day totals
-
-Slides **and** labs for the canonical three-day cut, computed from
-`canonicalDayTotals()` in `scripts/deck-manifest.mjs`. They are **unrehearsed
-planning estimates** derived from section frontmatter, never rehearsal timings,
-and the facilitator budget is 390 min/day:
-
-- **Day 1 slides+labs: 790 min (planned)** — 540 slides + 250 labs, **+400 over** budget.
-- **Day 2 slides+labs: 360 min (planned)** — 180 slides + 180 labs, 30 under budget.
-- **Day 3 slides+labs: 400 min (planned)** — 200 slides + 200 labs, **+10 over** budget.
-
-Two of the three days do not fit: plan the overflow rather than discovering it
-mid-morning. The [fit plan](#day-1-fit-plan) below brings Day-1 **slide** time
-down to 400 — a separate, slides-only deck-runtime figure that is itself 10
-minutes over the budget. The 250 minutes of Day-1 lab time sit on top of it and
-the fit plan does not touch them.
-
-### Day 1 fit plan
-
-This plan compresses **slide time only**. It starts at **705 minutes** of slide
-time across all thirteen Day-1 sections (`dayOneSupersetSlidesTotal()`) and ends
-at **400** (`dayOneFitTotal()`). Day-1 lab time — 250 minutes — is untouched, so
-a fit-plan delivery still runs **650 minutes** of slides+labs against a 390
-budget. Be precise about what the plan now buys. Since S01 grew to carry the
-design-principles and alternatives beats, the compressed **deck alone** is 10
-minutes over the whole-day budget, so the plan no longer makes even the deck fit
-the day. What it does is remove 305 minutes of slide time and turn the remaining
-overflow into a planned, published one instead of a mid-morning surprise.
-Apply the rows in order. The first three remove optional/recommended material;
-the remaining rows shorten core delivery while preserving each section's outcome.
-The arithmetic is explicit: **705 → 670 → 615 → 540**, then
-**540 → 525 → 500 → 485 → 470 → 455 → 440 → 425 → 410 → 400**.
-
-| Order | Action | Minutes | Running total | Pedagogical cost |
-| ---: | --- | ---: | ---: | --- |
-| 1 | Skip S11 (optional); its `hide: true` toggle is already set | −35 | 670 | Defer the TACO vendor-selection landscape |
-| 2 | Skip S10 (recommended) at its `DAY1-FIT` marker; keep `hide: false` | −55 | 615 | Defer the differentiator deep dive (incl. the import/adoption drill); S01's teaser and S05's encryption demo remain |
-| 3 | Skip S09 (recommended) at its `DAY1-FIT` marker; keep `hide: false` | −75 | 540 | Defer the `count` vs `for_each` lesson, `dynamic` blocks, and `moved`/`removed` refactoring to follow-up study |
-| 4 | Compress S00 from 40→25 at its marker | −15 | 525 | Move installation checks before class; retain orientation and first apply |
-| 5 | Compress S01 from 55→30 at its marker | −25 | 500 | Make the detailed fork timeline pre-reading; retain why IaC, the design principles, the differentiators teaser, the alternatives, and governance |
-| 6 | Compress S02 from 50→35 at its marker | −15 | 485 | Demo fewer block variants; retain syntax, references, and the break→fix |
-| 7 | Compress S03 from 60→45 at its marker | −15 | 470 | Use one lifecycle run; retain plan reading and destroy |
-| 8 | Compress S06 from 50→35 at its marker | −15 | 455 | Teach typed objects and validation; assign precedence variants as follow-up |
-| 9 | Compress S15 from 50→35 at its marker | −15 | 440 | Teach one blocking condition plus `check`; assign the full assertion matrix |
-| 10 | Compress S04 from 50→35 at its marker | −15 | 425 | Demonstrate state inspection live; assign backend migration as follow-up |
-| 11 | Compress S05 from 60→45 at its marker | −15 | 410 | Demonstrate encryption; assign key rotation as follow-up |
-| 12 | Compress S07 from 60→50 at its marker | −10 | **400** | Keep local module composition; demo registry/OCI lookup instead of running it |
-
-`hide: true` remains reserved for optional sections, so S09/S10 and every core
-section stay `hide: false`. Their comments in
-[the three-day deck](slides-3day.md) are delivery markers, not tier changes.
-
-The Day-1 resequencing (S06 and S15 moved ahead of S04 and S05) changed no
-section's length, so it left the Day-1 planning total and every row above
-untouched — only the order of rows 4–12 moved. The total moved later, and for a
-different reason: S01 grew from 40 to 50 minutes when the design-principles and
-alternatives beats were added, then to 55 when the OpenTofu-differentiators
-teaser landed, and the Lab-04 drift step added 5 lab minutes on top, taking the
-planning total to 790 and the fit-plan target to 400.
-
-Skipping S09 and S10 carries a known, accepted cost: a learner on the canonical
-cut **never sees `for_each` taught** — neither S09's `count` vs `for_each`
-lesson and `moved`-based refactoring without replacement, nor S10's
-provider-level `for_each` and `-exclude` — and, with S10, the hands-on
-`import`/state-adoption drill of Lab 10 Part B. S01's differentiators teaser
-*names* provider `for_each` and `-exclude` and points at S10 as follow-up, but
-naming is not teaching: beyond it the keyword survives only incidentally, in a
-`dynamic` block toggle inside the Day-3 capstone's provider boilerplate and in
-an optional stretch prompt at the end of Lab 07; neither is taught or checked.
-Restore S09 first if time returns.
+> is deliberately **larger than fits in three days**, and even the canonical
+> three-day cut overflows on two of the three days against a **390 min/day**
+> budget (6.5 h, ~50/50 explain-then-run). That is a deliberate design choice
+> ("choice over fit"), not an oversight. The planning arithmetic lives in the
+> facilitator runbook: the published
+> [day totals](docs/facilitator-runbook.md#live-cut-order) and the executable
+> [Day 1 fit plan](docs/facilitator-runbook.md#day-1-fit-plan), which
+> compresses Day-1 **slide** time from 705 minutes to 400 and leaves the labs
+> untouched. Apply the fit plan before facilitating; when trimming further,
+> cut **`optional` first, then `recommended`**, and keep `core`. All totals
+> are unrehearsed planning estimates, never measured timings.
 
 ## Common local commands
 
