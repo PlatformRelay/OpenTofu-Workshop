@@ -16,7 +16,7 @@ const frontmatter = computed(
 
 /* Full-bleed layouts carry no footer; any slide can opt out via hideFooter.
  * cover / section-cover stay clear so the mandatory "AI generated" label is
- * * undisturbed (docs/authoring-guide.md). Provenance chrome lives here, not on covers. */
+ * undisturbed (docs/authoring-guide.md). Provenance chrome lives here, not on covers. */
 const hideFooter = computed(() => {
   if (frontmatter.value.hideFooter === true)
     return true
