@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
+import { dayOneFitTotal, dayOneSupersetSlidesTotal } from './deck-manifest.mjs'
+
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const PAGES = 'https://platformrelay.github.io/OpenTofu-Workshop'
 
@@ -78,6 +80,29 @@ test('README pitches running the workshop for your team', () => {
     pitch,
     /\]\(docs\/facilitator-runbook\.md\)/,
     'pitch must route adopters to the facilitator runbook',
+  )
+})
+
+// US-O-LINKS404 fold-in: the README's "compresses Day-1 slide time from 705
+// minutes to 400" literals became unbound when US-O-README-SLIM moved the
+// arithmetic-chain guard to the runbook ("Day-1" with a hyphen also dodges
+// validatePlanningLanguage's day-minute regex). Bind BOTH literals to the
+// manifest so the sentence cannot silently rot when timings change.
+test('README fit-plan compression literals equal the manifest totals', () => {
+  const readme = readFileSync(resolve(ROOT, 'README.md'), 'utf8')
+  const match = readme.match(
+    /compresses Day-1 \*\*slide\*\* time from (\d+) minutes to (\d+)/,
+  )
+  assert.ok(match, 'README must state the Day-1 slide-time compression')
+  assert.equal(
+    Number(match[1]),
+    dayOneSupersetSlidesTotal(),
+    'README compression start must equal the manifest Day-1 superset slides total',
+  )
+  assert.equal(
+    Number(match[2]),
+    dayOneFitTotal(),
+    'README compression target must equal the manifest Day-1 fit-plan total',
   )
 })
 
