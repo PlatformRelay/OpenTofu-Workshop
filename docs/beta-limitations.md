@@ -18,7 +18,7 @@ sections you keep.
   optional Terratest) have stronger unit/CI coverage than end-to-end clean runs on
   every host combination. Budget a dry-run of the add-ons *your* cut needs.
 - **LocalStack paths** vary by lab; emulator health and install order can drift
-  on a fresh machine — see [LocalStack troubleshooting](https://platformrelay.github.io/OpenTofu-Workshop/setup/localstack/).
+  on a fresh machine — see [LocalStack troubleshooting](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/setup/localstack.md).
 - **Validation & rehearsal** — per-lab environment/tool claims and honest
   validation states live in [`docs/validation-matrix.md`](./validation-matrix.md)
   (machine view: `infra/lab-inventory.json`). No lab is marked fully rehearsed

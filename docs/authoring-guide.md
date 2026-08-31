@@ -2,7 +2,7 @@
 
 How this workshop is built. Read before authoring a section, a lab, or a module.
 Contribution workflow (issues, PRs, the small-fix fast path) lives in
-[CONTRIBUTING](../CONTRIBUTING.md); this page is the authoring contract itself.
+[CONTRIBUTING](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/CONTRIBUTING.md); this page is the authoring contract itself.
 
 ## Non-negotiable guardrails
 
@@ -148,8 +148,8 @@ decks import sections under `# SNN · Title · tier · Day` comments produced by
 `pnpm decks:generate`. Tiers must match frontmatter and obey
 `hide:true ⟺ optional` in `slides-3day.md` — `pnpm decks:check` and
 `task verify` (US-F-TIERS) enforce both.
-Rationale: tier meanings in [ADR 0008](decisions/0008-tier-canon-and-deck-headers.md);
-manifest model in [ADR 0014](decisions/0014-deck-manifest-ssot.md).
+Rationale: tier meanings in [ADR 0008](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/docs/decisions/0008-tier-canon-and-deck-headers.md);
+manifest model in [ADR 0014](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/docs/decisions/0014-deck-manifest-ssot.md).
 
 ## Lab authoring contract
 

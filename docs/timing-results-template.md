@@ -94,6 +94,6 @@ note which sections you actually ran.
 ## Blockers summary
 
 List cross-cutting blockers (LocalStack slow start, scanner install, Terramate version skew).
-File each as a [beta-feedback issue](../.github/ISSUE_TEMPLATE/beta-feedback.yml) and link here.
+File each as a [beta-feedback issue](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/.github/ISSUE_TEMPLATE/beta-feedback.yml) and link here.
 
 - _(none recorded yet — fill during the run)_
