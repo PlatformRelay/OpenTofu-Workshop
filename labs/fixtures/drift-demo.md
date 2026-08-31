@@ -2,7 +2,8 @@
 
 > **Not a workshop section.** This lives under `labs/fixtures/` and exists only
 > to exercise `scripts/verify.sh`'s annotated-block drift enforcement. See
-> AGENT.md · "Lab workdir & drift contract" for the carve-out.
+> docs/authoring-guide.md · "Lab workdir & drift contract" for the
+> carve-out.
 
 | | |
 | --- | --- |

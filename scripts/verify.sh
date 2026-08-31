@@ -973,7 +973,7 @@ else
     "template gallery|slides-templates.md"
     "Lab 00|labs/day-1/00-setup.md"
     "LocalStack troubleshooting|setup/localstack.md"
-    "contributor guide|AGENT.md"
+    "contributor guide|docs/authoring-guide.md"
     "decision index|docs/decisions/README.md"
   )
   NAV_FAILURES=0

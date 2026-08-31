@@ -226,7 +226,7 @@ Then: After the lab — next steps and the Associate design check.
   </KwCard>
   <KwCard heading="Docs" variant="plain">
     OpenTofu docs · LocalStack · Terramate docs · this repo’s
-    <code>AGENT.md</code> / facilitator runbook.
+    <code>docs/authoring-guide.md</code> / facilitator runbook.
   </KwCard>
   <KwCard heading="Community" variant="warn">
     OpenTofu CNCF / community channels — vendor-neutral first;

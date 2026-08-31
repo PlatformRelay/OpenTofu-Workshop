@@ -9,7 +9,7 @@ all welcome.
 Typo, broken link, wrong command, small doc fix — **just open a PR.** That's the whole
 process:
 
-- **No required reading.** You do not need `AGENT.md` or the rest of this document.
+- **No required reading.** You do not need the authoring guide or the rest of this document.
 - **No commit-message conventions.** Write any commit message; maintainers will
   squash-merge and format the final message themselves.
 - **No local toolchain.** Editing the file on github.com is fine — CI is the safety
@@ -35,7 +35,8 @@ labs, HCL modules, scripts. If that's you, read on.
 - **Fix something small** — typos, broken links, a wrong command, a slide overflow —
   use the [fast path](#small-fix-fast-path) above: open a PR directly.
 - **Propose a new section, lab, or module** — open a Discussion or issue first
-  describing the scope; sections must be self-contained per `AGENT.md`, so it's worth
+  describing the scope; sections must be self-contained per the
+  [authoring guide](./docs/authoring-guide.md), so it's worth
   agreeing on shape before investing in a full draft.
 - **Report a security issue** — see [`SECURITY.md`](./SECURITY.md), not a public issue.
 
@@ -65,7 +66,7 @@ full.
 
 ### Before you start
 
-- **Read [`AGENT.md`](./AGENT.md) first.** It is the authoring contract: deck
+- **Read the [authoring guide](./docs/authoring-guide.md) first.** It is the authoring contract: deck
   architecture, section structure, the presenter-notes convention, module/lab
   authoring rules, and commit conventions. Every substantive PR is expected to follow
   it.
@@ -98,14 +99,15 @@ task lab:terratest DIR=labs/fixtures/terratest-smoke   # if you touched Terrates
 `task verify` needs **Bash ≥4** — macOS's default `/bin/bash` (3.2) fails; put
 Homebrew bash 5 first on `PATH`.
 
-**Guardrails checklist** (from `AGENT.md`, non-negotiable):
+**Guardrails checklist** (from the [authoring guide](./docs/authoring-guide.md), non-negotiable):
 
 - No employer, customer, or corporate brand names anywhere.
 - No tooling/AI attribution in content or commit messages (no `Co-Authored-By`).
 - Any AI-generated image carries a visible "AI generated" footer.
 - Teach `tofu`, not a parallel Terraform track (Terraform compatibility is a note, not a
   second curriculum).
-- Commit messages follow `<gitmoji> <type>(<scope>): <subject>` (see `AGENT.md` for the
+- Commit messages follow `<gitmoji> <type>(<scope>): <subject>` (see the
+  [authoring guide](./docs/authoring-guide.md) for the
   full convention and examples).
 - **Spoilers are honest captures.** Pasted output comes from a real run and is
   labeled with the OpenTofu version that actually produced it — which may be

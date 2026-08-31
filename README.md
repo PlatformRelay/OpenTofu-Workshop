@@ -92,7 +92,7 @@ above.
 | --- | --- | --- |
 | Learner | [Docs home](https://platformrelay.github.io/OpenTofu-Workshop/) or [canonical three-day deck](https://platformrelay.github.io/OpenTofu-Workshop/deck/3day/) — offline: [slides-3day.md](slides-3day.md) / `task dev:3day` | [Lab 00](labs/day-1/00-setup.md) and the [labs index](https://platformrelay.github.io/OpenTofu-Workshop/labs/) |
 | Facilitator | [Facilitator runbook](https://platformrelay.github.io/OpenTofu-Workshop/facilitator-runbook/) (clone: [docs/facilitator-runbook.md](docs/facilitator-runbook.md)) | [3-day deck](https://platformrelay.github.io/OpenTofu-Workshop/deck/3day/), the scope and timing warning below, and [Associate alignment](https://platformrelay.github.io/OpenTofu-Workshop/associate-alignment/) (design check, not exam prep) |
-| Contributor | [Contributor guide](AGENT.md) | [Template gallery](slides-templates.md) / `task dev:templates` and the [decision index](docs/decisions/README.md) |
+| Contributor | [Contributor guide](docs/authoring-guide.md) | [Template gallery](slides-templates.md) / `task dev:templates` and the [decision index](docs/decisions/README.md) |
 
 ## Run this workshop for your team
 
@@ -198,7 +198,7 @@ Fixing a typo, a broken link, or a wrong command? **Just open a PR** —
 required reading, no commit-message conventions, no local toolchain;
 maintainers squash-merge and format the message. For substantive changes
 (slides, labs, modules, scripts), read [CONTRIBUTING.md](CONTRIBUTING.md) and
-the [contributor guide](AGENT.md) for conventions, the lab authoring
+the [contributor guide](docs/authoring-guide.md) for conventions, the lab authoring
 contract, the Definition of Done, and guardrails. In short: OpenTofu-first
 (`tofu`), vendor-neutral, Conventional Commits + gitmoji, and every lab task
 carries a spoiler and a panic reset.

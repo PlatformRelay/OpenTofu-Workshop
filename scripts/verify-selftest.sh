@@ -313,7 +313,10 @@ build_root() {
   cp "$REPO_ROOT/slides-3day.md"    "$root/slides-3day.md"
   cp "$REPO_ROOT/slides-templates.md" "$root/slides-templates.md"
   cp "$REPO_ROOT/README.md"         "$root/README.md"
-  cp "$REPO_ROOT/AGENT.md"          "$root/AGENT.md"
+  # The README "Contributor guide" route points at docs/authoring-guide.md
+  # (ADR 0016); section 8 needle-checks the route target, so the sandbox must
+  # carry it.
+  cp "$REPO_ROOT/docs/authoring-guide.md" "$root/docs/authoring-guide.md"
   cp "$REPO_ROOT/Taskfile.yaml"     "$root/Taskfile.yaml"
   cp "$REPO_ROOT/versions.env"      "$root/versions.env"
   cp "$REPO_ROOT/docker-compose.yml" "$root/docker-compose.yml"
