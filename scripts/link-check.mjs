@@ -23,6 +23,11 @@ function collectMarkdown(dir, acc, repoRoot) {
   const abs = resolve(repoRoot, dir);
   if (!existsSync(abs)) return acc;
   for (const entry of readdirSync(abs, { withFileTypes: true })) {
+    // Never descend into dot-directories: untracked labs/**/.terraform provider
+    // caches ship vendored markdown whose links resolve nowhere (RELSE-2 —
+    // hundreds of phantom errors on a lived-in checkout), and no checked doc
+    // legitimately lives under a hidden directory.
+    if (entry.isDirectory() && entry.name.startsWith('.')) continue;
     const rel = join(dir, entry.name);
     if (entry.isDirectory()) collectMarkdown(rel, acc, repoRoot);
     else if (entry.isFile() && entry.name.endsWith('.md')) acc.push(rel);

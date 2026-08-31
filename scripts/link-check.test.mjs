@@ -84,6 +84,21 @@ describe('discoverDocs', () => {
     assert.deepEqual(docs, ['README.md', 'ROADMAP.md'])
   })
 
+  it('skips dot-directories such as untracked .terraform provider caches (RELSE-2)', () => {
+    // A lived-in checkout carries labs/**/.terraform provider caches full of
+    // vendored READMEs with links that resolve nowhere. Discovery must never
+    // descend into dot-directories, so a broken link planted there cannot red
+    // the run (and the real tree stays checkable on a used machine).
+    const root = mkdtempSync(join(tmpdir(), 'ot-link-check-'))
+    writeDoc(root, 'README.md', '# Root\n')
+    writeDoc(root, 'labs/day-1/00-setup/.terraform/providers/vendor/README.md', '[gone](missing.md)\n')
+    writeDoc(root, 'docs/.cache/sneaky.md', '[gone](missing.md)\n')
+    const docs = discoverDocs({ repoRoot: root })
+    assert.deepEqual(docs, ['README.md'])
+    const { errors } = checkLinks({ repoRoot: root })
+    assert.deepEqual(errors, [])
+  })
+
   it('checkLinks reds on a broken ROADMAP.md link', () => {
     const root = mkdtempSync(join(tmpdir(), 'ot-link-check-'))
     writeDoc(root, 'README.md', '# Root\n')
