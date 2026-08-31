@@ -75,4 +75,21 @@ describe('discoverDocs', () => {
     const docs = discoverDocs({ repoRoot: root })
     assert.deepEqual(docs, ['README.md', 'docs/alpha.md', 'labs/day-1/00-setup.md'])
   })
+
+  it('includes ROADMAP.md when it exists (US-O-ROADMAP)', () => {
+    const root = mkdtempSync(join(tmpdir(), 'ot-link-check-'))
+    writeDoc(root, 'README.md', '# Root\n')
+    writeDoc(root, 'ROADMAP.md', '# Roadmap\n')
+    const docs = discoverDocs({ repoRoot: root })
+    assert.deepEqual(docs, ['README.md', 'ROADMAP.md'])
+  })
+
+  it('checkLinks reds on a broken ROADMAP.md link', () => {
+    const root = mkdtempSync(join(tmpdir(), 'ot-link-check-'))
+    writeDoc(root, 'README.md', '# Root\n')
+    writeDoc(root, 'ROADMAP.md', '[gone](docs/missing.md)\n')
+    const { errors } = checkLinks({ repoRoot: root })
+    assert.equal(errors.length, 1)
+    assert.match(errors[0], /^ROADMAP\.md:1: missing internal target docs\/missing\.md/)
+  })
 })

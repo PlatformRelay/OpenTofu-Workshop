@@ -190,6 +190,9 @@ setup/                bootstrap, lab runner, and environment guides
 
 ## Contributing
 
+Curious where the workshop is heading? The [roadmap](ROADMAP.md) lists the
+near-term themes and the standing community asks.
+
 Fixing a typo, a broken link, or a wrong command? **Just open a PR** —
 [CONTRIBUTING.md](CONTRIBUTING.md) starts with a small-fix fast path: no
 required reading, no commit-message conventions, no local toolchain;

@@ -32,6 +32,9 @@ function collectMarkdown(dir, acc, repoRoot) {
 
 export function discoverDocs({ repoRoot = REPO_ROOT } = {}) {
   const docs = ['README.md'];
+  // US-O-ROADMAP: the public roadmap is a root doc too — its links must
+  // resolve just like the README's. Guarded so fixture repos without one pass.
+  if (existsSync(resolve(repoRoot, 'ROADMAP.md'))) docs.push('ROADMAP.md');
   for (const dir of ['docs', 'labs']) {
     collectMarkdown(dir, docs, repoRoot);
   }

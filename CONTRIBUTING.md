@@ -25,6 +25,8 @@ labs, HCL modules, scripts. If that's you, read on.
 
 ## Ways to contribute
 
+- **See where the project is heading** — [`ROADMAP.md`](./ROADMAP.md) lists the
+  near-term themes, what's merely being explored, and the standing community asks.
 - **Report a bug or content issue** —
   [open an issue](https://github.com/PlatformRelay/OpenTofu-Workshop/issues/new/choose).
 - **Ask a question or propose an idea** — start a

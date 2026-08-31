@@ -81,6 +81,13 @@ test('README pitches running the workshop for your team', () => {
   )
 })
 
+// US-O-ROADMAP: the project direction is public, not buried in gitignored
+// planning docs — the front door must route contributors to ROADMAP.md.
+test('README links the public roadmap', () => {
+  const readme = readFileSync(resolve(ROOT, 'README.md'), 'utf8')
+  assert.match(readme, /\]\(ROADMAP\.md\)/, 'README must link ROADMAP.md')
+})
+
 test('README contributing section names the small-fix fast path', () => {
   const readme = readFileSync(resolve(ROOT, 'README.md'), 'utf8')
   assert.match(readme, /\]\(CONTRIBUTING\.md\)/, 'README must link CONTRIBUTING.md')
