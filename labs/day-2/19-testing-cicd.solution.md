@@ -89,8 +89,8 @@ main.tf
 +++ new/main.tf
 @@ -1,8 +1,8 @@
  terraform {
-- required_version = ">= 1.8"
-+  required_version = ">= 1.8"
+- required_version = ">= 1.9"
++  required_version = ">= 1.9"
  }
 
  output "pipeline_fixture" {

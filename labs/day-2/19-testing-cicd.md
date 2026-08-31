@@ -19,7 +19,7 @@ claiming a `localstack ✓` badge would require running the emulator for real.
 
 ## Prerequisites
 
-- OpenTofu ≥1.8 (`tofu version`).
+- OpenTofu ≥1.9 (`tofu version`).
 - A terminal at the repository root.
 - No credentials, Docker, or cloud account.
 
@@ -39,7 +39,7 @@ The fixture starts clean:
 <!-- source: labs/day-2/19-testing-cicd/fixture/main.tf -->
 ```hcl
 terraform {
-  required_version = ">= 1.8"
+  required_version = ">= 1.9"
 }
 
 output "pipeline_fixture" {
@@ -126,8 +126,8 @@ main.tf
 +++ new/main.tf
 @@ -1,8 +1,8 @@
  terraform {
-- required_version = ">= 1.8"
-+  required_version = ">= 1.8"
+- required_version = ">= 1.9"
++  required_version = ">= 1.9"
  }
 
  output "pipeline_fixture" {

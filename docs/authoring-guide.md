@@ -258,7 +258,7 @@ fences render):
     <!-- source: labs/fixtures/drift-demo/main.tf -->
     ```hcl
     terraform {
-      required_version = ">= 1.8"
+      required_version = ">= 1.9"
     }
     ```
 
