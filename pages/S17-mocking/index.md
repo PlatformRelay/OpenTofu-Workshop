@@ -52,8 +52,8 @@ Then: “OpenTofu 1.8 made the mock itself a first-class test construct.”
 
 <div class="mt-4 kw-panel p-3 text-sm">
 Terraform shipped comparable override/mocking earlier (1.7). Teach the OpenTofu
-blocks; <code>mock_provider</code> needs OpenTofu <strong>1.8+</strong>, and Labs 06
-and 10 raise the workshop's floor to <strong>1.9</strong>.
+blocks; <code>mock_provider</code> needs OpenTofu <strong>1.8+</strong>, comfortably
+under the workshop floor of <strong>1.9</strong>.
 </div>
 
 <!--
