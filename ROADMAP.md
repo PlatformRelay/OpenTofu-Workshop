@@ -54,9 +54,6 @@ Genuinely open work, verified against the tree — not aspiration:
   treats site URLs as informational and descends into untracked `.terraform`
   caches. Planned: fix the remaining links and teach the link gate to catch
   the whole class permanently.
-- **One honest version floor** — `setup/bootstrap.sh` enforces OpenTofu
-  ≥ 1.8 while the documented prerequisite is ≥ 1.9; the setup checker should
-  enforce exactly what the docs promise.
 
 ## Exploring (no commitment yet)
 
