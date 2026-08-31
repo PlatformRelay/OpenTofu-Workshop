@@ -98,6 +98,10 @@
 #    33a. clean tree → exit 0 AND "version floor: consumers state" (gate ARMED)
 #    33b. bootstrap MIN_TOFU skewed away from TOFU_FLOOR → exit !=0 AND
 #         "floor skew: bootstrap MIN_TOFU" named
+#    33d. a floor-restating doc consumer (runbook) skewed → exit !=0 AND
+#         "floor skew: runbook any-machine row" named
+#    33e. a planted "~> X" artifact pin → exit !=0 AND "ceiling-imposing
+#         constraint" named (the widened non-">= X" scan is armed)
 #   tracked-prose pointer hygiene (ADR 0016 / section 12):
 #    34a. clean tree → exit 0 AND "pointer hygiene: no tracked prose" (ARMED)
 #    34b. a planted pointer into the gitignored planning dir in a tracked doc
@@ -352,7 +356,13 @@ build_root() {
   # reason as 00-setup.md above: its source workdir is deliberately not copied.
   cp "$REPO_ROOT/docs/setup.md" "$root/docs/setup.md"
   cp "$REPO_ROOT/docs/validation-matrix.md" "$root/docs/validation-matrix.md"
-  mkdir -p "$root/pages/S00-welcome" "$root/pages/S19-testing-cicd"
+  cp "$REPO_ROOT/docs/facilitator-runbook.md" "$root/docs/facilitator-runbook.md"
+  cp "$REPO_ROOT/docs/rehearsal-checklist.md" "$root/docs/rehearsal-checklist.md"
+  mkdir -p "$root/pages/S00-welcome" "$root/pages/S19-testing-cicd" \
+    "$root/pages/S17-mocking"
+  # S17 restates the workshop floor (section 11 needle); its hcl fences carry
+  # no source annotations, so a plain copy cannot trip the drift gate.
+  cp "$REPO_ROOT/pages/S17-mocking/index.md" "$root/pages/S17-mocking/index.md"
   sed 's/<!-- source: /<!-- source-disarmed: /' \
     "$REPO_ROOT/pages/S00-welcome/index.md" >"$root/pages/S00-welcome/index.md"
   sed 's/<!-- source: /<!-- source-disarmed: /' \
@@ -642,6 +652,21 @@ m_floor_ceiling() { # a lab artifact demanding more than the floor → scan red
   mkdir -p "$root/labs/day-1/floor-ceiling-selftest"
   printf 'globals {\n  terraform_version      = ">= 99.0"\n}\n' \
     >"$root/labs/day-1/floor-ceiling-selftest/globals.tm.hcl"
+}
+
+m_floor_runbook_skew() { # a newly-inventoried doc consumer stops stating 1.9
+  local root="$1"
+  perl -pi -e 's/`tofu version` ≥1\.9/`tofu version` ≥1.7/' \
+    "$root/docs/facilitator-runbook.md"
+}
+
+m_floor_tilde() { # a "~> X" pin imposes a ceiling → widened scan red
+  local root="$1"
+  # Same .tm.hcl trick as m_floor_ceiling: keep section 3 out of the blast
+  # radius so the red provably comes from the widened constraint-form scan.
+  mkdir -p "$root/labs/day-1/floor-tilde-selftest"
+  printf 'globals {\n  terraform_version      = "~> 1.8"\n}\n' \
+    >"$root/labs/day-1/floor-tilde-selftest/globals.tm.hcl"
 }
 
 # --- tracked-prose pointer hygiene (ADR 0016 / verify.sh section 12) --------
@@ -1850,6 +1875,8 @@ run_case "toolchain pin drift ci.yml armed" fail "pin drift: TOFU_VERSION (ci.ym
 run_case "version floor clean" pass "version floor: consumers state" m_floor_clean
 run_case "version floor bootstrap skew armed" fail "floor skew: bootstrap MIN_TOFU in setup/bootstrap.sh does not state the floor" m_floor_bootstrap_skew
 run_case "version floor ceiling armed" fail "demands >= 99.0, above the workshop floor" m_floor_ceiling
+run_case "version floor runbook consumer armed" fail "floor skew: runbook any-machine row in docs/facilitator-runbook.md does not state the floor" m_floor_runbook_skew
+run_case "version floor tilde ceiling armed" fail "pins a ceiling-imposing constraint \"~> 1.8\"" m_floor_tilde
 run_case "pointer hygiene clean" pass "pointer hygiene: no tracked prose references ${PTR_NEEDLE}" m_clean
 run_case "pointer hygiene armed" fail "pointer hygiene: README.md references gitignored ${PTR_NEEDLE}" m_pointer_planted
 

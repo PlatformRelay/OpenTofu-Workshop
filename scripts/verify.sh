@@ -88,8 +88,8 @@ pass() { ok "$*"; CHECKS=$((CHECKS + 1)); }
 
 # THE workshop version floor (US-D-VERSION-FLOOR). Single definition: the
 # preflight gate below enforces it on the running toolchain, and section 11
-# asserts every consumer that restates it (bootstrap MIN_TOFU, docs, deck)
-# still says the same number — so the floor cannot silently re-diverge the way
+# asserts the inventoried consumers that restate it (bootstrap MIN_TOFU, docs,
+# deck) still say the same number — so the floor cannot silently re-diverge the way
 # the 1.8/1.9 split did. Labs may declare LOWER per-artifact floors (honest
 # feature minimums the workshop floor satisfies); no lab may demand more,
 # except a step that discloses it inline (Lab 04's S3 stretch, >= 1.10
@@ -1111,8 +1111,11 @@ fi
 #     TOFU_FLOOR (defined at the top, enforced by the preflight) is THE floor.
 #     Two halves, mirroring the E2 defect class this replaces ("build check 1"
 #     in docs/claims-verification.md §K):
-#       (a) every consumer that RESTATES the floor still states this number —
-#           an INVENTORY of needles, like section 10, not a count;
+#       (a) the INVENTORIED consumers that RESTATE the floor still state this
+#           number — an inventory of needles, like section 10, not a count.
+#           The list below is the known restating set at the time of writing;
+#           extend it when a new doc restates the floor (it is not — and
+#           cannot cheaply be — a guarantee of exhaustiveness);
 #       (b) no tracked lab/module/example artifact DEMANDS more than the floor
 #           via required_version / Terramate's terraform_version global. Lower
 #           per-artifact floors are deliberate (honest feature minimums, see
@@ -1148,6 +1151,14 @@ floor_expect "$REPO_ROOT/pages/S00-welcome/index.md" \
   "tofu ≥ ${TOFU_FLOOR}" "S00 required-toolchain card"
 floor_expect "$REPO_ROOT/pages/S19-testing-cicd/index.md" \
   "OpenTofu ≥ ${TOFU_FLOOR} preflight" "S19 preflight bullet"
+floor_expect "$REPO_ROOT/docs/facilitator-runbook.md" \
+  "\`tofu version\` ≥${TOFU_FLOOR}" "runbook any-machine row"
+floor_expect "$REPO_ROOT/docs/rehearsal-checklist.md" \
+  "confirm \`tofu version\` ≥${TOFU_FLOOR}" "rehearsal fresh-machine step"
+floor_expect "$REPO_ROOT/docs/rehearsal-checklist.md" \
+  "OpenTofu ≥${TOFU_FLOOR} on" "rehearsal morning checklist"
+floor_expect "$REPO_ROOT/pages/S17-mocking/index.md" \
+  "workshop floor of <strong>${TOFU_FLOOR}</strong>" "S17 mocking floor panel"
 
 # (b) ceiling scan: no artifact may require more than the floor. The floor is
 # padded to three components because min_version is a plain sort -V compare
@@ -1155,6 +1166,13 @@ floor_expect "$REPO_ROOT/pages/S19-testing-cicd/index.md" \
 # own required_version lines (">= 0.14.0", a Terramate CLI bound, not tofu)
 # match the pattern too; they pass the same ceiling check trivially and are
 # deliberately left in the sweep rather than special-cased.
+#
+# The scan matches EVERY constraint form, not just ">= X": a "~> X", an exact
+# "= X", or a bare "X" pin imposes an UPPER bound, which is the same learner-
+# stranding defect from the other side — a workdir that can hard-fail on the
+# newer tofu the setup instructions install. Lax ">= X" (with or without the
+# space) is the only shape a lab/module/example may use, and only at or below
+# the floor.
 FLOOR_SCANNED=0
 for floor_dir in labs modules examples; do
   [ -d "$REPO_ROOT/$floor_dir" ] || continue
@@ -1162,12 +1180,16 @@ for floor_dir in labs modules examples; do
     floor_file="${floor_hit%%:*}"
     floor_rest="${floor_hit#*:}"
     floor_lineno="${floor_rest%%:*}"
-    floor_req="$(printf '%s\n' "${floor_hit}" | sed -E 's/.*">= ([0-9][0-9.]*)".*/\1/')"
+    floor_constraint="$(printf '%s\n' "${floor_hit}" | sed -E 's/.*"((>=|~>|=)?[[:space:]]*[0-9][0-9.]*)".*/\1/')"
+    floor_op="$(printf '%s\n' "${floor_constraint}" | sed -E 's/^((>=|~>|=)?).*$/\1/')"
+    floor_req="$(printf '%s\n' "${floor_constraint}" | sed -E 's/[^0-9]*([0-9][0-9.]*)$/\1/')"
     FLOOR_SCANNED=$((FLOOR_SCANNED + 1))
-    if ! min_version "${TOFU_FLOOR}.0" "$floor_req"; then
+    if [ "$floor_op" != ">=" ]; then
+      floor_fail "floor skew: ${floor_file#"$REPO_ROOT"/}:${floor_lineno} pins a ceiling-imposing constraint \"${floor_constraint}\" — use a lax \">= X\" floor at or below ${TOFU_FLOOR}"
+    elif ! min_version "${TOFU_FLOOR}.0" "$floor_req"; then
       floor_fail "floor skew: ${floor_file#"$REPO_ROOT"/}:${floor_lineno} demands >= ${floor_req}, above the workshop floor ${TOFU_FLOOR}"
     fi
-  done < <(grep -rn -E '(required_version|terraform_version)[[:space:]]*=[[:space:]]*">= [0-9][0-9.]*"' \
+  done < <(grep -rn -E '(required_version|terraform_version)[[:space:]]*=[[:space:]]*"(>=|~>|=)?[[:space:]]*[0-9][0-9.]*"' \
     --include='*.tf' --include='*.tofu' --include='*.tm.hcl' \
     --exclude-dir='.terraform' "$REPO_ROOT/$floor_dir" || true)
 done
