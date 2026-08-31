@@ -36,6 +36,13 @@ wave:
   diagnostics that name the tool whose version probe failed, `go vet` over
   the Terratest Go code in CI, and a validate sweep over every Day-2 lab
   working directory.
+- **Site link integrity** — the published site carries no known dead links:
+  docs pages that pointed outside the docs tree (for example the lab links
+  in [the rehearsal checklist](docs/rehearsal-checklist.md)) now use
+  GitHub-absolute links, and the offline link checker gates the whole class —
+  site-URL and GitHub-absolute self links are resolved against the tree,
+  docs-escaping relative links fail the build, and untracked `.terraform`
+  caches are skipped during discovery.
 
 The honest caveats live in
 [Known limitations](docs/beta-limitations.md): the section library is
@@ -44,16 +51,10 @@ planning estimates, not measured timings.
 
 ## Near-term (planned)
 
-Genuinely open work, verified against the tree — not aspiration:
-
-- **Zero dead links on the published site** — a few docs pages still carry
-  links that resolve in the repository but 404 on the rendered site (for
-  example the lab links in [the rehearsal checklist](docs/rehearsal-checklist.md),
-  which point outside the docs tree), and the gates currently tolerate that
-  class: `mkdocs.yml` ignores unresolved links, and the offline link checker
-  treats site URLs as informational and descends into untracked `.terraform`
-  caches. Planned: fix the remaining links and teach the link gate to catch
-  the whole class permanently.
+Genuinely open work, verified against the tree — not aspiration. Nothing is
+queued right now: the previous item here (zero dead links on the published
+site) shipped and moved into the section above. New items are added as they
+are verified open against the tree.
 
 ## Exploring (no commitment yet)
 
