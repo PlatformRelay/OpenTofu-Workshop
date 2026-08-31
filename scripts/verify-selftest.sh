@@ -98,6 +98,10 @@
 #    33a. clean tree → exit 0 AND "version floor: consumers state" (gate ARMED)
 #    33b. bootstrap MIN_TOFU skewed away from TOFU_FLOOR → exit !=0 AND
 #         "floor skew: bootstrap MIN_TOFU" named
+#   tracked-prose pointer hygiene (ADR 0016 / section 12):
+#    34a. clean tree → exit 0 AND "pointer hygiene: no tracked prose" (ARMED)
+#    34b. a planted pointer into the gitignored planning dir in a tracked doc
+#         → exit !=0 AND the doc named
 #    33c. a planted lab artifact demanding more than the floor → exit !=0 AND
 #         the file and its ">= 99.0" ceiling violation named
 #   preflight robustness (verify.sh section 1):
@@ -638,6 +642,17 @@ m_floor_ceiling() { # a lab artifact demanding more than the floor → scan red
   mkdir -p "$root/labs/day-1/floor-ceiling-selftest"
   printf 'globals {\n  terraform_version      = ">= 99.0"\n}\n' \
     >"$root/labs/day-1/floor-ceiling-selftest/globals.tm.hcl"
+}
+
+# --- tracked-prose pointer hygiene (ADR 0016 / verify.sh section 12) --------
+# The needle is assembled by concatenation so THIS tracked script never trips
+# the very gate it exercises (the pgrep-self-match lesson, applied to grep).
+PTR_NEEDLE='agent-''context/'
+
+m_pointer_planted() { # a tracked doc references gitignored planning material
+  local root="$1"
+  printf '\nLane plan: see %suser-stories.md for details.\n' "$PTR_NEEDLE" \
+    >>"$root/README.md"
 }
 
 m_drift_lf() {     # change the source only → block no longer matches
@@ -1835,6 +1850,8 @@ run_case "toolchain pin drift ci.yml armed" fail "pin drift: TOFU_VERSION (ci.ym
 run_case "version floor clean" pass "version floor: consumers state" m_floor_clean
 run_case "version floor bootstrap skew armed" fail "floor skew: bootstrap MIN_TOFU in setup/bootstrap.sh does not state the floor" m_floor_bootstrap_skew
 run_case "version floor ceiling armed" fail "demands >= 99.0, above the workshop floor" m_floor_ceiling
+run_case "pointer hygiene clean" pass "pointer hygiene: no tracked prose references ${PTR_NEEDLE}" m_clean
+run_case "pointer hygiene armed" fail "pointer hygiene: README.md references gitignored ${PTR_NEEDLE}" m_pointer_planted
 
 # --- release script self-tests (US-P-REL) --------------------------------------
 # Run against the live repo (not the temp verify.sh copy): CI verify-unit invokes

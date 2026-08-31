@@ -20,6 +20,8 @@
 #   10. toolchain pin drift (versions.env consumers — US-P-PINS)
 #   11. version-floor skew (TOFU_FLOOR consumers + per-artifact ceiling —
 #       US-D-VERSION-FLOOR)
+#   12. tracked-prose pointer hygiene (no pointers into the gitignored
+#       planning dir outside the recorded allowlist — ADR 0016)
 #
 # Everything degrades to "nothing to check yet → pass" while the content dirs
 # are empty, so this is safe to wire into CI from day one.
@@ -1172,6 +1174,48 @@ done
 
 if [ "$FLOOR_FAILURES" -eq 0 ]; then
   pass "version floor: consumers state $TOFU_FLOOR and no artifact ($FLOOR_SCANNED version pins scanned) demands more"
+fi
+
+# ---------------------------------------------------------------------------
+# 12. Tracked-prose pointer hygiene (ADR 0016)
+#     The planning directory is gitignored, so a tracked file that points into
+#     it dangles in every fresh clone. Allowlist: the ignore rule itself and
+#     the two ADRs that RECORD the convention (0002, 0016). The needle is
+#     assembled by concatenation so this script never matches itself — the
+#     same self-match trap as pgrep -f, applied to grep.
+# ---------------------------------------------------------------------------
+POINTER_NEEDLE='agent-''context/'
+heading "Tracked-prose pointer hygiene (no ${POINTER_NEEDLE} pointers)"
+POINTER_ALLOWLIST=(
+  ".gitignore"
+  "docs/decisions/0002-repository-and-content-structure.md"
+  "docs/decisions/0016-authoring-contract-home.md"
+)
+if git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  POINTER_HITS="$(git -C "$REPO_ROOT" grep -lF -- "$POINTER_NEEDLE" 2>/dev/null || true)"
+else
+  # Self-test sandboxes are plain directories: walk what a clone would hold.
+  POINTER_HITS="$(grep -rlF --exclude-dir=.git --exclude-dir=node_modules \
+    --exclude-dir=.terraform --exclude-dir=.claude --exclude-dir=site \
+    -- "$POINTER_NEEDLE" "$REPO_ROOT" 2>/dev/null | sed "s|^$REPO_ROOT/||" || true)"
+fi
+POINTER_FAILURES=0
+while IFS= read -r pointer_file; do
+  [ -n "$pointer_file" ] || continue
+  pointer_allowed=0
+  for pointer_allow in "${POINTER_ALLOWLIST[@]}"; do
+    if [ "$pointer_file" = "$pointer_allow" ]; then
+      pointer_allowed=1
+      break
+    fi
+  done
+  if [ "$pointer_allowed" -eq 0 ]; then
+    fail "pointer hygiene: ${pointer_file} references gitignored ${POINTER_NEEDLE} content (dangling in a fresh clone — ADR 0016)"
+    POINTER_FAILURES=$((POINTER_FAILURES + 1))
+  fi
+done <<<"$POINTER_HITS"
+if [ "$POINTER_FAILURES" -eq 0 ]; then
+  pass "pointer hygiene: no tracked prose references ${POINTER_NEEDLE} outside the recorded allowlist"
 fi
 
 # ---------------------------------------------------------------------------
