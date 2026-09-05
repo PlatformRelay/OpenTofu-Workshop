@@ -720,6 +720,38 @@ else
         fi
       fi
     else
+      # ENCRYPTED LEARNER STATE is not repo rot, and reporting it as such sends
+      # the learner hunting a defect that is not there. `init -backend=false`
+      # still loads the local state to decide whether the backend changed, and
+      # with -backend=false the `encryption {}` block is never configured — so
+      # any workdir holding state a learner produced under state encryption
+      # (Lab 05 teaches it; Lab 08 Step 4 applies with it) dies here with
+      # "Unsupported state file format". The learner did exactly what the lab
+      # said, then ran the gate the workshop tells them to run, and got a red.
+      #
+      # Same discrimination as the git-ignored scratch .tf block above: *.tfstate
+      # is git-ignored, so a state file present here is a LOCAL artifact by
+      # construction. A CI checkout carries none, so this never softens CI —
+      # there, an encrypted-state init failure would still be a genuine fail.
+      # Deliberately a warn and NOT a pass: the directory really was not
+      # validated, and the gate says so along with the one command that fixes it.
+      init_enc_state=""
+      if grep -q 'state file is encrypted' "$INIT_LOG" && have git && [ -e "$REPO_ROOT/.git" ]; then
+        shopt -s nullglob
+        for cand in "$d"/*.tfstate; do
+          if git check-ignore -q "$cand" 2>/dev/null; then
+            init_enc_state="$cand"
+            break
+          fi
+        done
+        shopt -u nullglob
+      fi
+      if [ -n "$init_enc_state" ]; then
+        warn "$d: not validated — ${init_enc_state#"$REPO_ROOT"/} is encrypted local state, which init -backend=false cannot read"
+        info "$d: this is YOUR lab state, not a repo defect. Clear it and re-run:"
+        info "    TF_VAR_state_passphrase=… task lab:destroy DIR=$d && rm -f $d/*.tfstate*"
+        continue
+      fi
       fail "$d: init failed (cannot validate)"
       sed 's/^/    /' "$INIT_LOG" || true
       # TWO different mechanisms produce this one message, and telling them
@@ -738,6 +770,23 @@ else
         info "      or 'task lab:apply' in another terminal is not."
         info "  Both pick a DIFFERENT directory each time, which is why this"
         info "  reads like a flake. Re-run serialized before suspecting the diff."
+      fi
+      # THE OTHER wandering red: the registry did not answer in time. This sweep
+      # runs `tofu init` in ~50 directories back to back, so a slow or rate-
+      # limited registry.opentofu.org surfaces as a handful of failures that land
+      # on a DIFFERENT directory every run — indistinguishable, at a glance, from
+      # the cache signature above and equally unrelated to the diff under test.
+      # It is called out separately because the remedy differs: the cache case
+      # clears on a re-run, this one clears when the network does.
+      if grep -qE 'Failed to resolve provider packages|Client\.Timeout|context deadline exceeded|TLS handshake timeout|failed to request discovery document' "$INIT_LOG"; then
+        info "$d: that is a REGISTRY REACHABILITY signature, not a config defect."
+        info "  This sweep inits ~50 directories in a row; a slow or rate-limited"
+        info "  registry.opentofu.org drops a few of them, and it picks different"
+        info "  directories each run. Check connectivity, then re-run:"
+        info "    curl -sS -o /dev/null -w '%{http_code} %{time_total}s\\n' \\"
+        info "      https://registry.opentofu.org/v1/providers/hashicorp/aws/versions"
+        info "  A warm .terraform/ avoids the round trip entirely, so a directory"
+        info "  whose cache you just cleared is the most likely one to fail here."
       fi
     fi
 
