@@ -1101,8 +1101,46 @@ else
   pin_expect "$CI_YML" \
     "localstack/localstack:${LOCALSTACK_VERSION}" "LOCALSTACK_VERSION (ci.yml service)"
 
+  # Go toolchain ceiling (the F8 defect class). The needle inventory above only
+  # proves consumers RESTATE ${GO_VERSION}; it never asked whether that version
+  # can actually build the labs. It cannot self-correct at run time either: the
+  # official golang images set GOTOOLCHAIN=local, so a container built from
+  # golang:${GO_VERSION}-bookworm cannot fetch a newer toolchain and dies on the
+  # first `go test` with "go.mod requires go >= X (running Y; GOTOOLCHAIN=local)".
+  #
+  # A dependency-bump bot raising a `go` directive is the realistic way this
+  # drifts — it edits go.mod and nothing else, so every needle above stays true
+  # while the lab stops running. Scan the directives instead of trusting them.
+  #
+  # MIN_GO (setup/bootstrap.sh) is checked against the same directives: it is
+  # the HOST lane's floor, and a host that satisfies bootstrap must be able to
+  # run `task lab:terratest:host`.
+  GO_MIN_HOST="$(sed -n 's/^MIN_GO="\([0-9.]*\)".*/\1/p' "$REPO_ROOT/setup/bootstrap.sh" | head -n1)"
+  if [ -z "$GO_MIN_HOST" ]; then
+    pin_fail "pin drift: cannot read MIN_GO from setup/bootstrap.sh"
+  fi
+  # Pad both sides of every compare to three components — min_version is a plain
+  # sort -V, where "1.25" sorts BELOW "1.25.0" and would false-red an exact match.
+  go_pad() { case "$1" in *.*.*) printf '%s\n' "$1" ;; *.*) printf '%s.0\n' "$1" ;; *) printf '%s.0.0\n' "$1" ;; esac; }
+  GO_MIN_HOST_CMP="$(go_pad "$GO_MIN_HOST")"
+  GO_VERSION_CMP="$(go_pad "$GO_VERSION")"
+  GOMOD_SCANNED=0
+  while IFS= read -r gomod; do
+    go_req="$(sed -n 's/^go[[:space:]]\+\([0-9][0-9.]*\)[[:space:]]*$/\1/p' "$gomod" | head -n1)"
+    [ -n "$go_req" ] || continue
+    GOMOD_SCANNED=$((GOMOD_SCANNED + 1))
+    rel="${gomod#"$REPO_ROOT"/}"
+    go_req_cmp="$(go_pad "$go_req")"
+    if ! min_version "$GO_VERSION_CMP" "$go_req_cmp"; then
+      pin_fail "pin drift: $rel declares go $go_req, above versions.env GO_VERSION=$GO_VERSION — the container lane runs golang:${GO_VERSION}-bookworm with GOTOOLCHAIN=local and cannot upgrade itself"
+    fi
+    if [ -n "$GO_MIN_HOST" ] && ! min_version "$GO_MIN_HOST_CMP" "$go_req_cmp"; then
+      pin_fail "pin drift: $rel declares go $go_req, above bootstrap MIN_GO=$GO_MIN_HOST — a host that passes bootstrap would still fail task lab:terratest:host"
+    fi
+  done < <(find "$REPO_ROOT/labs" -name go.mod -not -path '*/.terraform/*' 2>/dev/null | sort)
+
   if [ "$PIN_FAILURES" -eq 0 ]; then
-    pass "toolchain pins: all listed consumers match versions.env"
+    pass "toolchain pins: all listed consumers match versions.env ($GOMOD_SCANNED go.mod directive(s) within GO_VERSION=$GO_VERSION / MIN_GO=$GO_MIN_HOST)"
   fi
 fi
 

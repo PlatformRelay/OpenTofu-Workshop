@@ -31,7 +31,11 @@ fi
 # on skew.
 MIN_TOFU="1.9"
 MIN_NODE="20"
-MIN_GO="1.22"
+# MIN_GO is the HOST-lane Go floor. It must be >= the highest `go` directive
+# in any tracked labs/**/go.mod (today labs/day-2/18-terratest-cost: 1.25.0),
+# otherwise a host that passes bootstrap still hard-fails `task
+# lab:terratest:host`. scripts/verify.sh section 10 reds on that skew.
+MIN_GO="1.25"
 
 # Optional host-Go lane (US-0-GOTT / ADR 0011). Off by default so a clean
 # machine never needs Go; enable with BOOTSTRAP_WITH_GO=1 or --with-go.
@@ -210,7 +214,7 @@ if [ "$WITH_GO" = 1 ]; then
       info "→ $(install_hint go)"
       note "Container lane (no host Go): task lab:terratest DIR=…"
     else
-      # go version prints "go1.23.6" — strip the "go" prefix for min_version.
+      # go version prints "go1.27.1" — strip the "go" prefix for min_version.
       v_num="${v#go}"
       if min_version "$v_num" "$MIN_GO"; then
         ok "go     ${v:-?}  (>= $MIN_GO)"
