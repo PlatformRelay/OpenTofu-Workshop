@@ -37,11 +37,27 @@ overrides:
   # Lockfile currently has 2.1.2 and 5.0.7; pin each line to its patched floor.
   "brace-expansion@>=2.0.0 <3.0.0": 2.1.4
   "brace-expansion@>=5.0.0 <6.0.0": 5.0.9
-  # GHSA-7p8r-x3mc-p8w7 / GHSA-v2hh-gcrm-f6hx: host confusion via backslash
-  # authority. 3.1.5 is the first version that covers both.
-  "fast-uri@>=3.0.0 <4.0.0": 3.1.5
+  # GHSA-7p8r-x3mc-p8w7 / GHSA-v2hh-gcrm-f6hx (backslash authority, fixed in
+  # 3.1.5) plus GHSA-jqff-g426-hqxp / GHSA-f65p-4m7j-42xc / GHSA-fph4-wmhf-6fwf /
+  # GHSA-5jgf-p345-68v8 (host confusion + SSRF via percent-decoding, IPv6 and
+  # IDN normalisation, fixed in 3.1.6). This pin is what Dependabot cannot move
+  # ("security_update_not_possible"), so bump it here when the next advisory lands.
+  "fast-uri@>=3.0.0 <4.0.0": 3.1.6
   # GHSA-mwp4-54f8-5fhr: Address4 leading-zero octet decode mismatch.
   ip-address: 10.3.1
+  # GHSA-c83g-rgw3-j3cx / GHSA-73wf-gq98-2v4g: unbounded cache growth and a
+  # prototype write via custom stats, both fixed in 4.28.7. Reached only through
+  # Babel/PostCSS inside the Slidev build; pin the 4.x line to a patched floor
+  # instead of letting `pnpm update` re-resolve the whole build toolchain.
+  "browserslist@>=4.0.0 <5.0.0": 4.28.8
+  # GHSA-8j4g-w8fx-2239 / GHSA-54fx-42gc-7vw4 / GHSA-f23p-vx2j-j53r /
+  # GHSA-79qm-7rj5-m7r9 (hono: CORS ReDoS, language-middleware DoS, memo() SSR
+  # leak, proxy Connection headers) fixed in 4.12.34, and GHSA-frvp-7c67-39w9
+  # (@hono/node-server serve-static traversal on Windows) fixed in 1.19.15.
+  # Both arrive via @modelcontextprotocol/node inside @slidev/cli, which pins
+  # exact versions, so only an override can move them.
+  "hono@>=4.0.0 <5.0.0": 4.12.34
+  "@hono/node-server@>=1.0.0 <2.0.0": 1.19.15
 
 # pnpm 11 minimumReleaseAge gate: allow this override pin through when fresh
 # on the registry.
