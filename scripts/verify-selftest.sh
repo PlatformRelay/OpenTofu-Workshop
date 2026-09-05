@@ -1939,10 +1939,13 @@ m_gomod_short_scan() {
   local root="$1"
   plant_gomod "$root" "1.25.0"
   mkdir -p "$root/labs/day-2/96-gomod-unreadable"
-  printf 'module example.com/unreadable\n\ngo 1.25.0\n' \
-    >"$root/labs/day-2/96-gomod-unreadable/go.mod"
+  # A DANGLING SYMLINK, not chmod 000. Root ignores mode bits, so a 000 file is
+  # readable to root: the module would parse, the scan would reach 2 of 2, and
+  # this case would quietly stop testing anything — failing the suite under
+  # sudo while proving nothing under any user. A broken link fails `-r` for
+  # every user, root included.
+  ln -s /nonexistent/no-such-go-mod "$root/labs/day-2/96-gomod-unreadable/go.mod"
   git_init_root "$root"
-  chmod 000 "$root/labs/day-2/96-gomod-unreadable/go.mod"
 }
 
 # The state C2 found greening: labs/ renamed, so BOTH the pathspec and the
@@ -1970,7 +1973,8 @@ run_case "go ceiling: untracked-only module does not fake a green" fail \
 run_case "go ceiling: no index does not fake a green" fail \
   "refusing to green the Go ceiling on a set it cannot determine" m_gomod_no_index
 run_case "go ceiling: unreadable module is named, not rounded down" fail \
-  "scanned 1 of 2 tracked" m_gomod_short_scan
+  "scanned 1 of 2 tracked" m_gomod_short_scan \
+  "is not readable"
 run_case "go ceiling: renamed labs/ does not fake a green" fail \
   "the Go ceiling is scanning nothing" m_gomod_labs_renamed
 

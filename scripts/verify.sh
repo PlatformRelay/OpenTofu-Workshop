@@ -1182,12 +1182,16 @@ else
   # stray `go mod init` under labs/, or a vendored module, is not something the
   # container pin owes anything to, and scanning it could only false-red.
   #
-  # FOUR states, and only one of them is a pass. The rule this file states at
+  # FIVE outcomes, and only ONE is an ordinary pass. The rule this file states at
   # the git-ignored-scratch block above — never degrade an unknown file set to a
   # pass — is what the shape below is for: an empty list because nothing is
   # tracked is not the same fact as an empty list because the scan broke, and
   # collapsing them is how a ceiling gate greens while covering nothing. The
   # pass is: an index exists, it lists modules, and every one of them was read.
+  # One more is an explicit NOT-APPLICABLE — no index and no modules — said out
+  # loud rather than folded into the pass line. The other three are failures:
+  # no index but modules on disk; nothing tracked while modules demonstrably
+  # exist; and a scan that reached fewer modules than the index lists.
   GOMOD_LIST=""
   GOMOD_HAVE_INDEX=0
   GOMOD_ANY=0
