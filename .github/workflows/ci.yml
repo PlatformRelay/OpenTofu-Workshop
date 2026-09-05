@@ -203,9 +203,15 @@ jobs:
         with:
           # Toolchain from each module's own go.mod, NOT a ci.yml literal:
           # verify.sh §10 (pin drift) then has no new literal to drift-check,
-          # and the cost module's go.mod (go 1.25.0) already requires a newer
-          # Go than versions.env GO_VERSION (the container-lane pin) — a
-          # single workflow literal could not serve both modules honestly.
+          # and the two modules declare different directives (cost: go 1.25.0,
+          # smoke: go 1.23) — a single workflow literal could not serve both.
+          #
+          # These directives are no longer free-floating: since the Go pin bump,
+          # verify.sh §10 asserts every labs/**/go.mod `go` directive is at or
+          # below versions.env GO_VERSION and bootstrap MIN_GO. That gate exists
+          # because this job stayed green while the container lane could not run
+          # Lab 18 at all — `go vet` here uses whatever go.mod asks for, so it
+          # can never notice a directive outrunning the pin.
           go-version-file: ${{ matrix.dir }}/go.mod
           # No module cache: terratest-smoke has no go.sum, and setup-go's
           # default cache fails the job when its dependency file is missing.

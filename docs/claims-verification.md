@@ -143,7 +143,7 @@ Both engines' changelogs were read independently.
 | # | Claim | Where | Verdict | Evidence (primary source, checked 2026-08-25) |
 | --- | --- | --- | --- | --- |
 | D1 | `TOFU_VERSION=1.10.3` | `versions.env:13`; `pages/S01-iac/index.md:457` | VERIFIED (pin exists) / stale | `repos/opentofu/opentofu/releases` — `v1.10.3` published `2025-07-15T14:33:31Z`. It is not the newest 1.10 patch (`v1.10.10`, `2026-05-11`), and 1.10.x predates the 1.11.x series whose stated support ended 2026-08-01 (A10). The pin is a deliberate, reproducible choice, not an error — but it is two series behind what `pages/S10:65` calls "current baseline". |
-| D2 | `GO_VERSION=1.23.6` | `versions.env:17` | VERIFIED (pin exists) / **EOL** | `repos/golang/go` git ref `refs/tags/go1.23.6` exists. `https://go.dev/doc/devel/release`: "Each major Go release is supported until there are two newer major releases", latest major listed **Go 1.27.0 (2026-08-19)** → supported series are 1.26 and 1.27. **Go 1.23 receives no security fixes.** Also newer within its own series: `go1.23.12`. |
+| D2 | `GO_VERSION=1.23.6` | `versions.env:17` | VERIFIED (pin exists) / **EOL** | `repos/golang/go` git ref `refs/tags/go1.23.6` exists. `https://go.dev/doc/devel/release`: "Each major Go release is supported until there are two newer major releases", latest major listed **Go 1.27.0 (2026-08-19)** → supported series are 1.26 and 1.27. **Go 1.23 receives no security fixes.** Also newer within its own series: `go1.23.12`. **Superseded 2026-09-04 (Go pin bump):** `GO_VERSION` is now `1.27.1` (`versions.env:27`) with `setup/terratest/Dockerfile`, `setup/bootstrap.sh` `MIN_GO` and the bootstrap self-test moved with it, and `verify.sh` §10 now scans every `labs/**/go.mod` `go` directive against the pin — this row's Where and Verdict describe the pre-bump tree. |
 | D3 | `LOCALSTACK_VERSION=4.9.2` | `versions.env:22` | VERIFIED (pin exists) | `repos/localstack/localstack/releases/tags/v4.9.2` — published `2025-10-06T09:01:27Z`. Latest is `v4.14.0` (`2026-02-26`). The comment's rationale ("last community release that boots without `LOCALSTACK_AUTH_TOKEN`") was **not** re-verified in this pass — see U2. |
 | D4 | `TERRAMATE_VERSION=0.17.1` | `versions.env:26` | VERIFIED (pin exists) | `repos/terramate-io/terramate/releases/tags/v0.17.1` — published `2026-05-26T13:24:47Z`. Latest is `v0.17.2` (`2026-07-31`). One patch behind; no correction needed. |
 | D5 | Lab pins Trivy **0.72.0** · Checkov **3.3.0** · Conftest **0.68.2** | `labs/day-2/14-security-scanners.md:8` | VERIFIED (pins exist) | `repos/aquasecurity/trivy/releases/tags/v0.72.0` → `2026-06-30`; `repos/bridgecrewio/checkov/releases/tags/3.3.0` → `2026-06-10`; `repos/open-policy-agent/conftest/releases/tags/v0.68.2` → `2026-04-15`. All three exist. Current latest: Trivy `v0.74.0` (`2026-08-14`), Checkov `3.3.13` (`2026-08-20`), Conftest `v0.69.0` (`2026-08-03`). **These three pins live only in lab prose — they are not in `versions.env` and nothing gates them.** |
@@ -748,6 +748,15 @@ Not prose corrections — recorded so they are not lost.
   §10 consumers behind it (CI literals, `setup/terratest/Dockerfile`,
   `setup/bootstrap.sh`) and a Terratest re-run required — deliberately **not**
   changed by this docs-only lane. It should become its own story.
+  **Resolved 2026-09-04.** It became one, and the trigger was sharper than EOL:
+  `labs/day-2/18-terratest-cost/go.mod` had drifted to `go 1.25.0` (a dependency
+  bump raised the directive alone), so the container lane — `golang:1.23.6-bookworm`,
+  where the official images set `GOTOOLCHAIN=local` and cannot fetch a newer
+  toolchain — died on the first `go test` with `go.mod requires go >= 1.25.0`.
+  Lab 18 could not run at all, and no gate saw it, because §10 only checked that
+  consumers *restate* `GO_VERSION` and never asked whether that version could
+  build anything. `GO_VERSION` is now `1.27.1`, `MIN_GO` is `1.25`, and §10 scans
+  the `go` directive of every tracked `labs/**/go.mod` against both.
 - `pages/S14-.../index.md:235` reproduces `labs/day-2/14-security-scanners/messy/main.tf`
   verbatim but carries no `<!-- source: … -->` marker, so `verify.sh` §6 silently
   skips it (E7). Adding the one-line marker arms an already-built gate at zero cost

@@ -189,12 +189,12 @@ printf '%s\n' "$default_go_out" | grep -q 'Host Go skipped'
 printf '%s\n' "$default_go_out" | grep -q 'task lab:terratest'
 
 # BOOTSTRAP_WITH_GO=1 with Go present → verify + ready.
-fake go 'go version go1.23.6 darwin/arm64'
+fake go 'go version go1.27.1 darwin/arm64'
 # tool_version uses `go version` and awk '{print $3}' → need the script to call go correctly.
-# Our fake prints a single line; go version format is "go version go1.23.6 …"
+# Our fake prints a single line; go version format is "go version go1.27.1 …"
 cat >"$BIN/go" <<'EOF'
 #!/bin/sh
-printf '%s\n' 'go version go1.23.6 darwin/arm64'
+printf '%s\n' 'go version go1.27.1 darwin/arm64'
 EOF
 chmod +x "$BIN/go"
 set +e
@@ -209,6 +209,27 @@ set -e
 }
 printf '%s\n' "$with_go_out" | grep -q 'Host Go ready'
 printf '%s\n' "$with_go_out" | grep -q 'lab:terratest:host'
+
+# A host Go BELOW MIN_GO must red, not pass. Without this the floor is
+# decorative: a 1.23 host bootstraps clean and then hard-fails Lab 18's
+# `task lab:terratest:host` on `go.mod requires go >= 1.25.0`.
+cat >"$BIN/go" <<'EOF'
+#!/bin/sh
+printf '%s\n' 'go version go1.23.6 linux/amd64'
+EOF
+chmod +x "$BIN/go"
+set +e
+old_go_out="$(PATH="$BIN:$SYSBIN" CI=true BOOTSTRAP_AUTO_INSTALL=never \
+  BOOTSTRAP_WITH_GO=1 bash "$ROOT/setup/bootstrap.sh" 2>&1)"
+old_go_status=$?
+set -e
+[ "$old_go_status" -ne 0 ] || {
+  echo 'host Go below MIN_GO must exit non-zero' >&2
+  printf '%s\n' "$old_go_out" >&2
+  exit 1
+}
+printf '%s\n' "$old_go_out" | grep -q 'needs >='
+printf '%s\n' "$old_go_out" | grep -q 'Below minimum Go version'
 
 # REL-1 (--with-go lane): a failing go version probe must be named too.
 cat >"$BIN/go" <<'EOF'
@@ -235,7 +256,7 @@ LEAKBIN="$TMP/leak-go"
 mkdir -p "$LEAKBIN"
 cat >"$LEAKBIN/go" <<'EOF'
 #!/bin/sh
-printf '%s\n' 'go version go1.23.6 linux/amd64'
+printf '%s\n' 'go version go1.27.1 linux/amd64'
 EOF
 chmod +x "$LEAKBIN/go"
 rm -f "$BIN/go"

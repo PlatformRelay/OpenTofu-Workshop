@@ -2,7 +2,7 @@
 #
 # Bump versions in versions.env (reviewable diff); never use `:latest`.
 # Image tag in docker-compose.yml must stay in sync with the FROM/ARG pins.
-ARG GO_IMAGE=golang:1.23.6-bookworm
+ARG GO_IMAGE=golang:1.27.1-bookworm
 FROM ${GO_IMAGE}
 
 ARG TOFU_VERSION=1.10.3
