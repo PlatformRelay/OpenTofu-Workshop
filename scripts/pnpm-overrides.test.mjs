@@ -56,8 +56,19 @@ test('brace-expansion, fast-uri, and ip-address pin patched floors without unbou
 
   assert.match(workspace, /"brace-expansion@>=2\.0\.0 <3\.0\.0": 2\.1\.4/)
   assert.match(workspace, /"brace-expansion@>=5\.0\.0 <6\.0\.0": 5\.0\.9/)
-  assert.match(workspace, /"fast-uri@>=3\.0\.0 <4\.0\.0": 3\.1\.5/)
+  assert.match(workspace, /"fast-uri@>=3\.0\.0 <4\.0\.0": 3\.1\.6/)
   assert.match(workspace, /^ {2}ip-address: 10\.3\.1$/m)
   assert.doesNotMatch(workspace, /(^|\s)brace-expansion:/m)
   assert.doesNotMatch(workspace, /(^|\s)fast-uri:/m)
+})
+
+test('browserslist and hono overrides pin patched floors without unbounded majors', async () => {
+  const workspace = await workspaceYaml()
+
+  assert.match(workspace, /"browserslist@>=4\.0\.0 <5\.0\.0": 4\.28\.8/)
+  assert.match(workspace, /"hono@>=4\.0\.0 <5\.0\.0": 4\.12\.34/)
+  assert.match(workspace, /"@hono\/node-server@>=1\.0\.0 <2\.0\.0": 1\.19\.15/)
+  assert.doesNotMatch(workspace, /(^|\s)browserslist:/m)
+  assert.doesNotMatch(workspace, /(^|\s)hono:/m)
+  assert.doesNotMatch(workspace, /(^|\s)"?@hono\/node-server"?:/m)
 })
