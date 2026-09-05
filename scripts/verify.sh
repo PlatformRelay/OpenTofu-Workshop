@@ -747,8 +747,8 @@ else
         shopt -u nullglob
       fi
       if [ -n "$init_enc_state" ]; then
-        warn "$d: not validated — ${init_enc_state#"$REPO_ROOT"/} is encrypted local state, which init -backend=false cannot read"
-        info "$d: this is YOUR lab state, not a repo defect. Clear it and re-run:"
+        warn "$d: not validated — $init_enc_state is encrypted local state, which init -backend=false cannot read"
+        info "$d: this is YOUR lab state, not a repo defect. From the repo root, clear it and re-run:"
         info "    TF_VAR_state_passphrase=… tofu -chdir=$d destroy -auto-approve && rm -f $d/*.tfstate*"
         # Skips this directory's validate AND its tofu test, unlike the fail
         # branch below which falls through and still attempts the test. That is
@@ -1182,16 +1182,25 @@ else
   # stray `go mod init` under labs/, or a vendored module, is not something the
   # container pin owes anything to, and scanning it could only false-red.
   #
-  # THREE states, and only one of them is a pass. The rule this file states at
+  # FOUR states, and only one of them is a pass. The rule this file states at
   # the git-ignored-scratch block above — never degrade an unknown file set to a
   # pass — is what the shape below is for: an empty list because nothing is
   # tracked is not the same fact as an empty list because the scan broke, and
-  # collapsing them is how a ceiling gate greens while covering nothing.
+  # collapsing them is how a ceiling gate greens while covering nothing. The
+  # pass is: an index exists, it lists modules, and every one of them was read.
   GOMOD_LIST=""
   GOMOD_HAVE_INDEX=0
+  GOMOD_ANY=0
+  # `:(glob)` magic is load-bearing. Without it git uses non-pathname wildmatch,
+  # where `**` degenerates to `*` and cannot match ZERO path segments — so a
+  # module at labs/go.mod is silently not listed while labs/a/b/go.mod is.
   if have git && [ -e "$REPO_ROOT/.git" ] \
-     && GOMOD_LIST="$(git -C "$REPO_ROOT" ls-files 'labs/**/go.mod' 2>/dev/null)"; then
+     && GOMOD_LIST="$(git -C "$REPO_ROOT" ls-files ':(glob)labs/**/go.mod' 2>/dev/null)"; then
     GOMOD_HAVE_INDEX=1
+    # Every tracked go.mod ANYWHERE, so a renamed labs/ cannot look like "no
+    # modules exist". The disk count below cannot see that case: it searches
+    # labs/, which is the very path that stopped existing.
+    GOMOD_ANY="$(git -C "$REPO_ROOT" ls-files ':(glob)**/go.mod' 'go.mod' 2>/dev/null | grep -c . || true)"
   fi
   GOMOD_FS_COUNT="$(find "$REPO_ROOT/labs" -name go.mod -not -path '*/.terraform/*' 2>/dev/null | wc -l | tr -d ' ')"
   if [ "$GOMOD_HAVE_INDEX" -eq 0 ]; then
@@ -1210,7 +1219,15 @@ else
     # [[:space:]][[:space:]]* and NOT \+ — the latter is a GNU extension that a
     # BSD sed reads as a literal plus, which would leave go_req empty for every
     # file and skip the whole scan. This repo is developed on macOS.
-    go_req="$(sed -n 's/^go[[:space:]][[:space:]]*\([0-9][0-9.]*\)[[:space:]]*$/\1/p' "$gomod" | head -n1)"
+    # An unreadable module must be NAMED, not fatal. Without the guard, sed's
+    # failure propagates through the pipeline under `set -o pipefail` and kills
+    # verify.sh outright — the gate dies mid-section instead of reporting which
+    # module it could not read.
+    if [ ! -r "$gomod" ]; then
+      pin_fail "pin drift: $rel is not readable — refusing to skip a module the ceiling is supposed to cover"
+      continue
+    fi
+    go_req="$(sed -n 's/^go[[:space:]][[:space:]]*\([0-9][0-9.]*\)[[:space:]]*$/\1/p' "$gomod" 2>/dev/null | head -n1 || true)"
     if [ -z "$go_req" ]; then
       pin_fail "pin drift: $rel has no parseable \`go\` directive — refusing to skip a module the ceiling is supposed to cover"
       continue
@@ -1230,11 +1247,14 @@ else
   if [ "$GOMOD_HAVE_INDEX" -eq 1 ] && [ "$GOMOD_SCANNED" -ne "$GOMOD_EXPECTED" ]; then
     pin_fail "pin drift: scanned $GOMOD_SCANNED of $GOMOD_EXPECTED tracked labs/**/go.mod — refusing to green the Go ceiling on an incomplete scan"
   fi
-  # Tracked nothing, but files are on disk: the pathspec stopped matching (a
-  # renamed labs/, a module moved out from under it). Green here would mean
-  # "no drift" when it actually means "nothing was looked at".
-  if [ "$GOMOD_HAVE_INDEX" -eq 1 ] && [ "$GOMOD_EXPECTED" -eq 0 ] && [ "${GOMOD_FS_COUNT:-0}" -gt 0 ]; then
-    pin_fail "pin drift: no TRACKED labs/**/go.mod matched, yet $GOMOD_FS_COUNT exist on disk — the Go ceiling is scanning nothing"
+  # Tracked nothing, but modules demonstrably exist — on disk under labs/, or
+  # tracked anywhere at all. The pathspec stopped matching: labs/ was renamed,
+  # or a module moved out from under it. Green here would say "no drift" when
+  # it means "nothing was looked at". Both counts are needed: a renamed labs/
+  # zeroes the disk count too, and only the repo-wide tracked count survives it.
+  if [ "$GOMOD_HAVE_INDEX" -eq 1 ] && [ "$GOMOD_EXPECTED" -eq 0 ] \
+     && { [ "${GOMOD_FS_COUNT:-0}" -gt 0 ] || [ "${GOMOD_ANY:-0}" -gt 0 ]; }; then
+    pin_fail "pin drift: no TRACKED labs/**/go.mod matched, yet ${GOMOD_FS_COUNT} on disk under labs/ and ${GOMOD_ANY} tracked repo-wide — the Go ceiling is scanning nothing"
   fi
 
   if [ "$PIN_FAILURES" -eq 0 ]; then

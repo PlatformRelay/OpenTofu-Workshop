@@ -1933,6 +1933,28 @@ m_gomod_untracked_only() { git_init_root "$1"; plant_gomod "$1" "9.99.0"; }
 # ceiling must say so rather than green.
 m_gomod_no_index() { plant_gomod "$1" "9.99.0"; }
 
+# A module the scan cannot read must not quietly shrink the set. Two tracked
+# modules, one unreadable: the count must be named, not rounded down to a green.
+m_gomod_short_scan() {
+  local root="$1"
+  plant_gomod "$root" "1.25.0"
+  mkdir -p "$root/labs/day-2/96-gomod-unreadable"
+  printf 'module example.com/unreadable\n\ngo 1.25.0\n' \
+    >"$root/labs/day-2/96-gomod-unreadable/go.mod"
+  git_init_root "$root"
+  chmod 000 "$root/labs/day-2/96-gomod-unreadable/go.mod"
+}
+
+# The state C2 found greening: labs/ renamed, so BOTH the pathspec and the
+# disk-side find come up empty while a tracked module plainly exists.
+m_gomod_labs_renamed() {
+  local root="$1"
+  mkdir -p "$root/laboratories/day-2/98-gomod-selftest"
+  printf 'module example.com/selftest\n\ngo 9.99.0\n' \
+    >"$root/laboratories/day-2/98-gomod-selftest/go.mod"
+  git_init_root "$root"
+}
+
 run_case "go ceiling: not applicable without modules" pass \
   "no git index and no labs/**/go.mod present — Go ceiling not applicable here" m_clean
 run_case "go ceiling: compliant tracked module scanned" pass \
@@ -1947,6 +1969,10 @@ run_case "go ceiling: untracked-only module does not fake a green" fail \
   "the Go ceiling is scanning nothing" m_gomod_untracked_only
 run_case "go ceiling: no index does not fake a green" fail \
   "refusing to green the Go ceiling on a set it cannot determine" m_gomod_no_index
+run_case "go ceiling: unreadable module is named, not rounded down" fail \
+  "scanned 1 of 2 tracked" m_gomod_short_scan
+run_case "go ceiling: renamed labs/ does not fake a green" fail \
+  "the Go ceiling is scanning nothing" m_gomod_labs_renamed
 
 # --- encrypted learner state is warned, not failed (verify.sh section 3-4) ---
 # `init -backend=false` never configures the `encryption {}` block, so a workdir
@@ -2002,10 +2028,15 @@ m_unencrypted_state_still_fails() {
   mkdir -p "$root/labs/day-1/97-encstate-selftest"
   printf 'terraform {\n  required_version = ">= 1.9"\n}\n' \
     >"$root/labs/day-1/97-encstate-selftest/main.tf"
+  printf '*.tfstate\n*.tfstate.*\n' >"$root/.gitignore"
+  # AFTER git_init_root, exactly as the encrypted case — otherwise the file is
+  # force-added, `git check-ignore` calls it not-ignored, and the case reds
+  # because the state is TRACKED rather than because it is unencrypted. That
+  # made it a duplicate of the tracked case and pinned nothing: deleting the
+  # encrypted-state grep from verify.sh left the whole suite green.
+  git_init_root "$root"
   printf 'this is not state at all\n' \
     >"$root/labs/day-1/97-encstate-selftest/terraform.tfstate"
-  printf '*.tfstate\n*.tfstate.*\n' >"$root/.gitignore"
-  git_init_root "$root"
 }
 
 run_case "encrypted learner state warns, does not fail" pass \
