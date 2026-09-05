@@ -76,8 +76,11 @@ consume that pin on a laptop that juggles several OpenTofu projects?
 
 ```console
 $ grep -n "TOFU_VERSION" versions.env
-13:TOFU_VERSION=1.10.3
+17:TOFU_VERSION=1.10.3
 ```
+
+(The line number moves as `versions.env` grows — what matters is that there is
+exactly **one** match.)
 
 `versions.env` is the pin's single source of truth — Taskfile, docker compose,
 CI, and the bootstrap all read it, and `scripts/verify.sh` fails on skew.

@@ -17,8 +17,11 @@ grep -n "TOFU_VERSION" versions.env
 
 ```console
 $ grep -n "TOFU_VERSION" versions.env
-13:TOFU_VERSION=1.10.3
+17:TOFU_VERSION=1.10.3
 ```
+
+(The line number moves as `versions.env` grows — what matters is that there is
+exactly **one** match.)
 
 `versions.env` is the toolchain pin's single source of truth — Taskfile,
 docker compose, CI, and the bootstrap consume it, and `scripts/verify.sh`

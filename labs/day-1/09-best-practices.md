@@ -1457,7 +1457,22 @@ removed {
 }
 ```
 
-Re-plan: the forget plan is identical, and the warning is gone.
+Re-plan: the forget plan is identical (`0 to add, 0 to change, 0 to destroy,
+1 to forget`), and the **missing-lifecycle** warning is gone. One warning
+remains, and it is a different one — informational, not a defect:
+
+```console
+Warning: Resource going to be removed from the state
+
+After this plan gets applied, the resource local_file.build_info will not be
+managed anymore by OpenTofu.
+
+In case you want to manage the resource again, you will have to import it.
+```
+
+That second notice is OpenTofu stating the actual consequence of a forget, and
+it is the point of the exercise: the file survives, the *management* does not.
+Re-adopting it later means `import` (Lab 10), not `apply`.
 </details>
 
 > **Common trip — `removed` while the resource block still exists.** The

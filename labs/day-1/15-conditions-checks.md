@@ -272,8 +272,8 @@ Plan: 1 to add, 0 to change, 1 to destroy.
 
 Warning: Check block assertion failed
 
-  on main.tf line 93, in check "secret_strength":
-  93:     condition     = var.min_secret_length >= 16
+  on main.tf line 99, in check "secret_strength":
+  99:     condition     = var.min_secret_length >= 16
     ├────────────────
     │ var.min_secret_length is 8
 
@@ -312,8 +312,8 @@ Planning failed. OpenTofu encountered an error while generating this plan.
 
 Error: Resource precondition failed
 
-  on main.tf line 64, in resource "local_file" "manifest":
-  64:       condition     = var.service.replicas >= 1
+  on main.tf line 69, in resource "local_file" "manifest":
+  69:       condition     = var.service.replicas >= 1
     ├────────────────
     │ var.service.replicas is 0
 
@@ -354,8 +354,8 @@ random_password.session: Creation complete after 0s [id=none]
 
 Error: Resource postcondition failed
 
-  on main.tf line 72, in resource "local_file" "manifest":
-  72:       condition     = length(self.content) <= var.max_manifest_bytes
+  on main.tf line 77, in resource "local_file" "manifest":
+  77:       condition     = length(self.content) <= var.max_manifest_bytes
     ├────────────────
     │ self.content is "SERVICE_NAME=checkout\nSERVICE_TIER=standard\nREPLICAS=2\nENVIRONMENT=staging\nRELEASE=boss-kitten\n"
     │ var.max_manifest_bytes is 10
@@ -370,7 +370,7 @@ Read it top to bottom:
    **apply-time** failure, not a plan-time one.
 2. `Error: Resource postcondition failed` — severity is `Error` (unlike the
    `check`'s warning), so the apply is marked failed.
-3. `on main.tf line 72 … condition = length(self.content) <= var.max_manifest_bytes`
+3. `on main.tf line 77 … condition = length(self.content) <= var.max_manifest_bytes`
    — the exact assertion that failed.
 4. The `self.content is "…"` line dumps the real rendered content, and
    `var.max_manifest_bytes is 10` shows the budget. Your error message
@@ -438,8 +438,8 @@ Plan: 1 to add, 0 to change, 1 to destroy.
 
 Error: Module output value precondition failed
 
-  on main.tf line 84, in output "manifest_path":
-  84:     condition     = var.environment != "prod" || var.service.replicas >= 2
+  on main.tf line 90, in output "manifest_path":
+  90:     condition     = var.environment != "prod" || var.service.replicas >= 2
     ├────────────────
     │ var.environment is "prod"
     │ var.service.replicas is 1

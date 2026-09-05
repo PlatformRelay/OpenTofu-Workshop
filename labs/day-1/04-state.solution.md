@@ -263,7 +263,7 @@ file.
 
 ```bash
 tofu state show random_password.session | grep result
-grep -o '"result": "[^"]*"' terraform.tfstate
+grep -o '"result": *"[^"]*"' terraform.tfstate
 jq -r '.resources[] | select(.type=="random_password") | .instances[0].attributes.result' terraform.tfstate
 ```
 
@@ -286,18 +286,21 @@ But the file on disk is plaintext JSON, and `grep`/`jq` pull the password
 straight out:
 
 ```console
-$ grep -o '"result": "[^"]*"' terraform.tfstate
-"result": "MUH-Ud?RTW\u0026ven+_OcSC"
+$ grep -o '"result": *"[^"]*"' terraform.tfstate
+"result":"U=HUN-S@ajo\u0026a6\u003eQw7:3"
 
 $ jq -r '.resources[] | select(.type=="random_password") | .instances[0].attributes.result' terraform.tfstate
-MUH-Ud?RTW&ven+_OcSC
+U=HUN-S@ajo&a6>Qw7:3
 ```
 
 The CLI is **polite** — `state show` prints `(sensitive value)`, which is
 reassuring and **misleading**. `terraform.tfstate` is **plaintext JSON**: the
-resolved password (`MUH-Ud?RTW&ven+_OcSC` here — **yours will be a completely
+resolved password (`U=HUN-S@ajo&a6>Qw7:3` here — **yours will be a completely
 different random string**) sits in the file as a literal, and a one-line `grep`
-exposes it. (In the raw JSON, `&` appears as its `\u0026` JSON unicode escape; `jq -r` decodes it back to `&`)
+exposes it. (Two artefacts of the raw read: the state JSON is written **compact**, so there
+is no space after `"result":` — hence the `*` in the grep — and OpenTofu's Go
+JSON encoder escapes `&`, `<` and `>` as `\u0026`, `\u003c`, `\u003e`. `jq -r`
+decodes both away, which is why it is the honest read of what is on disk.)
 
 That file ends up in backups, CI artifacts, a stolen laptop, or an accidental
 `git` commit — **anyone who reads the file reads your secret**. This is precisely

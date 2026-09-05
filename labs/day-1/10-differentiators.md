@@ -764,11 +764,10 @@ Planning failed. OpenTofu encountered an error while generating this plan.
 Error: Cannot import non-existent remote object
 
 While attempting to import an existing object to "aws_s3_bucket.adopted", the
-provider detected that no object exists with the given id or identity. Only
-pre-existing objects can be imported; check that the id or identity is
-correct and that it is associated with the provider's configured region or
-endpoint, or use "tofu apply" to create a new remote object for this
-resource.
+provider detected that no object exists with the given id. Only pre-existing
+objects can be imported; check that the id is correct and that it is
+associated with the provider's configured region or endpoint, or use "tofu
+apply" to create a new remote object for this resource.
 ```
 
 It fails **at plan time** — before anything could be touched. That is the

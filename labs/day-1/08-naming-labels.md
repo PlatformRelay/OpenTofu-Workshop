@@ -182,6 +182,10 @@ task verify:integration
 <details><summary>Expected output</summary>
 
 ```console
+  ! examples/naming-labels-demo: not validated — examples/naming-labels-demo/terraform.tfstate
+    is encrypted local state, which init -backend=false cannot read
+  · examples/naming-labels-demo: this is YOUR lab state, not a repo defect. …
+
   run "localstack_apply"... pass
 
 Success! 1 passed, 0 failed.
@@ -190,6 +194,19 @@ Success! 1 passed, 0 failed.
 The apply-lane test resolves the random suffix, so it can assert the full
 `^s3-crmapp-d-web-[a-z0-9]{4}$` pattern and that every required label landed as a
 tag.
+
+**Read the warning — it is the lab's own doing, and it is worth understanding.**
+Step 4 just wrote an S05-encrypted state file into this workdir. The gate's
+validate sweep runs `tofu init -backend=false` in every workdir, and
+`-backend=false` never configures the `encryption {}` block — so it cannot read
+that file. The gate names the directory, says the state is yours rather than a
+repo defect, and skips only that directory's validate; the integration test you
+came here for still runs. Clearing it (Cleanup, below) makes the warning go away.
+
+This is a real property of encrypted state, not a workshop wart: **anything that
+reads state without the encryption configuration sees an opaque envelope** — your
+gates, your CI linters, your `jq` one-liners, the colleague debugging at 3am. That
+is the security win from Lab 05 and its operational cost, in the same breath.
 
 </details>
 
@@ -206,6 +223,7 @@ tag.
 ```bash
 export TF_VAR_state_passphrase='a-long-demo-passphrase-1234'
 tofu -chdir=examples/naming-labels-demo destroy -auto-approve
+rm -f examples/naming-labels-demo/*.tfstate*   # destroy empties state, it does not delete it
 task lab:down          # stop LocalStack and remove its volumes
 ```
 

@@ -275,7 +275,7 @@ cd labs/day-1/01-iac-fork
 tofu destroy -auto-approve
 rm -rf .terraform .terraform.lock.hcl terraform.tfstate terraform.tfstate.* build
 rm -f /tmp/provision.sh
-git status --short labs/day-1/01-iac-fork      # expect: no output
+git status --short .                           # expect: no output
 ```
 
 ## Stretch (optional)
@@ -408,7 +408,7 @@ cd labs/day-1/01-iac-fork
 tofu destroy -auto-approve
 rm -rf .terraform .terraform.lock.hcl terraform.tfstate terraform.tfstate.* build
 rm -f /tmp/provision.sh
-git status --short labs/day-1/01-iac-fork      # expect: no output
+git status --short .                           # expect: no output
 ```
 
 <details><summary>Expected output</summary>
