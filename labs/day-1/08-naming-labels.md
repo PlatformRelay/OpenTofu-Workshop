@@ -182,9 +182,9 @@ task verify:integration
 <details><summary>Expected output</summary>
 
 ```console
-  ! examples/naming-labels-demo: not validated — examples/naming-labels-demo/terraform.tfstate
-    is encrypted local state, which init -backend=false cannot read
-  · examples/naming-labels-demo: this is YOUR lab state, not a repo defect. …
+  ! examples/naming-labels-demo: not validated — examples/naming-labels-demo/terraform.tfstate is encrypted local state, which init -backend=false cannot read
+  · examples/naming-labels-demo: this is YOUR lab state, not a repo defect. Clear it and re-run:
+  ·     TF_VAR_state_passphrase=… tofu -chdir=examples/naming-labels-demo destroy -auto-approve && rm -f examples/naming-labels-demo/*.tfstate*
 
   run "localstack_apply"... pass
 

@@ -614,8 +614,12 @@ Plan: 0 to add, 0 to change, 0 to destroy, 1 to forget.
 ```
 
 Adding `lifecycle { destroy = false }` keeps the identical forget plan and
-silences the warning (while `destroy = true` would flip the same block to
-`1 to destroy`). Converge and apply:
+silences the **missing-lifecycle** warning (while `destroy = true` would flip
+the same block to `1 to destroy`). A second notice remains — `Resource going to
+be removed from the state`, saying the resource will no longer be managed and
+that re-adopting it means `import`. That one is OpenTofu stating the
+consequence of a forget, not a defect to silence; see the lab for the full
+capture. Converge and apply:
 
 ```console
 $ git checkout -- retire.tf

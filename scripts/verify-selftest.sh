@@ -1880,6 +1880,143 @@ run_case "version floor tilde ceiling armed" fail "pins a ceiling-imposing const
 run_case "pointer hygiene clean" pass "pointer hygiene: no tracked prose references ${PTR_NEEDLE}" m_clean
 run_case "pointer hygiene armed" fail "pointer hygiene: README.md references gitignored ${PTR_NEEDLE}" m_pointer_planted
 
+# --- Go toolchain ceiling (verify.sh section 10) -----------------------------
+# This gate exists because GO_VERSION sat BELOW labs/day-2/18-terratest-cost's
+# own `go` directive. The container lane is golang:${GO_VERSION}-bookworm, the
+# official golang images set GOTOOLCHAIN=local, so the container could not fetch
+# a newer toolchain and Lab 18 could not run at all — while every "consumer
+# restates GO_VERSION" needle in this same section stayed green. A ceiling whose
+# own failure modes are untested is the same shape of defect it was added to
+# remove, which is why these cases exist.
+#
+# The sandbox is not a git work tree unless a case makes it one, and it carries
+# no labs/**/go.mod, so the DEFAULT state here is "not applicable" — asserted
+# below rather than left to chance.
+
+# Plant a labs module declaring $2 as its `go` directive.
+plant_gomod() {
+  local root="$1" directive="$2"
+  mkdir -p "$root/labs/day-2/98-gomod-selftest"
+  printf 'module example.com/selftest\n\ngo %s\n' "$directive" \
+    >"$root/labs/day-2/98-gomod-selftest/go.mod"
+}
+
+# Tracked and compliant: at or below both GO_VERSION and MIN_GO.
+m_gomod_compliant() { plant_gomod "$1" "1.25.0"; git_init_root "$1"; }
+
+# Above GO_VERSION — the exact defect the ceiling was added for.
+m_gomod_above_pin() { plant_gomod "$1" "9.99.0"; git_init_root "$1"; }
+
+# At or below GO_VERSION (1.27.x) but ABOVE bootstrap MIN_GO (1.25): the HOST
+# lane's floor is a separate consumer, and a directive can outrun it alone.
+m_gomod_above_min_go() { plant_gomod "$1" "1.26"; git_init_root "$1"; }
+
+# A directive nobody can parse must RED, not be skipped. The original scan wrote
+# the match with `\+`, a GNU sed extension that a BSD sed reads as a literal
+# plus — on macOS, where this repo is developed, go_req came back empty for
+# every file and `|| continue` skipped the entire scan while the gate went
+# green. `continue` on an unparseable directive is that bug's mechanism.
+m_gomod_unparseable() {
+  local root="$1"
+  mkdir -p "$root/labs/day-2/98-gomod-selftest"
+  printf 'module example.com/selftest\n\ngo 1.25.0 // toolchain note\n' \
+    >"$root/labs/day-2/98-gomod-selftest/go.mod"
+  git_init_root "$root"
+}
+
+# On disk but NOT tracked: `git ls-files` returns nothing, so the scan covers
+# zero modules. Reporting "all pins match" there states no-drift when the truth
+# is nothing-was-looked-at — a renamed labs/ has exactly this signature.
+m_gomod_untracked_only() { git_init_root "$1"; plant_gomod "$1" "9.99.0"; }
+
+# Files on disk with NO index at all: the tracked set is unknowable, so the
+# ceiling must say so rather than green.
+m_gomod_no_index() { plant_gomod "$1" "9.99.0"; }
+
+run_case "go ceiling: not applicable without modules" pass \
+  "no git index and no labs/**/go.mod present — Go ceiling not applicable here" m_clean
+run_case "go ceiling: compliant tracked module scanned" pass \
+  "1 go.mod directive(s) within GO_VERSION=" m_gomod_compliant
+run_case "go ceiling: directive above GO_VERSION armed" fail \
+  "declares go 9.99.0, above versions.env GO_VERSION=" m_gomod_above_pin
+run_case "go ceiling: directive above MIN_GO armed" fail \
+  "declares go 1.26, above bootstrap MIN_GO=" m_gomod_above_min_go
+run_case "go ceiling: unparseable directive is not skipped" fail \
+  "has no parseable" m_gomod_unparseable
+run_case "go ceiling: untracked-only module does not fake a green" fail \
+  "the Go ceiling is scanning nothing" m_gomod_untracked_only
+run_case "go ceiling: no index does not fake a green" fail \
+  "refusing to green the Go ceiling on a set it cannot determine" m_gomod_no_index
+
+# --- encrypted learner state is warned, not failed (verify.sh section 3-4) ---
+# `init -backend=false` never configures the `encryption {}` block, so a workdir
+# holding state a learner produced under Lab 05 dies on an unreadable state
+# file. That learner followed the lab, then ran the gate the workshop tells them
+# to run, and got a red pointing at nothing. It must WARN — and, just as
+# importantly, must NOT warn for an unencrypted init failure, or the softening
+# becomes general.
+
+# A git-ignored *.tfstate carrying the encrypted-state marker, beside a workdir
+# whose init would otherwise be attempted.
+m_encrypted_state_present() {
+  local root="$1"
+  mkdir -p "$root/labs/day-1/97-encstate-selftest"
+  printf 'terraform {\n  required_version = ">= 1.9"\n}\n' \
+    >"$root/labs/day-1/97-encstate-selftest/main.tf"
+  # `encryption_version` is the field that makes tofu report the state as
+  # ENCRYPTED rather than merely malformed — without it the error is "can not be
+  # checked for presence of encryption", which is a different branch. Verified
+  # against the pinned tofu 1.10.3: this fixture produces exactly
+  # "This state file is encrypted and can not be read without an encryption
+  # configuration", the string the warn path greps for.
+  printf '*.tfstate\n*.tfstate.*\n' >"$root/.gitignore"
+  # git_init_root force-adds (`git add -A -f`), and `git check-ignore` reports a
+  # TRACKED path as not-ignored — so the state file is written AFTER the index
+  # exists, leaving it untracked and genuinely ignored. That ordering is not
+  # incidental: the warn path is deliberately narrow, and a *tracked* .tfstate
+  # is repo rot rather than learner state, so it must keep hard-failing.
+  git_init_root "$root"
+  printf '{"serial":1,"lineage":"selftest","meta":{"key_provider.pbkdf2.pw":"e30="},"encrypted_data":"AAAA","encryption_version":"v0"}\n' \
+    >"$root/labs/day-1/97-encstate-selftest/terraform.tfstate"
+}
+
+# The same encrypted state, but TRACKED: not a learner artifact, so the softening
+# must not apply. This pins the "git-ignored by construction" half of the warn
+# path's reasoning, which is the half that keeps CI honest.
+m_encrypted_state_tracked_still_fails() {
+  local root="$1"
+  mkdir -p "$root/labs/day-1/97-encstate-selftest"
+  printf 'terraform {\n  required_version = ">= 1.9"\n}\n' \
+    >"$root/labs/day-1/97-encstate-selftest/main.tf"
+  printf '{"serial":1,"lineage":"selftest","meta":{"key_provider.pbkdf2.pw":"e30="},"encrypted_data":"AAAA","encryption_version":"v0"}\n' \
+    >"$root/labs/day-1/97-encstate-selftest/terraform.tfstate"
+  git_init_root "$root"
+}
+
+# THE DISCRIMINATION, not just the softening: an init that fails for any other
+# reason must still be a hard FAIL. Same git-ignored *.tfstate, same workdir —
+# only the state's contents differ. Without this case the warn path could widen
+# to swallow every init failure and the suite would still be green.
+m_unencrypted_state_still_fails() {
+  local root="$1"
+  mkdir -p "$root/labs/day-1/97-encstate-selftest"
+  printf 'terraform {\n  required_version = ">= 1.9"\n}\n' \
+    >"$root/labs/day-1/97-encstate-selftest/main.tf"
+  printf 'this is not state at all\n' \
+    >"$root/labs/day-1/97-encstate-selftest/terraform.tfstate"
+  printf '*.tfstate\n*.tfstate.*\n' >"$root/.gitignore"
+  git_init_root "$root"
+}
+
+run_case "encrypted learner state warns, does not fail" pass \
+  "is encrypted local state, which init -backend=false cannot read" m_encrypted_state_present \
+  "this is YOUR lab state, not a repo defect"
+run_case "non-encrypted init failure still reds" fail \
+  "labs/day-1/97-encstate-selftest: init failed (cannot validate)" m_unencrypted_state_still_fails
+run_case "TRACKED encrypted state is repo rot, still reds" fail \
+  "labs/day-1/97-encstate-selftest: init failed (cannot validate)" m_encrypted_state_tracked_still_fails
+
+
 # --- release script self-tests (US-P-REL) --------------------------------------
 # Run against the live repo (not the temp verify.sh copy): CI verify-unit invokes
 # this script before verify.sh, so wiring here keeps release regressions red.
