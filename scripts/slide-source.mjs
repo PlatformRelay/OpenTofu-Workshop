@@ -124,7 +124,21 @@ export function readPageSlides(root) {
   }))
 }
 
-/** Strip every HTML comment. Comment bodies are not rendered as elements. */
+/**
+ * Strip every HTML comment. Comment bodies are not rendered as elements.
+ *
+ * Runs to a fixed point: a single pass over `<!<!---->--` leaves `<!--`
+ * behind, which CodeQL flags as incomplete multi-character sanitization
+ * (js/incomplete-multi-character-sanitization). Repeating until the text
+ * stops changing closes that gap without changing the result for well-formed
+ * input.
+ */
 export function stripHtmlComments(body) {
-  return body.replace(/<!--[\s\S]*?-->/g, '')
+  let out = body
+  let prev
+  do {
+    prev = out
+    out = out.replace(/<!--[\s\S]*?-->/g, '')
+  } while (out !== prev)
+  return out
 }

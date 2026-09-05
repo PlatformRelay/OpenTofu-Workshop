@@ -37,9 +37,22 @@ test('mkdocs.yml site_url uses canonical OpenTofu-Workshop case', () => {
 // so without this test a future edit could delete both new beats and leave every
 // gate green. Presenter notes are stripped first: the AC requires the content on
 // the slide, not only in the facilitator's notes.
+// Local copy of slide-source.mjs stripHtmlComments: this job runs without
+// `pnpm install`, and importing slide-source would pull in the `yaml` package.
+// Fixed-point loop so `<!<!---->--` cannot leave a `<!--` behind (CodeQL
+// js/incomplete-multi-character-sanitization).
+function stripHtmlComments(body) {
+  let out = body
+  let prev
+  do {
+    prev = out
+    out = out.replace(/<!--[\s\S]*?-->/g, '')
+  } while (out !== prev)
+  return out
+}
+
 test('S01 keeps its design-principles and practical-alternatives orientation', () => {
-  const body = readFileSync(resolve(ROOT, 'pages/S01-iac/index.md'), 'utf8')
-    .replace(/<!--[\s\S]*?-->/g, '')
+  const body = stripHtmlComments(readFileSync(resolve(ROOT, 'pages/S01-iac/index.md'), 'utf8'))
   assert.match(body, /design principles?/i, 'S01 must name the design principles')
   assert.match(body, /devops/i, 'S01 must place IaC in its DevOps context')
   for (const alternative of ['pulumi', 'crossplane', 'ansible']) {
