@@ -122,8 +122,10 @@ setup() {
   grep -qF 'go vet ./...' <<<"$exec_lines"
 
   # The toolchain is pinned by each module's own go.mod, NOT a ci.yml literal:
-  # verify.sh §10 then has no new version literal to drift-check, and the cost
-  # module's go.mod (go 1.25.0) already requires a newer Go than versions.env's
-  # GO_VERSION container pin — a single ci.yml literal could not serve both.
+  # verify.sh §10 then has no new version literal to drift-check, and the two
+  # modules declare different directives (cost: go 1.25.0, smoke: go 1.23) — a
+  # single ci.yml literal could not serve both. Those directives are no longer
+  # free-floating: §10 gates every labs/**/go.mod against versions.env
+  # GO_VERSION and bootstrap MIN_GO.
   grep -qF 'go-version-file: ${{ matrix.dir }}/go.mod' <<<"$exec_lines"
 }
