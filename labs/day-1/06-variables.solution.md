@@ -143,15 +143,15 @@ $ tofu plan -var='environment=prod' \
     -var='service={name="checkout",tier="standard",replicas=1}'
 Error: Invalid value for variable
 
-  on main.tf line 9:
-   9: variable "service" {
+  on main.tf line 16:
+  16: variable "service" {
     ├────────────────
     │ var.environment is "prod"
     │ var.service.replicas is 1
 
 A prod service needs at least 2 replicas (got 1).
 
-This was checked by the validation rule at main.tf:20,3-13.
+This was checked by the validation rule at main.tf:27,3-13.
 ```
 
 The diagnostic prints **both** `var.environment` and `var.service.replicas` —
@@ -212,14 +212,14 @@ tofu plan -var='environment=production'
 $ tofu plan -var='environment=production'
 Error: Invalid value for variable
 
-  on main.tf line 26:
-  26: variable "environment" {
+  on main.tf line 33:
+  33: variable "environment" {
     ├────────────────
     │ var.environment is "production"
 
 environment must be one of: dev, staging, prod.
 
-This was checked by the validation rule at main.tf:31,3-13.
+This was checked by the validation rule at main.tf:38,3-13.
 ```
 
 `"production"` isn't in `["dev", "staging", "prod"]`, so `contains(...)` is false

@@ -66,7 +66,7 @@ rightBadge: tenv
 
 ```bash
 $ grep -n "TOFU_VERSION" versions.env
-13:TOFU_VERSION=1.10.3
+17:TOFU_VERSION=1.10.3
 ```
 
 - **One file pins the toolchain** — Taskfile, docker compose, CI, and

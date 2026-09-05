@@ -106,7 +106,7 @@ inputs = {
 From the repository root, list the fixture and read each file:
 
 ```bash
-find labs/day-3/27-terragrunt-comparison/terragrunt-style -type f | sort
+find labs/day-3/27-terragrunt-comparison/terragrunt-style -type f ! -name '.terraform.lock.hcl' -not -path '*/.terraform/*' | sort
 cat labs/day-3/27-terragrunt-comparison/terragrunt-style/root.hcl
 cat labs/day-3/27-terragrunt-comparison/terragrunt-style/live/network/terragrunt.hcl
 cat labs/day-3/27-terragrunt-comparison/terragrunt-style/live/app/terragrunt.hcl
@@ -118,7 +118,7 @@ its shared configuration?
 <details><summary>Solution / expected observation</summary>
 
 ```console
-$ find labs/day-3/27-terragrunt-comparison/terragrunt-style -type f | sort
+$ find labs/day-3/27-terragrunt-comparison/terragrunt-style -type f ! -name '.terraform.lock.hcl' -not -path '*/.terraform/*' | sort
 labs/day-3/27-terragrunt-comparison/terragrunt-style/live/app/terragrunt.hcl
 labs/day-3/27-terragrunt-comparison/terragrunt-style/live/network/terragrunt.hcl
 labs/day-3/27-terragrunt-comparison/terragrunt-style/root.hcl

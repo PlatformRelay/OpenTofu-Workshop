@@ -52,7 +52,7 @@ install hint for your OS. Re-run this step after it succeeds.
 Stay at the repository root and inspect the skeleton:
 
 ```bash
-find labs/day-3/20-why-terramate -type f ! -name '.gitignore' | sort
+find labs/day-3/20-why-terramate -type f ! -name '.gitignore' ! -name '.terraform.lock.hcl' -not -path '*/.terraform/*' | sort
 diff -u \
   labs/day-3/20-why-terramate/stacks/network/backend.tf \
   labs/day-3/20-why-terramate/stacks/app/backend.tf

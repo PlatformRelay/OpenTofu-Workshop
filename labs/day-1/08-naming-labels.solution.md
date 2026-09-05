@@ -154,6 +154,7 @@ task verify:integration
 ```bash
 export TF_VAR_state_passphrase='a-long-demo-passphrase-1234'
 tofu -chdir=examples/naming-labels-demo destroy -auto-approve
+rm -f examples/naming-labels-demo/*.tfstate*   # destroy empties state, it does not delete it
 task lab:down          # stop LocalStack and remove its volumes
 ```
 
@@ -236,6 +237,7 @@ If a step fails mid-lab, return to a clean tree before retrying:
 ```bash
 export TF_VAR_state_passphrase='a-long-demo-passphrase-1234'
 tofu -chdir=examples/naming-labels-demo destroy -auto-approve
+rm -f examples/naming-labels-demo/*.tfstate*   # destroy empties state, it does not delete it
 task lab:down          # stop LocalStack and remove its volumes
 ```
 

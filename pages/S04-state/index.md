@@ -287,12 +287,12 @@ lab: labs/day-1/04-state.md
 $ tofu state show random_password.session | grep result
     result = (sensitive value)          # CLI redacts
 
-$ grep -o '"result": "[^"]*"' terraform.tfstate
-"result": "MUH-Ud?RTW\u0026ven+_OcSC"        # plaintext on disk!
+$ grep -o '"result": *"[^"]*"' terraform.tfstate
+"result":"U=HUN-S@ajo\u0026a6\u003eQw7:3"   # plaintext on disk!
 
 $ jq -r '.resources[]|select(.type=="random_password")
          |.instances[0].attributes.result' terraform.tfstate
-MUH-Ud?RTW&ven+_OcSC
+U=HUN-S@ajo&a6>Qw7:3
 ```
 
 ::notes::

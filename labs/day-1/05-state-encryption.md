@@ -546,7 +546,7 @@ tofu destroy -auto-approve || true                     # under the config you la
 git checkout -- encryption.tf                          # back to the canonical passphrase config
 rm -rf .terraform .terraform.lock.hcl terraform.tfstate terraform.tfstate.* out \
   encryption.tf.off variables.tf.off encryption.tf.bak
-git status --short labs/day-1/05-state-encryption      # expect: no output
+git status --short .                                   # expect: no output
 ```
 
 If you ran Step 6, finish with:
