@@ -1948,6 +1948,34 @@ m_gomod_short_scan() {
   git_init_root "$root"
 }
 
+# A module at the ROOT of labs/ — zero path segments between `labs/` and
+# `go.mod`. This is what makes the `:(glob)` pathspec magic load-bearing:
+# without it the match uses non-pathname wildmatch, where `**` degenerates to
+# `*` and cannot match zero segments, so `labs/go.mod` is invisible to the scan.
+# The module is COMPLIANT on purpose, so this case asserts a PASS: revert
+# `:(glob)` and the tracked set comes back empty, the disk-side find still sees
+# the file, and the "scanning nothing" guard reds this case instead. A drifting
+# directive would red either way and would prove nothing about the pathspec.
+m_gomod_labs_root() {
+  local root="$1"
+  mkdir -p "$root/labs"
+  printf 'module example.com/selftest\n\ngo 1.25.0\n' >"$root/labs/go.mod"
+  git_init_root "$root"
+}
+
+# A PARTIAL migration: one module stays under labs/ (so the tracked set is
+# non-empty and the "scanning nothing" guard stays silent) while a second,
+# equally tracked, sits outside it declaring a directive far above the pin.
+# Before the repo-wide cross-check became unconditional this shipped GREEN —
+# the escaped module was simply never scanned.
+m_gomod_partial_migration() {
+  local root="$1"
+  plant_gomod "$root" "1.25.0"
+  mkdir -p "$root/tools/cost-report"
+  printf 'module example.com/escaped\n\ngo 9.99.0\n' >"$root/tools/cost-report/go.mod"
+  git_init_root "$root"
+}
+
 # The state C2 found greening: labs/ renamed, so BOTH the pathspec and the
 # disk-side find come up empty while a tracked module plainly exists.
 m_gomod_labs_renamed() {
@@ -1977,6 +2005,10 @@ run_case "go ceiling: unreadable module is named, not rounded down" fail \
   "is not readable"
 run_case "go ceiling: renamed labs/ does not fake a green" fail \
   "the Go ceiling is scanning nothing" m_gomod_labs_renamed
+run_case "go ceiling: module at labs/ root is matched" pass \
+  "1 go.mod directive(s) within GO_VERSION=" m_gomod_labs_root
+run_case "go ceiling: partial migration out of labs/ does not fake a green" fail \
+  "escapes the Go ceiling" m_gomod_partial_migration
 
 # --- encrypted learner state is warned, not failed (verify.sh section 3-4) ---
 # `init -backend=false` never configures the `encryption {}` block, so a workdir

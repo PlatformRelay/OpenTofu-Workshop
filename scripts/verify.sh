@@ -1260,6 +1260,19 @@ else
      && { [ "${GOMOD_FS_COUNT:-0}" -gt 0 ] || [ "${GOMOD_ANY:-0}" -gt 0 ]; }; then
     pin_fail "pin drift: no TRACKED labs/**/go.mod matched, yet ${GOMOD_FS_COUNT} on disk under labs/ and ${GOMOD_ANY} tracked repo-wide — the Go ceiling is scanning nothing"
   fi
+  # A tracked go.mod OUTSIDE labs/ is never legitimate in this repo (decided
+  # 2026-09-07): the ceiling scans labs/** only, so a module anywhere else is
+  # unpinned by construction — its `go` directive can outrun GO_VERSION and
+  # nothing here would notice. The guard above catches a WHOLE migration, where
+  # the tracked set drops to zero. This catches a PARTIAL one: leave one module
+  # under labs/ and the set stays non-empty, so that guard never fires while a
+  # second module sits outside the ceiling entirely. Deliberately unconditional
+  # on the count rather than folded into the zero case above — that asymmetry
+  # was the hole.
+  if [ "$GOMOD_HAVE_INDEX" -eq 1 ] && [ "$GOMOD_EXPECTED" -gt 0 ] \
+     && [ "${GOMOD_ANY:-0}" -ne "$GOMOD_EXPECTED" ]; then
+    pin_fail "pin drift: ${GOMOD_ANY} go.mod tracked repo-wide but only ${GOMOD_EXPECTED} under labs/ — a Go module outside labs/ escapes the Go ceiling"
+  fi
 
   if [ "$PIN_FAILURES" -eq 0 ]; then
     pass "toolchain pins: all listed consumers match versions.env ($GOMOD_SCANNED go.mod directive(s) within GO_VERSION=$GO_VERSION / MIN_GO=$GO_MIN_HOST)"
