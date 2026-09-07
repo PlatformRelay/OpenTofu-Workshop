@@ -110,7 +110,13 @@ gh_jq_or_empty() {
   fi
 
   # gh prints "gh: … (HTTP 404)" on stderr; the JSON body may also carry status.
-  if grep -qE 'HTTP[[:space:]]+404\b' "$errfile" \
+  # The trailing `([^0-9A-Za-z_]|$)` is a portable spelling of `\b`: `\b` is a GNU
+  # extension that BSD/macOS grep does not honour, and this repo is developed on
+  # macOS. There it would not match, so a plain "tag absent" 404 — the NORMAL case —
+  # would fall through to the fail-closed branch below and error instead of
+  # returning empty. It still rejects "404" followed by another word character
+  # (e.g. HTTP 4040), which is the boundary the original intended.
+  if grep -qE 'HTTP[[:space:]]+404([^0-9A-Za-z_]|$)' "$errfile" \
     || grep -qE '"status"[[:space:]]*:[[:space:]]*"404"' <<<"$out" \
     || grep -qE '"status"[[:space:]]*:[[:space:]]*"404"' "$errfile"; then
     printf ''
