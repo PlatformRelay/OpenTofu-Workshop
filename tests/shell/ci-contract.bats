@@ -129,3 +129,23 @@ setup() {
   # GO_VERSION and bootstrap MIN_GO.
   grep -qF 'go-version-file: ${{ matrix.dir }}/go.mod' <<<"$exec_lines"
 }
+
+# claims-check.mjs shipped UNWIRED: no workflow, task or package script ran it,
+# so the pointers it validates rotted twice while CI stayed green. Wiring it is
+# only a gate if the wiring itself cannot be quietly removed.
+#
+# COMMENT-STRIPPED, for the reason this file already learned the hard way: the
+# ci.yml step carries a prose comment naming claims-check.mjs, so a naive grep
+# would be satisfied by documentation rather than by an executable step.
+
+@test "ci.yml runs the claims plane, and not merely in a comment" {
+  local wf="$ROOT/.github/workflows/ci.yml"
+  local exec_lines
+  exec_lines="$(grep -v '^[[:space:]]*#' "$wf")"
+
+  grep -qF 'run: pnpm test:claims' <<<"$exec_lines"
+
+  # The script the package script points at must exist and be the real checker.
+  grep -qF '"test:claims": "node scripts/claims-check.mjs"' "$ROOT/package.json"
+  [ -f "$ROOT/scripts/claims-check.mjs" ]
+}

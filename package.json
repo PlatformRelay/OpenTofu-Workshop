@@ -24,6 +24,7 @@
     "export:templates": "slidev export slides-templates.md --output slides-templates-export",
     "lint": "markdownlint-cli2",
     "lint:fix": "markdownlint-cli2 --fix",
+    "test:claims": "node scripts/claims-check.mjs",
     "lab:contract": "node scripts/lab-contract.mjs",
     "link-check": "node scripts/link-check.mjs",
     "test:link-check": "node --test scripts/link-check.test.mjs",

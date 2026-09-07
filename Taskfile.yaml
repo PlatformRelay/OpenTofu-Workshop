@@ -401,6 +401,10 @@ tasks:
       # drift (incl. CRLF-authored). Runs in a throwaway temp copy; see the script.
       # Also runs release script self-tests (US-P-REL) against the live repo.
       - bash scripts/verify-selftest.sh
+      # Claims plane: zero-dependency, so it runs here rather than behind pnpm.
+      # See the note in ci.yml — this checker was unwired everywhere until now,
+      # which is why the pointers it validates rotted twice with every gate green.
+      - node scripts/claims-check.mjs
       # Shell plane when shellcheck + bats are on PATH (CI also runs the dedicated job).
       - |
         if command -v shellcheck >/dev/null 2>&1 && command -v bats >/dev/null 2>&1; then

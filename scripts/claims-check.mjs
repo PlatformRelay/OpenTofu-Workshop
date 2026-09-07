@@ -263,19 +263,38 @@ for (const row of rows) {
 // --- Where pointers (A/B/D/I tables) -------------------------------------
 // See the header note: these carried no gate at all, and rotted twice for it.
 
-/** A `path:line` (or `path:1-2, 9`) code span inside a table cell. */
-const POINTER =
-  /`([A-Za-z0-9._\-/]+\.(?:md|env|sh|yaml|yml|tf|mjs|json|Dockerfile)):(\d+(?:\s*[-–]\s*\d+)?(?:\s*,\s*\d+(?:\s*[-–]\s*\d+)?)*)`/g;
-
 /**
- * Expand `pages/S10-.../index.md` to the one directory it can mean.
- * Ambiguity is an error, not a skip: two matches means the pointer does not
- * identify a file, and zero means the directory is gone.
+ * Anything shaped like `something:12` or `something:12-14, 20` in a code span.
+ *
+ * DELIBERATELY LOOSE. An earlier version whitelisted file extensions, which
+ * silently skipped every pointer spelled another way — five live ones in this
+ * very document (`pages/S10:65`, `pages/S11:231,239`, `pages/S14:221`,
+ * `pages/S11:131`, `pages/S01:319`). A pointer that is not matched is not
+ * checked and not reported, which is the degraded-green this file exists to
+ * prevent. Match everything that looks like a pointer, then REPORT anything
+ * that cannot be resolved instead of dropping it.
+ *
+ * Timestamps do not match: the spec must run to the closing backtick, so
+ * `2025-07-15T14:33:31Z` fails (`:31Z` is left over) and never reaches
+ * resolution.
  */
-function expandEllipsis(p) {
-  const m = p.match(/^(.*?)([^/]*)\.\.\.\/(.*)$/);
-  if (!m) return { path: p };
-  const [, prefix, stem, tail] = m;
+const POINTER = /`([^`\s]+):(\d+(?:\s*[-–]\s*\d+)?(?:\s*,\s*\d+(?:\s*[-–]\s*\d+)?)*)`/g;
+
+/** Does this look like a path at all, as opposed to a version or a time? */
+function looksLikePath(p) {
+  if (p.includes('://')) return false;
+  return p.includes('/') || /\.[A-Za-z0-9]+$/.test(p);
+}
+
+/** Lines in a file, not counting the empty string after a trailing newline. */
+function lineCountOf(text) {
+  const parts = text.split('\n');
+  if (parts.length && parts[parts.length - 1] === '') parts.pop();
+  return parts.length;
+}
+
+/** Expand a `dir/PREFIX...` segment to the one directory it can mean. */
+function globOneDir(prefix, stem) {
   const dir = join(REPO_ROOT, prefix);
   if (!existsSync(dir)) return { error: `directory does not exist: ${prefix}` };
   const hits = readdirSync(dir).filter((d) => d.startsWith(stem));
@@ -283,19 +302,37 @@ function expandEllipsis(p) {
   if (hits.length > 1) {
     return { error: `ambiguous - ${prefix}${stem}* matches ${hits.length}: ${hits.join(', ')}` };
   }
-  return { path: `${prefix}${hits[0]}/${tail}` };
+  return { dir: hits[0] };
 }
 
-/** Every line number a spec names, ranges expanded to their endpoints. */
-function specNumbers(spec) {
-  const out = [];
-  for (const part of spec.split(',')) {
-    for (const n of part.trim().split(/[-–]/)) {
-      const v = Number(n.trim());
-      if (Number.isFinite(v)) out.push(v);
-    }
+/**
+ * Resolve the three spellings this document uses, plus the deck shorthand.
+ * `lastFull` is the previous resolved pointer on the same line, which is what
+ * a bare `.solution.md:250` is relative to.
+ */
+function resolvePointer(raw, lastFull) {
+  // `.solution.md:250` — the sibling of the pointer before it on the line.
+  if (raw.startsWith('.solution.md')) {
+    if (!lastFull) return { error: '`.solution.md` shorthand with no preceding pointer on the line' };
+    return { path: `${lastFull.replace(/\.md$/, '')}.solution.md` };
   }
-  return out;
+  // `pages/S10-.../index.md` — an elided directory name.
+  const ell = raw.match(/^(.*?)([^/]*)\.\.\.\/(.*)$/);
+  if (ell) {
+    const [, prefix, stem, tail] = ell;
+    const g = globOneDir(prefix, stem);
+    if (g.error) return { error: g.error };
+    return { path: `${prefix}${g.dir}/${tail}` };
+  }
+  // `pages/S01:319` — deck shorthand for that section's index.md.
+  const deck = raw.match(/^pages\/(S\d+)$/);
+  if (deck) {
+    const g = globOneDir('pages/', deck[1]);
+    if (g.error) return { error: g.error };
+    return { path: `pages/${g.dir}/index.md` };
+  }
+  if (!looksLikePath(raw)) return { skip: true };
+  return { path: raw };
 }
 
 let pointersChecked = 0;
@@ -305,116 +342,120 @@ doc.forEach((line, idx) => {
   if (!/^\|/.test(line)) return;
   let lastFull = null;
   for (const m of line.matchAll(POINTER)) {
-    const [, rawPath, spec] = m;
-    let path = rawPath;
-
-    // `.solution.md:250` is shorthand for the sibling of the pointer before it.
-    if (path.startsWith('.solution.md')) {
-      if (!lastFull) {
-        pointerProblems.push(
-          `doc:${idx + 1}: \`.solution.md\` shorthand with no preceding pointer on the line`
-        );
-        continue;
-      }
-      path = `${lastFull.replace(/\.md$/, '')}.solution.md`;
-    } else {
-      const expanded = expandEllipsis(path);
-      if (expanded.error) {
-        pointerProblems.push(`doc:${idx + 1}: ${rawPath} - ${expanded.error}`);
-        continue;
-      }
-      path = expanded.path;
-      lastFull = path;
-    }
-
-    const abs = join(REPO_ROOT, path);
-    if (!existsSync(abs)) {
-      pointerProblems.push(`doc:${idx + 1}: ${rawPath} -> ${path} does not exist`);
+    const [, raw, spec] = m;
+    const r = resolvePointer(raw, lastFull);
+    if (r.skip) continue;
+    if (r.error) {
+      pointerProblems.push(`doc:${idx + 1}: ${raw} - ${r.error}`);
       continue;
     }
-    const lineCount = readFileSync(abs, 'utf8').split('\n').length;
-    for (const n of specNumbers(spec)) {
-      if (n > lineCount) {
-        pointerProblems.push(
-          `doc:${idx + 1}: ${path}:${n} is past EOF (file has ${lineCount} lines)`
-        );
+    if (!raw.startsWith('.solution.md')) lastFull = r.path;
+
+    const abs = join(REPO_ROOT, r.path);
+    if (!existsSync(abs)) {
+      pointerProblems.push(`doc:${idx + 1}: ${raw} -> ${r.path} does not exist`);
+      continue;
+    }
+    const count = lineCountOf(readFileSync(abs, 'utf8'));
+    for (const part of spec.split(',')) {
+      for (const nRaw of part.trim().split(/[-–]/)) {
+        const n = Number(nRaw.trim());
+        if (!Number.isFinite(n) || n < 1) {
+          pointerProblems.push(`doc:${idx + 1}: ${r.path}:${nRaw.trim()} is not a valid line number`);
+        } else if (n > count) {
+          pointerProblems.push(
+            `doc:${idx + 1}: ${r.path}:${n} is past EOF (file has ${count} lines)`
+          );
+        }
       }
     }
     pointersChecked++;
   }
 });
 
-// A pointer set that silently empties is the degraded-green this file already
-// learned about once. Assert it stayed populated.
-//
-// A FLOOR, not an exact count like EXPECTED_ROWS: pointers are added and removed
-// whenever evidence is edited, which is often, and exact-matching them would
-// turn every prose edit into a gate failure. But the floor has to be tight
-// enough to catch what it exists to catch. Set at 100 it was worthless -- an
-// experiment stripping the pointers from EVERY non-L table row left exactly 100
-// behind, so a whole table could vanish and the floor would not move. 130
-// against a live count of 138 tolerates ordinary editing and still reds if a
-// table's worth of evidence disappears. Raise it when the document grows.
-const EXPECTED_POINTERS_MIN = 130;
-if (pointersChecked < EXPECTED_POINTERS_MIN) {
+// EXACT, not a floor. A floor was tried and was worthless: set at 130 against a
+// live 138 it still greened after DELETING THE WHOLE OF TABLE I, because seven
+// of the twelve sections hold eight pointers or fewer — less than the floor's
+// own slack. An exact count carries the same deliberate friction as
+// EXPECTED_ROWS: if you add or remove evidence, update this in the same commit.
+const EXPECTED_POINTERS = 143;
+if (pointersChecked !== EXPECTED_POINTERS) {
   pointerProblems.push(
-    `only ${pointersChecked} Where pointer(s) checked, expected at least ` +
-    `${EXPECTED_POINTERS_MIN} - the pointer scan is matching nothing, not passing`
+    `${pointersChecked} Where pointer(s) checked, expected exactly ${EXPECTED_POINTERS} - ` +
+    `evidence was added or removed. If deliberate, update EXPECTED_POINTERS in this script.`
   );
 }
 
 // D table: the pin NAME must live at the line the Where column names.
-// The value is deliberately NOT asserted - D2 records a superseded value on
-// purpose - but a row must still point at its own pin.
+//
+// Every `| D<n> |` row is counted, and the pin check keys off a CODE SPAN in
+// the Claim cell rather than the shape of the whole cell. Matching the cell
+// shape let a row disarm itself silently: wrapping the claim in bold — a style
+// D5 already uses — stopped the row matching, so the historical D2 rot passed
+// with exit 0 while the summary still said the pin rows had been checked.
+// Two counts are asserted so neither a vanishing row nor a skipped one is quiet.
+const EXPECTED_D_ROWS = 5;
+const EXPECTED_PIN_ROWS = 4;
+let dRows = 0;
 let pinRows = 0;
-for (const line of doc) {
-  const m = line.match(/^\|\s*(D\d+)\s*\|\s*`([A-Z][A-Z0-9_]*)=[^`]*`\s*\|\s*([^|]+?)\s*\|/);
+for (const [i, line] of doc.entries()) {
+  const m = line.match(/^\|\s*(D\d+)\s*\|([^|]*)\|([^|]*)\|/);
   if (!m) continue;
-  const [, id, pin, whereCell] = m;
+  const [, id, claimCell, whereCell] = m;
+  dRows++;
+  const pin = codeSpans(claimCell)
+    .map((s) => s.match(/^([A-Z][A-Z0-9_]*)=/))
+    .find(Boolean);
+  if (!pin) continue; // e.g. D5, whose claim is prose, not a NAME=value pin
   pinRows++;
+  const name = pin[1];
   const first = [...whereCell.matchAll(POINTER)][0];
   if (!first) {
     pointerProblems.push(`${id}: no \`path:line\` pointer in the Where cell`);
     continue;
   }
-  const expanded = expandEllipsis(first[1]);
-  if (expanded.error) {
-    pointerProblems.push(`${id}: ${first[1]} - ${expanded.error}`);
+  const r = resolvePointer(first[1], null);
+  if (r.error || r.skip) {
+    pointerProblems.push(`${id}: ${first[1]} - ${r.error ?? 'not resolvable as a path'}`);
     continue;
   }
-  const abs = join(REPO_ROOT, expanded.path);
+  const abs = join(REPO_ROOT, r.path);
   if (!existsSync(abs)) {
-    pointerProblems.push(`${id}: ${expanded.path} does not exist`);
+    pointerProblems.push(`${id}: ${r.path} does not exist`);
     continue;
   }
   const src = readFileSync(abs, 'utf8').split('\n');
-  const ln = specNumbers(first[2])[0];
-  // Past EOF the window would invert (lo > hi) and the message would read
-  // "searched 99997-37", which is noise on top of a defect the structural pass
-  // has already named precisely. Say the one true thing instead.
-  if (ln > src.length) {
-    pointerProblems.push(
-      `${id}: ${expanded.path}:${ln} is past EOF (file has ${src.length} lines) - ` +
-      `cannot anchor ${pin}`
-    );
+  const ln = Number(first[2].split(/[-–,]/)[0].trim());
+  if (ln > lineCountOf(readFileSync(abs, 'utf8'))) {
+    pointerProblems.push(`${id}: ${r.path}:${ln} is past EOF - cannot anchor ${name}`);
     continue;
   }
-  const lo = Math.max(1, ln - WRAP_SLACK);
-  const hi = Math.min(src.length, ln + WRAP_SLACK);
-  if (!src.slice(lo - 1, hi).join('\n').includes(pin)) {
+  // EXACT line, no slack. The claim is that the pin lives at the line named;
+  // a +/-2 window accepted D2 pointing at line 29, inside the LocalStack block.
+  if (!(src[ln - 1] ?? '').includes(name)) {
     pointerProblems.push(
-      `${id}: ${expanded.path}:${ln} does not mention ${pin} (searched ${lo}-${hi})` +
+      `${id}: ${r.path}:${ln} does not mention ${name}` +
       `\n      line ${ln} reads: ${JSON.stringify((src[ln - 1] ?? '').slice(0, 70))}` +
       `\n      the pointer resolves but names the wrong line - re-derive it by grepping`
     );
   }
+  void i;
 }
-if (pinRows === 0) {
-  pointerProblems.push('no D<n> pin rows parsed - the pin anchor check verified nothing');
+if (dRows !== EXPECTED_D_ROWS) {
+  pointerProblems.push(
+    `${dRows} D<n> row(s) found, expected ${EXPECTED_D_ROWS} - a pin row was added or removed`
+  );
+}
+if (pinRows !== EXPECTED_PIN_ROWS) {
+  pointerProblems.push(
+    `${pinRows} of ${dRows} D<n> row(s) carried a NAME=value pin, expected ${EXPECTED_PIN_ROWS} - ` +
+    `a pin row stopped being recognised (bolding the claim does this) and was checked by nothing`
+  );
 }
 
 failed += pointerProblems.length;
 for (const pp of pointerProblems) problems.push(pp);
+
 
 // RENDER FIDELITY, whole-file. This guard has now been rescoped twice, and each
 // time the defect moved to wherever the guard was not looking:

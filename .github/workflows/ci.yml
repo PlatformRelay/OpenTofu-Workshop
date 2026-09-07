@@ -65,6 +65,13 @@ jobs:
       # per-day export, participant copies stay answer-free).
       - run: pnpm quiz:validate
       - run: pnpm test:quiz
+      # Claims plane. docs/claims-verification.md is the record of what was
+      # checked against upstream and where each fact lives; claims-check.mjs
+      # re-derives every assertion FROM that document. It shipped unwired --
+      # no workflow, task or package script ran it -- so the pointers it
+      # validates rotted twice with CI fully green and a human caught both by
+      # reading. A checker nothing runs is a document, not a gate.
+      - run: pnpm test:claims
 
   lab-contract:
     name: Lab sibling-solution contract
