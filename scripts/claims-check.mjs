@@ -45,6 +45,29 @@
 //     fail. A checker that cannot distinguish "verified" from "did not look"
 //     is the failure this whole document exists to prevent.
 //
+// WHERE POINTERS (the A/B/D/I tables) ARE CHECKED TOO, AND WERE NOT.
+// For a long time this script validated ONLY the 31 L-table correction rows.
+// Every other table carries a `Where` column of `path:line` pointers, and those
+// had no gate at all -- which is why they rotted twice with every gate green: a
+// +103-line insert moved 20+ of them (US-D-DIFF-TEASER), and the Go pin bump
+// left D2 pointing at `versions.env:17`, a line holding TOFU_VERSION. Both were
+// caught by reading. Reading is not a gate. Two checks now cover them:
+//
+//   * STRUCTURAL, every pointer in every table: the file must exist and every
+//     line number must be inside it. Catches a deleted file and a pointer that
+//     ran off the end.
+//   * SEMANTIC, the D table (toolchain pins): the pin NAME from the Claim cell
+//     must appear at the line the Where cell names. This is the check that
+//     catches the D2 class -- a pointer that still resolves, to the wrong line.
+//     The NAME is asserted, not the value: a row may deliberately record a
+//     superseded value (D2 does) while still having to point at its own pin.
+//
+// Three pointer spellings are resolved rather than skipped, because a checker
+// that silently skips is the failure this document exists to prevent:
+//   `pages/S10-.../index.md:55`  -> glob, must match exactly one directory
+//   `.solution.md:250`           -> sibling of the previous pointer on the line
+//   `path.md:402-406, 447`       -> every number in the spec is bounds-checked
+//
 // Usage:  node scripts/claims-check.mjs [path/to/claims-verification.md]
 // Exit:   0 = every row resolved, 1 = anything else
 //
@@ -54,7 +77,7 @@
 // EXPECTED_ROWS below in the same commit. That deliberate friction is the
 // point: a row must not be able to vanish quietly.
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -237,6 +260,162 @@ for (const row of rows) {
   }
 }
 
+// --- Where pointers (A/B/D/I tables) -------------------------------------
+// See the header note: these carried no gate at all, and rotted twice for it.
+
+/** A `path:line` (or `path:1-2, 9`) code span inside a table cell. */
+const POINTER =
+  /`([A-Za-z0-9._\-/]+\.(?:md|env|sh|yaml|yml|tf|mjs|json|Dockerfile)):(\d+(?:\s*[-–]\s*\d+)?(?:\s*,\s*\d+(?:\s*[-–]\s*\d+)?)*)`/g;
+
+/**
+ * Expand `pages/S10-.../index.md` to the one directory it can mean.
+ * Ambiguity is an error, not a skip: two matches means the pointer does not
+ * identify a file, and zero means the directory is gone.
+ */
+function expandEllipsis(p) {
+  const m = p.match(/^(.*?)([^/]*)\.\.\.\/(.*)$/);
+  if (!m) return { path: p };
+  const [, prefix, stem, tail] = m;
+  const dir = join(REPO_ROOT, prefix);
+  if (!existsSync(dir)) return { error: `directory does not exist: ${prefix}` };
+  const hits = readdirSync(dir).filter((d) => d.startsWith(stem));
+  if (hits.length === 0) return { error: `no directory matches ${prefix}${stem}*` };
+  if (hits.length > 1) {
+    return { error: `ambiguous - ${prefix}${stem}* matches ${hits.length}: ${hits.join(', ')}` };
+  }
+  return { path: `${prefix}${hits[0]}/${tail}` };
+}
+
+/** Every line number a spec names, ranges expanded to their endpoints. */
+function specNumbers(spec) {
+  const out = [];
+  for (const part of spec.split(',')) {
+    for (const n of part.trim().split(/[-–]/)) {
+      const v = Number(n.trim());
+      if (Number.isFinite(v)) out.push(v);
+    }
+  }
+  return out;
+}
+
+let pointersChecked = 0;
+const pointerProblems = [];
+
+doc.forEach((line, idx) => {
+  if (!/^\|/.test(line)) return;
+  let lastFull = null;
+  for (const m of line.matchAll(POINTER)) {
+    const [, rawPath, spec] = m;
+    let path = rawPath;
+
+    // `.solution.md:250` is shorthand for the sibling of the pointer before it.
+    if (path.startsWith('.solution.md')) {
+      if (!lastFull) {
+        pointerProblems.push(
+          `doc:${idx + 1}: \`.solution.md\` shorthand with no preceding pointer on the line`
+        );
+        continue;
+      }
+      path = `${lastFull.replace(/\.md$/, '')}.solution.md`;
+    } else {
+      const expanded = expandEllipsis(path);
+      if (expanded.error) {
+        pointerProblems.push(`doc:${idx + 1}: ${rawPath} - ${expanded.error}`);
+        continue;
+      }
+      path = expanded.path;
+      lastFull = path;
+    }
+
+    const abs = join(REPO_ROOT, path);
+    if (!existsSync(abs)) {
+      pointerProblems.push(`doc:${idx + 1}: ${rawPath} -> ${path} does not exist`);
+      continue;
+    }
+    const lineCount = readFileSync(abs, 'utf8').split('\n').length;
+    for (const n of specNumbers(spec)) {
+      if (n > lineCount) {
+        pointerProblems.push(
+          `doc:${idx + 1}: ${path}:${n} is past EOF (file has ${lineCount} lines)`
+        );
+      }
+    }
+    pointersChecked++;
+  }
+});
+
+// A pointer set that silently empties is the degraded-green this file already
+// learned about once. Assert it stayed populated.
+//
+// A FLOOR, not an exact count like EXPECTED_ROWS: pointers are added and removed
+// whenever evidence is edited, which is often, and exact-matching them would
+// turn every prose edit into a gate failure. But the floor has to be tight
+// enough to catch what it exists to catch. Set at 100 it was worthless -- an
+// experiment stripping the pointers from EVERY non-L table row left exactly 100
+// behind, so a whole table could vanish and the floor would not move. 130
+// against a live count of 138 tolerates ordinary editing and still reds if a
+// table's worth of evidence disappears. Raise it when the document grows.
+const EXPECTED_POINTERS_MIN = 130;
+if (pointersChecked < EXPECTED_POINTERS_MIN) {
+  pointerProblems.push(
+    `only ${pointersChecked} Where pointer(s) checked, expected at least ` +
+    `${EXPECTED_POINTERS_MIN} - the pointer scan is matching nothing, not passing`
+  );
+}
+
+// D table: the pin NAME must live at the line the Where column names.
+// The value is deliberately NOT asserted - D2 records a superseded value on
+// purpose - but a row must still point at its own pin.
+let pinRows = 0;
+for (const line of doc) {
+  const m = line.match(/^\|\s*(D\d+)\s*\|\s*`([A-Z][A-Z0-9_]*)=[^`]*`\s*\|\s*([^|]+?)\s*\|/);
+  if (!m) continue;
+  const [, id, pin, whereCell] = m;
+  pinRows++;
+  const first = [...whereCell.matchAll(POINTER)][0];
+  if (!first) {
+    pointerProblems.push(`${id}: no \`path:line\` pointer in the Where cell`);
+    continue;
+  }
+  const expanded = expandEllipsis(first[1]);
+  if (expanded.error) {
+    pointerProblems.push(`${id}: ${first[1]} - ${expanded.error}`);
+    continue;
+  }
+  const abs = join(REPO_ROOT, expanded.path);
+  if (!existsSync(abs)) {
+    pointerProblems.push(`${id}: ${expanded.path} does not exist`);
+    continue;
+  }
+  const src = readFileSync(abs, 'utf8').split('\n');
+  const ln = specNumbers(first[2])[0];
+  // Past EOF the window would invert (lo > hi) and the message would read
+  // "searched 99997-37", which is noise on top of a defect the structural pass
+  // has already named precisely. Say the one true thing instead.
+  if (ln > src.length) {
+    pointerProblems.push(
+      `${id}: ${expanded.path}:${ln} is past EOF (file has ${src.length} lines) - ` +
+      `cannot anchor ${pin}`
+    );
+    continue;
+  }
+  const lo = Math.max(1, ln - WRAP_SLACK);
+  const hi = Math.min(src.length, ln + WRAP_SLACK);
+  if (!src.slice(lo - 1, hi).join('\n').includes(pin)) {
+    pointerProblems.push(
+      `${id}: ${expanded.path}:${ln} does not mention ${pin} (searched ${lo}-${hi})` +
+      `\n      line ${ln} reads: ${JSON.stringify((src[ln - 1] ?? '').slice(0, 70))}` +
+      `\n      the pointer resolves but names the wrong line - re-derive it by grepping`
+    );
+  }
+}
+if (pinRows === 0) {
+  pointerProblems.push('no D<n> pin rows parsed - the pin anchor check verified nothing');
+}
+
+failed += pointerProblems.length;
+for (const pp of pointerProblems) problems.push(pp);
+
 // RENDER FIDELITY, whole-file. This guard has now been rescoped twice, and each
 // time the defect moved to wherever the guard was not looking:
 //
@@ -289,6 +468,7 @@ if (rows.length !== EXPECTED_ROWS) {
 
 for (const p of problems) console.log(`  ${p}`);
 console.log(
-  `claims-check: ${rows.length} correction row(s) - ${ok} resolved, ${failed} failed, ${skipped} skipped`
+  `claims-check: ${rows.length} correction row(s) - ${ok} resolved, ${failed} failed, ${skipped} skipped; ` +
+  `${pointersChecked} Where pointer(s) and ${pinRows} pin row(s) checked`
 );
 process.exit(failed ? 1 : 0);
