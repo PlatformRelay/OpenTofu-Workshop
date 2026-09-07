@@ -1709,7 +1709,26 @@ case "\$1" in
     "$real_cat" "\$@"
     if [ "\$n" -eq 2 ]; then
       : >"\${n_file}.armed"
-      sleep 3
+      # RENDEZVOUS, not a fixed sleep. `sleep 3` only overlaps the two racers if
+      # both reach this window within three seconds of each other. Under load
+      # they do not: the window closes on the first before the second arrives,
+      # `armed` comes back 1, and the case reports DISARMED — observed about one
+      # run in four. A gate that reds a quarter of the time trains people to
+      # re-run gates, which is worse than the hole it was closing.
+      #
+      # Waiting for BOTH .armed files makes the overlap independent of how slow
+      # the box is. The bound is 10s, and falling through it is NOT papered
+      # over: the armed check below still reports DISARMED, so a genuinely
+      # broken window is still a failure rather than a slow pass.
+      i=0
+      while [ "\$i" -lt 200 ]; do
+        if [ -f "$tmp/cnt.b.armed" ] && [ -f "$tmp/cnt.c.armed" ]; then break; fi
+        sleep 0.05
+        i=\$((i + 1))
+      done
+      # Both are inside the window now. Hold briefly so neither leaves before
+      # the other has resumed, then let them reach the `mv` together.
+      sleep 0.3
     fi
     exit 0
     ;;
