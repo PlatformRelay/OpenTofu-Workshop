@@ -141,7 +141,11 @@ setup() {
 @test "ci.yml runs the claims plane, and not merely in a comment" {
   local wf="$ROOT/.github/workflows/ci.yml"
   local exec_lines
-  exec_lines="$(grep -v '^[[:space:]]*#' "$wf")"
+  # Strip whole-line comments AND trailing ones. Whole-line stripping alone was
+  # defeatable: delete the step and write `- run: pnpm test:quiz  # TODO
+  # re-enable: - run: pnpm test:claims` and this test passed while CI ran
+  # nothing. That is precisely the failure this test claims to prevent.
+  exec_lines="$(grep -v '^[[:space:]]*#' "$wf" | sed 's/[[:space:]]#.*$//')"
 
   grep -qF 'run: pnpm test:claims' <<<"$exec_lines"
 

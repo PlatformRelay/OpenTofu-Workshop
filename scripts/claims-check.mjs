@@ -65,7 +65,10 @@
 // Three pointer spellings are resolved rather than skipped, because a checker
 // that silently skips is the failure this document exists to prevent:
 //   `pages/S10-.../index.md:55`  -> glob, must match exactly one directory
+//   `pages/S01:319`              -> deck shorthand for that section's index.md
 //   `.solution.md:250`           -> sibling of the previous pointer on the line
+//   `:204-205`                   -> bare continuation of the previous pointer
+//   `path.md:~676`               -> approximate, still bounds-checked
 //   `path.md:402-406, 447`       -> every number in the spec is bounds-checked
 //
 // Usage:  node scripts/claims-check.mjs [path/to/claims-verification.md]
@@ -278,7 +281,20 @@ for (const row of rows) {
  * `2025-07-15T14:33:31Z` fails (`:31Z` is left over) and never reaches
  * resolution.
  */
-const POINTER = /`([^`\s]+):(\d+(?:\s*[-–]\s*\d+)?(?:\s*,\s*\d+(?:\s*[-–]\s*\d+)?)*)`/g;
+const POINTER =
+  /`([^`\s]*):~?(\d+(?:\s*[-–]\s*\d+)?(?:\s*,\s*~?\d+(?:\s*[-–]\s*\d+)?)*)`/g;
+
+/**
+ * Blank out ``double-backtick`` spans, which quote literal document text rather
+ * than pointers. Without this the LocalStack port in ``OpenTofu >=1.9; `:4566` ``
+ * reads as a bare continuation and resolves against whatever pointer preceded it
+ * on the line -- on doc line 656 that is `infra/lab-inventory.json`, so the gate
+ * would report a confident, entirely fictional past-EOF failure.
+ * Replaced with spaces so nothing else on the line shifts.
+ */
+function maskDoubleSpans(line) {
+  return line.replace(/``[\s\S]*?``/g, (m) => ' '.repeat(m.length));
+}
 
 /** Does this look like a path at all, as opposed to a version or a time? */
 function looksLikePath(p) {
@@ -311,6 +327,16 @@ function globOneDir(prefix, stem) {
  * a bare `.solution.md:250` is relative to.
  */
 function resolvePointer(raw, lastFull) {
+  // `:204-205` — a bare continuation, same idiom as `.solution.md:250`: more
+  // lines in the file the previous pointer on this line already named.
+  if (raw === '') {
+    // With no preceding pointer on the line it is a reference to THIS document
+    // -- the inventory rows use it that way ("once in the sweep-technique
+    // paragraph (`:430`)"). Resolved against the doc so it is bounds-checked
+    // like any other, rather than reported as unanchorable.
+    if (!lastFull) return { path: DOC_REL };
+    return { path: lastFull };
+  }
   // `.solution.md:250` — the sibling of the pointer before it on the line.
   if (raw.startsWith('.solution.md')) {
     if (!lastFull) return { error: '`.solution.md` shorthand with no preceding pointer on the line' };
@@ -335,11 +361,19 @@ function resolvePointer(raw, lastFull) {
   return { path: raw };
 }
 
+// The document's own path, for bare `:line` self-references. When a copy is
+// passed on argv (the mutation probes do this) it may sit outside the repo, so
+// fall back to the canonical location rather than resolving to nothing.
+const DOC_REL = DOC.startsWith(REPO_ROOT + '/')
+  ? DOC.slice(REPO_ROOT.length + 1)
+  : 'docs/claims-verification.md';
+
 let pointersChecked = 0;
 const pointerProblems = [];
 
-doc.forEach((line, idx) => {
-  if (!/^\|/.test(line)) return;
+doc.forEach((rawLine, idx) => {
+  if (!/^\|/.test(rawLine)) return;
+  const line = maskDoubleSpans(rawLine);
   let lastFull = null;
   for (const m of line.matchAll(POINTER)) {
     const [, raw, spec] = m;
@@ -349,7 +383,9 @@ doc.forEach((line, idx) => {
       pointerProblems.push(`doc:${idx + 1}: ${raw} - ${r.error}`);
       continue;
     }
-    if (!raw.startsWith('.solution.md')) lastFull = r.path;
+    // A continuation does not become the new anchor; `.solution.md` does not
+    // either, or a second continuation would chain off the sibling.
+    if (raw !== '' && !raw.startsWith('.solution.md')) lastFull = r.path;
 
     const abs = join(REPO_ROOT, r.path);
     if (!existsSync(abs)) {
@@ -378,7 +414,7 @@ doc.forEach((line, idx) => {
 // of the twelve sections hold eight pointers or fewer — less than the floor's
 // own slack. An exact count carries the same deliberate friction as
 // EXPECTED_ROWS: if you add or remove evidence, update this in the same commit.
-const EXPECTED_POINTERS = 143;
+const EXPECTED_POINTERS = 157;
 if (pointersChecked !== EXPECTED_POINTERS) {
   pointerProblems.push(
     `${pointersChecked} Where pointer(s) checked, expected exactly ${EXPECTED_POINTERS} - ` +
@@ -398,7 +434,8 @@ const EXPECTED_D_ROWS = 5;
 const EXPECTED_PIN_ROWS = 4;
 let dRows = 0;
 let pinRows = 0;
-for (const [i, line] of doc.entries()) {
+for (const rawLine of doc) {
+  const line = maskDoubleSpans(rawLine);
   const m = line.match(/^\|\s*(D\d+)\s*\|([^|]*)\|([^|]*)\|/);
   if (!m) continue;
   const [, id, claimCell, whereCell] = m;
@@ -439,7 +476,6 @@ for (const [i, line] of doc.entries()) {
       `\n      the pointer resolves but names the wrong line - re-derive it by grepping`
     );
   }
-  void i;
 }
 if (dRows !== EXPECTED_D_ROWS) {
   pointerProblems.push(
@@ -510,6 +546,6 @@ if (rows.length !== EXPECTED_ROWS) {
 for (const p of problems) console.log(`  ${p}`);
 console.log(
   `claims-check: ${rows.length} correction row(s) - ${ok} resolved, ${failed} failed, ${skipped} skipped; ` +
-  `${pointersChecked} Where pointer(s) and ${pinRows} pin row(s) checked`
+  `${pointersChecked} Where pointer(s), ${dRows} D row(s), ${pinRows} pin row(s) checked`
 );
 process.exit(failed ? 1 : 0);
