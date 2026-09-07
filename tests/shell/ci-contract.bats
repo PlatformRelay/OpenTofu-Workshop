@@ -137,6 +137,12 @@ setup() {
 # COMMENT-STRIPPED, for the reason this file already learned the hard way: the
 # ci.yml step carries a prose comment naming claims-check.mjs, so a naive grep
 # would be satisfied by documentation rather than by an executable step.
+#
+# SCOPE, stated so this is not read as more than it is: it defends against
+# satisfaction-by-documentation only. A step disabled at the YAML level -- an
+# `if: false` on the job, or `continue-on-error: true` on the step -- still
+# passes. Catching those means parsing the workflow rather than grepping it,
+# and a one-line job-level disable is what diff review is for.
 
 @test "ci.yml runs the claims plane, and not merely in a comment" {
   local wf="$ROOT/.github/workflows/ci.yml"

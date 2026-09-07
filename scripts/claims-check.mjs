@@ -395,7 +395,10 @@ doc.forEach((rawLine, idx) => {
     const count = lineCountOf(readFileSync(abs, 'utf8'));
     for (const part of spec.split(',')) {
       for (const nRaw of part.trim().split(/[-–]/)) {
-        const n = Number(nRaw.trim());
+        // The spec regex allows `~` on any number in the list, not just the
+        // first, so strip it here too -- otherwise `:~230-262, ~289` matched
+        // and then died as NaN on the second element.
+        const n = Number(nRaw.trim().replace(/^~/, ''));
         if (!Number.isFinite(n) || n < 1) {
           pointerProblems.push(`doc:${idx + 1}: ${r.path}:${nRaw.trim()} is not a valid line number`);
         } else if (n > count) {
@@ -434,11 +437,17 @@ const EXPECTED_D_ROWS = 5;
 const EXPECTED_PIN_ROWS = 4;
 let dRows = 0;
 let pinRows = 0;
-for (const rawLine of doc) {
-  const line = maskDoubleSpans(rawLine);
+for (const line of doc) {
   const m = line.match(/^\|\s*(D\d+)\s*\|([^|]*)\|([^|]*)\|/);
   if (!m) continue;
-  const [, id, claimCell, whereCell] = m;
+  const [, id, claimCell, rawWhereCell] = m;
+  // Mask ONLY the Where cell. Masking the whole row cost a property this check
+  // is supposed to have: a claim written with legitimate ``double backticks``
+  // and no rot at all lost its pin and reported "a pin row stopped being
+  // recognised (bolding the claim does this)" -- fail-closed, but naming the
+  // wrong cause, which is the defect this file exists to remove. The `:4566`
+  // hazard masking defends against lives in the evidence column, not here.
+  const whereCell = maskDoubleSpans(rawWhereCell);
   dRows++;
   const pin = codeSpans(claimCell)
     .map((s) => s.match(/^([A-Z][A-Z0-9_]*)=/))
@@ -462,7 +471,7 @@ for (const rawLine of doc) {
     continue;
   }
   const src = readFileSync(abs, 'utf8').split('\n');
-  const ln = Number(first[2].split(/[-–,]/)[0].trim());
+  const ln = Number(first[2].split(/[-–,]/)[0].trim().replace(/^~/, ''));
   if (ln > lineCountOf(readFileSync(abs, 'utf8'))) {
     pointerProblems.push(`${id}: ${r.path}:${ln} is past EOF - cannot anchor ${name}`);
     continue;
