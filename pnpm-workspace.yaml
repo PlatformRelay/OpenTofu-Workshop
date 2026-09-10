@@ -21,8 +21,10 @@ overrides:
   # lines that @slidev/cli pulls in transitively. The fix was released on each
   # line separately, so pin each range to its own first patched version rather
   # than dragging Slidev's YAML parser across a major-version boundary.
-  "js-yaml@>=4.0.0 <5.0.0": 4.3.1
-  "js-yaml@>=3.0.0 <4.0.0": 3.15.1
+  # GHSA-2883-xcg3-v3hh (maxTotalMergeKeys does not bound CPU for empty merge
+  # sources) was again fixed per line: 4.3.2 and 3.15.2.
+  "js-yaml@>=4.0.0 <5.0.0": 4.3.2
+  "js-yaml@>=3.0.0 <4.0.0": 3.15.2
   # GHSA-2v37-7h3g-55p8 / GHSA-28wg-ghj8-5hjv: nanoid generators can loop
   # indefinitely. GHSA-2v37-7h3g-55p8 was re-scored to `<3.3.18`, so the old
   # 3.3.17 floor was still inside the vulnerable range; 3.3.18 is the first
@@ -62,6 +64,10 @@ overrides:
   # hono floor to 4.13.5.
   "hono@>=4.0.0 <5.0.0": 4.13.5
   "@hono/node-server@>=1.0.0 <2.0.0": 1.19.15
+  # GHSA-7w5x-hrqm-74c2: smol-toml DoS via malformed TOML, fixed in 1.7.1.
+  # markdownlint-cli2 pins smol-toml exactly (1.7.0, still so in its latest
+  # release), so only an override can move it. Bounded to the 1.x line.
+  "smol-toml@>=1.0.0 <2.0.0": 1.7.1
 
 # pnpm 11 minimumReleaseAge gate: allow this override pin through when fresh
 # on the registry.

@@ -19,8 +19,8 @@ test('js-yaml override is bounded to the intended 5.x major', async () => {
 test('js-yaml 3.x and 4.x overrides are bounded to their own patched floors', async () => {
   const workspace = await workspaceYaml()
 
-  assert.match(workspace, /"js-yaml@>=3\.0\.0 <4\.0\.0": 3\.15\.1/)
-  assert.match(workspace, /"js-yaml@>=4\.0\.0 <5\.0\.0": 4\.3\.1/)
+  assert.match(workspace, /"js-yaml@>=3\.0\.0 <4\.0\.0": 3\.15\.2/)
+  assert.match(workspace, /"js-yaml@>=4\.0\.0 <5\.0\.0": 4\.3\.2/)
   assert.doesNotMatch(workspace, /"js-yaml@>=3\.0\.0":/)
   assert.doesNotMatch(workspace, /"js-yaml@>=4\.0\.0":/)
   assert.doesNotMatch(workspace, /(^|\s)js-yaml:/m)
@@ -71,4 +71,11 @@ test('browserslist and hono overrides pin patched floors without unbounded major
   assert.doesNotMatch(workspace, /(^|\s)browserslist:/m)
   assert.doesNotMatch(workspace, /(^|\s)hono:/m)
   assert.doesNotMatch(workspace, /(^|\s)"?@hono\/node-server"?:/m)
+})
+
+test('smol-toml override pins the patched floor without an unbounded major', async () => {
+  const workspace = await workspaceYaml()
+
+  assert.match(workspace, /"smol-toml@>=1\.0\.0 <2\.0\.0": 1\.7\.1/)
+  assert.doesNotMatch(workspace, /(^|\s)smol-toml:/m)
 })
