@@ -56,7 +56,11 @@ overrides:
   # (@hono/node-server serve-static traversal on Windows) fixed in 1.19.15.
   # Both arrive via @modelcontextprotocol/node inside @slidev/cli, which pins
   # exact versions, so only an override can move them.
-  "hono@>=4.0.0 <5.0.0": 4.12.34
+  # GHSA-g6gw-c38x-mqfc / GHSA-crvj-82cr-hjcx / GHSA-gqvv-2mrq-wpjv (hono:
+  # parseBody() dot-notation nesting memory exhaustion, query parser reading
+  # past the URL fragment, incomplete toSSG() path-traversal fix) raise the
+  # hono floor to 4.13.5.
+  "hono@>=4.0.0 <5.0.0": 4.13.5
   "@hono/node-server@>=1.0.0 <2.0.0": 1.19.15
 
 # pnpm 11 minimumReleaseAge gate: allow this override pin through when fresh

@@ -66,7 +66,7 @@ test('browserslist and hono overrides pin patched floors without unbounded major
   const workspace = await workspaceYaml()
 
   assert.match(workspace, /"browserslist@>=4\.0\.0 <5\.0\.0": 4\.28\.8/)
-  assert.match(workspace, /"hono@>=4\.0\.0 <5\.0\.0": 4\.12\.34/)
+  assert.match(workspace, /"hono@>=4\.0\.0 <5\.0\.0": 4\.13\.5/)
   assert.match(workspace, /"@hono\/node-server@>=1\.0\.0 <2\.0\.0": 1\.19\.15/)
   assert.doesNotMatch(workspace, /(^|\s)browserslist:/m)
   assert.doesNotMatch(workspace, /(^|\s)hono:/m)
