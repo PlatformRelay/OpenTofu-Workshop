@@ -25,6 +25,7 @@
     "lint": "markdownlint-cli2",
     "lint:fix": "markdownlint-cli2 --fix",
     "test:claims": "node scripts/claims-check.mjs",
+    "test:claims:selftest": "node --test scripts/claims-check.test.mjs",
     "lab:contract": "node scripts/lab-contract.mjs",
     "link-check": "node scripts/link-check.mjs",
     "test:link-check": "node --test scripts/link-check.test.mjs",

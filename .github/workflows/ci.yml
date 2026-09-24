@@ -72,6 +72,9 @@ jobs:
       # validates rotted twice with CI fully green and a human caught both by
       # reading. A checker nothing runs is a document, not a gate.
       - run: pnpm test:claims
+      # ...and the checker's own mutation probes, so the gate is known to red
+      # on the defects it names rather than assumed to.
+      - run: pnpm test:claims:selftest
 
   lab-contract:
     name: Lab sibling-solution contract
