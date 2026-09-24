@@ -405,6 +405,9 @@ tasks:
       # See the note in ci.yml — this checker was unwired everywhere until now,
       # which is why the pointers it validates rotted twice with every gate green.
       - node scripts/claims-check.mjs
+      # Its mutation probes: prove the checker reds on a rotted, unresolvable or
+      # mis-anchored pointer before trusting the green line above.
+      - node --test scripts/claims-check.test.mjs
       # Shell plane when shellcheck + bats are on PATH (CI also runs the dedicated job).
       - |
         if command -v shellcheck >/dev/null 2>&1 && command -v bats >/dev/null 2>&1; then
