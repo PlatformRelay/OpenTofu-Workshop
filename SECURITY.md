@@ -16,6 +16,31 @@ designed; please don't file a security report against intentionally-vulnerable t
 material. If you think a lab mislabels which state is "safe" vs. "vulnerable," that's a
 content bug — open a normal issue instead.
 
+## Local development surface
+
+LocalStack's edge port is published on the loopback interface only
+(`127.0.0.1:4566:4566` in `docker-compose.yml`). LocalStack accepts any
+credentials, so a `0.0.0.0` bind would let anyone on the same network use a
+learner's laptop as an unauthenticated AWS emulator, read what the labs put in
+it, and plant state for the next lab to trip over. Nothing in the labs needs a
+non-loopback address: hosts talk to `localhost:4566`, and the `terratest`
+service reaches the container over the compose network, which a host-port
+binding does not restrict. If a lab ever needs LocalStack from another machine,
+put an authenticated proxy in front rather than widening this bind.
+
+## Branch protection
+
+`main` is governed by the ruleset in `.github/rulesets/protect-main.json`:
+rebase-only merges, linear history, every CI job green, and one approving
+review, with repository admins as the bypass actor so the maintainer's own
+lanes still land. The file is the record; GitHub holds the live copy. To apply
+or re-apply it:
+
+```sh
+gh api -X POST repos/PlatformRelay/OpenTofu-Workshop/rulesets \
+  --input .github/rulesets/protect-main.json
+```
+
 ## Reporting a vulnerability
 
 If you find an actual vulnerability in the build tooling, CI workflows, a shipped
