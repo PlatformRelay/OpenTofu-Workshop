@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import test from 'node:test'
+import { parse } from 'yaml'
 
 const root = path.resolve(import.meta.dirname, '..')
 
@@ -78,4 +79,16 @@ test('smol-toml override pins the patched floor without an unbounded major', asy
 
   assert.match(workspace, /"smol-toml@>=1\.0\.0 <2\.0\.0": 1\.7\.1/)
   assert.doesNotMatch(workspace, /(^|\s)smol-toml:/m)
+})
+
+test('pnpm-lock.yaml carries exactly the overrides pnpm-workspace.yaml declares', async () => {
+  // The assertions above are a snapshot of the workspace file and never look at
+  // the lockfile, so an override edited without re-running `pnpm install` --
+  // the floor raised on paper, the resolution still vulnerable -- passed them.
+  // pnpm writes the effective override map into the lockfile; the two must be
+  // the same map, key for key and value for value.
+  const workspace = parse(await workspaceYaml())
+  const lock = parse(await readFile(path.join(root, 'pnpm-lock.yaml'), 'utf8'))
+
+  assert.deepEqual(lock.overrides, workspace.overrides)
 })
