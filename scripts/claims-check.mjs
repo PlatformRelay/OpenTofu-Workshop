@@ -296,7 +296,10 @@ function maskDoubleSpans(line) {
   return line.replace(/``[\s\S]*?``/g, (m) => ' '.repeat(m.length));
 }
 
-/** Does this look like a path at all, as opposed to a version or a time? */
+/**
+ * Does this look like a path at all, as opposed to a version or a time?
+ * A `false` here is REPORTED by the caller, never silently dropped.
+ */
 function looksLikePath(p) {
   if (p.includes('://')) return false;
   return p.includes('/') || /\.[A-Za-z0-9]+$/.test(p);
@@ -369,6 +372,7 @@ const DOC_REL = DOC.startsWith(REPO_ROOT + '/')
   : 'docs/claims-verification.md';
 
 let pointersChecked = 0;
+let pointersUnresolvable = 0;
 const pointerProblems = [];
 
 doc.forEach((rawLine, idx) => {
@@ -378,7 +382,21 @@ doc.forEach((rawLine, idx) => {
   for (const m of line.matchAll(POINTER)) {
     const [, raw, spec] = m;
     const r = resolvePointer(raw, lastFull);
-    if (r.skip) continue;
+    if (r.skip) {
+      // REPORTED, not skipped. `looksLikePath` rejecting a pointer used to be a
+      // silent `continue`: not counted, not printed, invisible to the exact
+      // total below -- so swapping one real pointer for an unverifiable token
+      // and duplicating another real one elsewhere netted 157 and exit 0,
+      // while the summary said every pointer had been checked. That is the
+      // degraded-green this file exists to prevent, inside the guard against
+      // it. Nothing in the document takes this path today, so it is an error
+      // until a legitimate case appears -- and then it is a counted one.
+      pointersUnresolvable++;
+      pointerProblems.push(
+        `doc:${idx + 1}: \`${raw}:${spec}\` is not resolvable as a path and was not checked`
+      );
+      continue;
+    }
     if (r.error) {
       pointerProblems.push(`doc:${idx + 1}: ${raw} - ${r.error}`);
       continue;
@@ -450,41 +468,53 @@ for (const line of doc) {
   const whereCell = maskDoubleSpans(rawWhereCell);
   dRows++;
   const pin = codeSpans(claimCell)
-    .map((s) => s.match(/^([A-Z][A-Z0-9_]*)=/))
+    .map((s) => s.match(/^([A-Z][A-Z0-9_]*)=(.*)$/))
     .find(Boolean);
   if (!pin) continue; // e.g. D5, whose claim is prose, not a NAME=value pin
   pinRows++;
   const name = pin[1];
-  const first = [...whereCell.matchAll(POINTER)][0];
-  if (!first) {
+  const value = (pin[2] ?? '').trim();
+  const pointers = [...whereCell.matchAll(POINTER)];
+  if (pointers.length === 0) {
     pointerProblems.push(`${id}: no \`path:line\` pointer in the Where cell`);
     continue;
   }
-  const r = resolvePointer(first[1], null);
-  if (r.error || r.skip) {
-    pointerProblems.push(`${id}: ${first[1]} - ${r.error ?? 'not resolvable as a path'}`);
-    continue;
-  }
-  const abs = join(REPO_ROOT, r.path);
-  if (!existsSync(abs)) {
-    pointerProblems.push(`${id}: ${r.path} does not exist`);
-    continue;
-  }
-  const src = readFileSync(abs, 'utf8').split('\n');
-  const ln = Number(first[2].split(/[-–,]/)[0].trim().replace(/^~/, ''));
-  if (ln > lineCountOf(readFileSync(abs, 'utf8'))) {
-    pointerProblems.push(`${id}: ${r.path}:${ln} is past EOF - cannot anchor ${name}`);
-    continue;
-  }
-  // EXACT line, no slack. The claim is that the pin lives at the line named;
-  // a +/-2 window accepted D2 pointing at line 29, inside the LocalStack block.
-  if (!(src[ln - 1] ?? '').includes(name)) {
-    pointerProblems.push(
-      `${id}: ${r.path}:${ln} does not mention ${name}` +
-      `\n      line ${ln} reads: ${JSON.stringify((src[ln - 1] ?? '').slice(0, 70))}` +
-      `\n      the pointer resolves but names the wrong line - re-derive it by grepping`
-    );
-  }
+  // EVERY pointer in the cell is anchored, not only the first. The first is
+  // the pin's home and must carry the NAME (`TOFU_VERSION=`). Any further
+  // pointer is prose that restates the pin -- D1's second is the S01 slide that
+  // says "pins **1.10.3**" -- and must carry the NAME or the VALUE. Until now
+  // only the first was anchored; the rest were bounds-checked and nothing
+  // else, so a restating line that moved on stayed green.
+  pointers.forEach((ptr, i) => {
+    const r = resolvePointer(ptr[1], null);
+    if (r.error || r.skip) {
+      pointerProblems.push(`${id}: ${ptr[1]} - ${r.error ?? 'not resolvable as a path'}`);
+      return;
+    }
+    const abs = join(REPO_ROOT, r.path);
+    if (!existsSync(abs)) {
+      pointerProblems.push(`${id}: ${r.path} does not exist`);
+      return;
+    }
+    const text = readFileSync(abs, 'utf8');
+    const src = text.split('\n');
+    const ln = Number(ptr[2].split(/[-–,]/)[0].trim().replace(/^~/, ''));
+    if (ln > lineCountOf(text)) {
+      pointerProblems.push(`${id}: ${r.path}:${ln} is past EOF - cannot anchor ${name}`);
+      return;
+    }
+    const line = src[ln - 1] ?? '';
+    const wanted = i === 0 ? [name] : [name, value].filter(Boolean);
+    // EXACT line, no slack. The claim is that the pin lives at the line named;
+    // a +/-2 window accepted D2 pointing at line 29, inside the LocalStack block.
+    if (!wanted.some((w) => line.includes(w))) {
+      pointerProblems.push(
+        `${id}: ${r.path}:${ln} does not mention ${wanted.join(' or ')}` +
+        `\n      line ${ln} reads: ${JSON.stringify(line.slice(0, 70))}` +
+        `\n      the pointer resolves but names the wrong line - re-derive it by grepping`
+      );
+    }
+  });
 }
 if (dRows !== EXPECTED_D_ROWS) {
   pointerProblems.push(
@@ -555,6 +585,7 @@ if (rows.length !== EXPECTED_ROWS) {
 for (const p of problems) console.log(`  ${p}`);
 console.log(
   `claims-check: ${rows.length} correction row(s) - ${ok} resolved, ${failed} failed, ${skipped} skipped; ` +
-  `${pointersChecked} Where pointer(s), ${dRows} D row(s), ${pinRows} pin row(s) checked`
+  `${pointersChecked} Where pointer(s) (${pointersUnresolvable} unresolvable), ` +
+  `${dRows} D row(s), ${pinRows} pin row(s) checked`
 );
 process.exit(failed ? 1 : 0);
