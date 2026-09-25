@@ -960,6 +960,143 @@
       ]
     },
     {
+      "id": "S09-Q-01",
+      "section": "S09",
+      "prompt": "`local_file.manifest` fans out over three services — checkout, payments, search — and you delete payments, the middle one. Under `count = length(var.services)` the instances are `manifest[0]`, `[1]`, `[2]`; under `for_each = var.services` they are `manifest[\"checkout\"]`, `[\"payments\"]`, `[\"search\"]`. What does each plan?",
+      "options": [
+        {
+          "id": "count-renumbers-foreach-surgical",
+          "text": "`count`: 1 to add, 2 to destroy — `[1]` is recomputed as search and replaced, `[2]` falls out of range. `for_each`: 1 to destroy — only the `\"payments\"` key leaves; checkout and search are not in the plan.",
+          "rationale": "Correct. A `count` instance's identity is its index, so every later element shifts down one and the immutable `local_file` is replaced; a `for_each` instance's identity is its key, so the surviving keys never move."
+        },
+        {
+          "id": "both-surgical",
+          "text": "Both plan 1 to destroy — OpenTofu matches instances by their content, not by their address.",
+          "rationale": "OpenTofu tracks instances by address, not content. Under `count` the address `manifest[1]` now describes a different service, so it is a change to that address, not a match."
+        },
+        {
+          "id": "both-renumber",
+          "text": "Both renumber — `for_each` also assigns positions internally, so removing a middle key shifts the later instances.",
+          "rationale": "`for_each` addresses are the map keys themselves (`manifest[\"search\"]`); there is no hidden position to shift. That is the whole reason it is the default for anything with a stable identity."
+        },
+        {
+          "id": "count-in-place-update",
+          "text": "`count`: 0 to add, 1 to change, 1 to destroy — `[1]` is updated in place to search's content.",
+          "rationale": "`local_file` is immutable: any change to `filename` or `content` forces a replacement, so `[1]` is destroyed and recreated rather than updated in place."
+        }
+      ],
+      "answer": "count-renumbers-foreach-surgical",
+      "explanation": "`count` identifies instances by position, so a middle removal renumbers everything after it into destroy+recreate; `for_each` identifies them by key, so the same removal is a single, surgical destroy (S09 · The removal trap — index shift vs stable key).",
+      "difficulty": "intermediate",
+      "learningObjective": "Predict the plan for a middle removal under `count` and under `for_each`, and choose `for_each` for instances with a stable identity.",
+      "references": [
+        "https://opentofu.org/docs/language/meta-arguments/count/",
+        "https://opentofu.org/docs/language/meta-arguments/for_each/"
+      ]
+    },
+    {
+      "id": "S09-Q-02",
+      "section": "S09",
+      "prompt": "When is `count` still the right tool rather than `for_each`?",
+      "options": [
+        {
+          "id": "n-of-identical-toggle",
+          "text": "For a simple N-of-identical fan-out or an on/off toggle such as `count = var.enable ? 1 : 0`, where instances have no identity of their own.",
+          "rationale": "Correct. With nothing to key on, an index is all the identity there is — S00's LocalStack bucket switch and the naming module's optional `random_id` are exactly this shape."
+        },
+        {
+          "id": "when-order-matters",
+          "text": "Whenever the collection is a list, because `for_each` cannot iterate over lists.",
+          "rationale": "`for_each` takes a map or a set of strings; a list is converted with `toset()` or keyed with a `for` expression. Being a list is not a reason to fall back to index addressing."
+        },
+        {
+          "id": "never",
+          "text": "Never — `count` is deprecated in OpenTofu in favour of `for_each`.",
+          "rationale": "`count` is a supported meta-argument. The section's rule of thumb keeps it for plain N-of-identical cases; it only becomes a trap when instances have a stable identity."
+        },
+        {
+          "id": "for-computed-width",
+          "text": "When the number of instances comes from another resource's computed attribute, because `count` tolerates unknown values and `for_each` does not.",
+          "rationale": "Both refuse a width that is known only after apply — the section shows `Invalid count argument` for exactly this. The fix is to derive the width from configuration."
+        }
+      ],
+      "answer": "n-of-identical-toggle",
+      "explanation": "Use `count` for a plain N-of-identical or 0/1 toggle; use `for_each` whenever instances have a stable identity, which is almost always (S09 · The removal trap, rule-of-thumb card; Fan-out width must be known at plan time).",
+      "difficulty": "introductory",
+      "learningObjective": "Choose between `count` and `for_each` by whether instances carry a stable identity.",
+      "references": [
+        "https://opentofu.org/docs/language/meta-arguments/count/"
+      ]
+    },
+    {
+      "id": "S09-Q-03",
+      "section": "S09",
+      "prompt": "Inside `data \"archive_file\" \"bundle\"` you write `dynamic \"source\" { for_each = var.services  content { filename = \"${each.key}.env\" } }`. `tofu plan` fails. Why, and what is the fix?",
+      "options": [
+        {
+          "id": "iterator-named-after-label",
+          "text": "`each` exists only on `resource` and `module` blocks that set `for_each`; inside a `dynamic` block the iterator is named after the label, so write `source.key` (or set `iterator = svc` and use `svc.key`).",
+          "rationale": "Correct. This is the classic first `dynamic` error — `Reference to \"each\" in context without for_each` — and the lab makes you trigger and fix it."
+        },
+        {
+          "id": "data-sources-no-dynamic",
+          "text": "Data sources cannot contain `dynamic` blocks; move the bundle to a resource.",
+          "rationale": "`dynamic` works in any block that accepts repeated nested blocks, data sources included; the lab's `bundle.tf` is a data source with a `dynamic \"source\"` block."
+        },
+        {
+          "id": "needs-toset",
+          "text": "`for_each` inside `dynamic` requires a set, so wrap the map in `toset()`.",
+          "rationale": "A `dynamic` block's `for_each` accepts a map; `var.services` is used as-is in the lab. The error is about the name of the iterator, not the collection type."
+        },
+        {
+          "id": "use-count-index",
+          "text": "`dynamic` blocks iterate by position, so use `count.index` instead of `each.key`.",
+          "rationale": "`count.index` is equally unavailable here. The iterator symbol inside `dynamic` is the block label (`source.key`, `source.value`)."
+        }
+      ],
+      "answer": "iterator-named-after-label",
+      "explanation": "A `dynamic` block's iterator takes the label's name (`source.*`) unless `iterator` overrides it; `each.*` is only for `resource`/`module` `for_each` (S09 · The classic dynamic error — and the judgement call).",
+      "difficulty": "intermediate",
+      "learningObjective": "Write a `dynamic` block using the label-named iterator and recognise the `each` misuse error.",
+      "references": [
+        "https://opentofu.org/docs/language/expressions/dynamic-blocks/"
+      ]
+    },
+    {
+      "id": "S09-Q-04",
+      "section": "S09",
+      "prompt": "A database must never be recreated by accident, and a load-balancer certificate must be swapped without a gap in service. Which `lifecycle` settings match those two needs?",
+      "options": [
+        {
+          "id": "prevent-then-cbd",
+          "text": "`prevent_destroy = true` on the database; `create_before_destroy = true` on the certificate.",
+          "rationale": "Correct. `prevent_destroy` makes any plan that would destroy the resource error out; `create_before_destroy` builds the replacement before destroying the old object, so there is no outage gap."
+        },
+        {
+          "id": "cbd-then-prevent",
+          "text": "`create_before_destroy = true` on the database; `prevent_destroy = true` on the certificate.",
+          "rationale": "Swapped. `create_before_destroy` still lets the database be replaced — it only changes the order. `prevent_destroy` on the certificate would block the very swap you want."
+        },
+        {
+          "id": "ignore-changes-both",
+          "text": "`ignore_changes = all` on both, so OpenTofu never plans a replacement.",
+          "rationale": "`ignore_changes` is for attributes an external system owns; blanket-ignoring stops the certificate from ever being updated and is not a guard against an explicit destroy."
+        },
+        {
+          "id": "prevent-from-variable",
+          "text": "`prevent_destroy = var.protect` on the database so each environment can choose; `create_before_destroy` on the certificate.",
+          "rationale": "`lifecycle` is a meta-block that takes literal values, not references — `var.protect` there is an error. The certificate half is right; the database half is not."
+        }
+      ],
+      "answer": "prevent-then-cbd",
+      "explanation": "`prevent_destroy` is the hard stop for the thing that must never be recreated; `create_before_destroy` removes the gap on a replacement; both take literals only (S09 · Override how a resource is replaced).",
+      "difficulty": "introductory",
+      "learningObjective": "Pick the `lifecycle` meta-argument that matches a replacement requirement.",
+      "references": [
+        "https://opentofu.org/docs/language/meta-arguments/lifecycle/"
+      ]
+    },
+    {
       "id": "S12-Q-01",
       "section": "S12",
       "prompt": "What principle decides how many checks belong at each layer of the IaC testing pyramid?",
