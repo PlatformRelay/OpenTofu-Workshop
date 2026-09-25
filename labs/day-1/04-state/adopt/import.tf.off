@@ -1,4 +1,4 @@
-# Declarative import (OpenTofu 1.5+).
+# import block: in every OpenTofu release (Terraform 1.5+).
 import {
   # to: the config address that will own it
   to = aws_s3_bucket.legacy

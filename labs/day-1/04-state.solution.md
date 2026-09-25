@@ -679,7 +679,7 @@ backend) and read it:
 
 <!-- source: labs/day-1/04-state/adopt/import.tf.off -->
 ```hcl
-# Declarative import (OpenTofu 1.5+).
+# import block: in every OpenTofu release (Terraform 1.5+).
 import {
   # to: the config address that will own it
   to = aws_s3_bucket.legacy

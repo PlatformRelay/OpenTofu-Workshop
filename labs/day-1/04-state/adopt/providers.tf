@@ -2,7 +2,8 @@
 # so this state never mixes with the service-manifest state one level up.
 # Every endpoint points at LocalStack (:4566): no real AWS, no credentials.
 terraform {
-  # `import {}` blocks arrived in OpenTofu 1.5; the lab floor (1.9) covers it.
+  # `import {}` blocks are in every OpenTofu release (1.6.0 onward; Terraform
+  # added them in 1.5), so the lab floor (1.9) covers them.
   required_version = ">= 1.9"
 
   required_providers {
