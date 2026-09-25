@@ -1,0 +1,8 @@
+# Declarative import (OpenTofu 1.5+).
+import {
+  # to: the config address that will own it
+  to = aws_s3_bucket.legacy
+  # id: the real object's id (for S3, its name)
+  id = "workshop-legacy-reports"
+}
+# Plan: "will be imported". Apply. Then delete me.
