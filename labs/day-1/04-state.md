@@ -2,9 +2,9 @@
 
 | | |
 | --- | --- |
-| **Section** | S04 — State *(red line: **apply** a config with a secret → **inspect** state → **grep the plaintext secret** out of the file → **migrate** the backend → **break→fix** with `state rm` → **drift**: mutate the rendered file out-of-band and watch `plan` reconcile → **stretch**: the same migration for real, to `backend "s3"` on LocalStack with native locking)* |
-| **Environment** | `mock ✓ (no docker)` — every numbered step: no cloud, no Docker; `random` + `local` providers only. `localstack ✓` **Stretch only** — the optional S3-backend stretch needs Docker/LocalStack on `:4566` |
-| **Estimated time** | 25 min (+ ~15 min optional S3-backend stretch) |
+| **Section** | S04 — State *(red line: **apply** a config with a secret → **inspect** state → **grep the plaintext secret** out of the file → **migrate** the backend → **break→fix** with `state rm` → **drift**: mutate the rendered file out-of-band and watch `plan` reconcile → **adopt**: bring a bucket made outside OpenTofu under management with `import {}`, and read it from a second config with a `data` source → **stretch**: the same migration for real, to `backend "s3"` on LocalStack with native locking)* |
+| **Environment** | `mock ✓ (no docker)` — Steps 0–7: no cloud, no Docker; `random` + `local` providers only. `localstack ✓` **Step 8 and the Stretch** — the adopt/reference step and the optional S3-backend stretch need Docker/LocalStack on `:4566` and the `hashicorp/aws` provider |
+| **Estimated time** | 25 min for Steps 0–7 (+ ~15 min Step 8 on LocalStack) (+ ~15 min optional S3-backend stretch) |
 
 ## Objective
 
@@ -21,7 +21,10 @@ locking included), and run a **break→fix**: `tofu state rm` *forgets* a resour
 next `plan` wants to recreate it — then `apply` reconciles. Finally you'll
 **experience drift**: change the rendered manifest behind OpenTofu's back —
 edit it, then delete it — and read the reconciling `plan` that steers reality
-back to your config.
+back to your config. Last, on LocalStack, you'll **adopt** a bucket that
+someone created outside OpenTofu: a plain `apply` fails on the taken name, an
+`import {}` block brings the bucket into state without recreating it, and a
+`data` source in a second config reads the same bucket without owning it.
 
 You run **tracked files**, not heredocs — what you apply is exactly what CI
 verified. The config lives in this repo at `labs/day-1/04-state/`:
@@ -36,6 +39,8 @@ verified. The config lives in this repo at `labs/day-1/04-state/`:
   forward from stage 5 so the lab runs non-interactively.
 - `backend-s3.tf.off` — the Stretch's S3-backend variant, inert until copied to
   `backend-s3.tf`.
+- `adopt/` and `reference/` — Step 8's two small AWS-on-LocalStack configs, each
+  with its own state (see Step 8).
 
 ### Continuity — stage 6 of the `service-manifest` project
 
@@ -64,6 +69,12 @@ came back to make that happen; retiring the stage-5 guards simply left it in the
 spotlight. (Stage 4's `variable "api_token"` retired at stage 5 and does **not**
 return — this stage makes its point with a generated secret instead.)
 
+**Beside the spine, not part of it:** Step 8's `adopt/` and `reference/`
+workdirs (an `aws_s3_bucket`, an `import` block, a `data "aws_s3_bucket"`) run
+from their own directories with their own state. They add nothing to the
+`service-manifest` addresses and retire nothing; the spine's state in this
+directory is untouched by them.
+
 **Introduced here, and auxiliary:** the explicit `backend "local"` block — in its
 own `backend.tf`, so Step 5 (and the S3 stretch) can migrate it — and
 `output "db_password"`, which keeps its own name because it *is* the
@@ -75,8 +86,10 @@ plaintext-in-state beat.
 - `jq` and `grep` on `PATH` (both ship with macOS/Linux) — used to read the raw
   state JSON.
 - Network access the first time (`tofu init` downloads the `random` + `local`
-  providers). No Docker, no cloud, no AWS — **except the optional Stretch**,
-  which needs Docker (for LocalStack) and `tofu` **≥ 1.10** (`use_lockfile` is
+  providers, and in Step 8 `hashicorp/aws`). No Docker, no cloud, no AWS in
+  Steps 0–7. **Step 8** needs Docker for LocalStack (`task lab:up`); the
+  `import {}` block needs `tofu` ≥ 1.5, which the ≥ 1.9 floor covers. **The
+  optional Stretch** needs Docker (for LocalStack) and `tofu` **≥ 1.10** (`use_lockfile` is
   an OpenTofu 1.10 feature; the workshop pin 1.10.3 satisfies it — check
   `tofu version` before starting the stretch, and skip it below 1.10).
 - Run everything **from the repo clone**.
@@ -92,6 +105,11 @@ All tracked in `labs/day-1/04-state/` — you run them, you do not paste them:
 - `backend-s3.tf.off` — the Stretch's `backend "s3"` block for LocalStack,
   inert until you `cp` it to `backend-s3.tf`.
 - `terraform.tfvars` — the auto-loaded `service` object and `environment`.
+- `adopt/providers.tf`, `adopt/main.tf`, `adopt/import.tf.off` — Step 8's
+  adoption config: the AWS provider pointed at LocalStack, the
+  `aws_s3_bucket.legacy` resource block, and the inert `import {}` block.
+- `reference/providers.tf`, `reference/main.tf` — Step 8's second config: the
+  same provider and a read-only `data "aws_s3_bucket"` lookup.
 - `.gitignore` — keeps the state (which holds the **plaintext secret** — never
   commit it), `.terraform`, the rendered `out/` file, the migrated `state/`
   dir, and the stretch's swap residue out of version control.
@@ -106,19 +124,22 @@ ls
 ```
 
 **Task:** Confirm the config is already present — you author nothing (you only
-*edit* the backend path later, and cleanup reverts it).
+*edit* the backend path later and copy one `.off` file in Step 8; cleanup reverts
+both).
 
 <details><summary>Solution / expected output</summary>
 
 ```console
 $ ls
-backend-s3.tf.off  backend.tf  main.tf  terraform.tfvars
+adopt  backend-s3.tf.off  backend.tf  main.tf  reference  terraform.tfvars
 ```
 
 `main.tf`, `backend.tf` and `terraform.tfvars` are tracked in the repo — plus
 `backend-s3.tf.off`, the Stretch's inert S3 variant (OpenTofu only loads
 config from `*.tf`, `*.tf.json` and `*.tofu` files, and `.off` matches none of
-them, so the file is invisible to every step until you activate it). Everything
+them, so the file is invisible to every step until you activate it). The
+`adopt/` and `reference/` directories are Step 8's separate configs; OpenTofu
+does not read subdirectories, so they do not affect Steps 1–7. Everything
 below runs against these exact files. (`.gitignore` is present too; `ls` hides
 dotfiles by default.)
 </details>
@@ -663,6 +684,331 @@ This is why state exists: without the recorded content, OpenTofu could not have
 told your 2 a.m. hotfix apart from its own work.
 </details>
 
+---
+
+## Step 8 — Adopt a bucket that already exists (`localstack ✓`)
+
+Steps 6 and 7 were state and reality falling out of step *after* OpenTofu built
+something. The case you will meet first at work is the reverse: a bucket someone
+clicked together in the console years ago, which OpenTofu has **never** seen.
+You do not recreate it. You **adopt** it with an `import {}` block, and where you
+only need to *read* it, you **reference** it with a `data` source instead.
+
+This step runs against **LocalStack** (Docker on `127.0.0.1:4566`), with the
+`hashicorp/aws` provider in two small workdirs of their own:
+
+- `adopt/` — `providers.tf` (the LocalStack-pointed AWS provider), `main.tf` (the
+  resource block that describes the bucket, plus an output), and
+  `import.tf.off` (the import block, inert until you copy it to `import.tf`).
+- `reference/` — a **second** config with its own state: a
+  `data "aws_s3_bucket"` lookup of the same bucket, plus an output.
+
+Neither touches the `service-manifest` spine: its state stays in
+`labs/day-1/04-state/`, and these two directories keep separate state files.
+
+The AWS CLI calls below use the `awslocal` wrapper that ships **inside** the
+LocalStack container (`docker exec opentofu-workshop-localstack awslocal …`), the
+same call the Stretch uses, so there is nothing extra to install. If you have the
+AWS CLI on your host, `aws --endpoint-url=http://localhost:4566 s3 mb …` with the
+dummy credentials from `.env.example` does the same thing (see
+`setup/localstack.md`).
+
+> Console output below is from a real run on `tofu v1.10.3` and
+> `hashicorp/aws v5.100.0` against `localstack/localstack:4.9.2`. Timestamps and
+> the `grant` id will differ on your machine.
+
+### 8a — Someone clicks a bucket into existence
+
+Start LocalStack, then play the colleague with console access: create the
+bucket **outside** OpenTofu.
+
+```bash
+task lab:up                      # LocalStack on :4566 (waits until healthy)
+docker exec opentofu-workshop-localstack awslocal s3 mb s3://workshop-legacy-reports
+docker exec opentofu-workshop-localstack awslocal s3 ls
+cd "$(git rev-parse --show-toplevel)"/labs/day-1/04-state/adopt
+tofu init
+```
+
+**Task:** The bucket exists. Does OpenTofu know about it?
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ docker exec opentofu-workshop-localstack awslocal s3 mb s3://workshop-legacy-reports
+make_bucket: workshop-legacy-reports
+
+$ docker exec opentofu-workshop-localstack awslocal s3 ls
+2026-09-25 10:24:09 workshop-legacy-reports
+
+$ tofu init
+Initializing the backend...
+
+Initializing provider plugins...
+- Finding hashicorp/aws versions matching ">= 5.0.0, < 6.0.0"...
+- Installing hashicorp/aws v5.100.0...
+...
+OpenTofu has been successfully initialized!
+```
+
+No. The bucket is real, but this workdir has **no state at all**: `init`
+installs the provider, and only an apply (or an import) writes state. Reality
+has something that OpenTofu has no record of. (Your `hashicorp/aws` patch
+version may differ inside `>= 5.0, < 6.0`.)
+</details>
+
+### 8b — Break: write the resource block and just apply
+
+`adopt/main.tf` holds the resource block you would write first: it describes
+the existing bucket by name.
+
+<!-- source: labs/day-1/04-state/adopt/main.tf -->
+```hcl
+# The resource block you write FIRST: it describes the bucket someone created
+# in the console. On its own it means "create this" — the import block
+# (import.tf, activated in Step 8c) turns it into "adopt this".
+resource "aws_s3_bucket" "legacy" {
+  bucket = "workshop-legacy-reports"
+}
+
+output "legacy_bucket_arn" {
+  description = "ARN of the adopted bucket, read from state after the import."
+  value       = aws_s3_bucket.legacy.arn
+}
+```
+
+Apply it as it stands:
+
+```bash
+tofu apply -auto-approve
+```
+
+**Task (break):** What does the plan propose, and why does the apply fail?
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ tofu apply -auto-approve
+...
+  # aws_s3_bucket.legacy will be created
+  + resource "aws_s3_bucket" "legacy" {
+      + bucket                      = "workshop-legacy-reports"
+      ...
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + legacy_bucket_arn = (known after apply)
+aws_s3_bucket.legacy: Creating...
+╷
+│ Error: creating S3 Bucket (workshop-legacy-reports): BucketAlreadyExists
+│
+│   with aws_s3_bucket.legacy,
+│   on main.tf line 4, in resource "aws_s3_bucket" "legacy":
+│    4: resource "aws_s3_bucket" "legacy" {
+│
+╵
+```
+
+State has no entry for `aws_s3_bucket.legacy`, so a resource block on its own
+means **create**: `1 to add`. The create call then hits the real bucket's name
+and fails. Nothing changed: the failed apply leaves an empty state and the
+bucket as it was. A resource block describes the object; it does not say that
+the object already exists. That is the import block's job.
+</details>
+
+### 8c — Fix: add the `import {}` block, plan, apply, remove it
+
+Activate the tracked import block (the same `.off` pattern as the Stretch's
+backend) and read it:
+
+<!-- source: labs/day-1/04-state/adopt/import.tf.off -->
+```hcl
+# Declarative import (OpenTofu 1.5+).
+import {
+  # to: the config address that will own it
+  to = aws_s3_bucket.legacy
+  # id: the real object's id (for S3, its name)
+  id = "workshop-legacy-reports"
+}
+# Plan: "will be imported". Apply. Then delete me.
+```
+
+```bash
+cp import.tf.off import.tf
+tofu plan
+```
+
+**Task:** Find the plan summary. How many resources will be **added**? And what
+does "will be imported" mean for state?
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ tofu plan
+aws_s3_bucket.legacy: Preparing import... [id=workshop-legacy-reports]
+aws_s3_bucket.legacy: Refreshing state... [id=workshop-legacy-reports]
+
+OpenTofu will perform the following actions:
+
+  # aws_s3_bucket.legacy will be imported
+    resource "aws_s3_bucket" "legacy" {
+        arn                         = "arn:aws:s3:::workshop-legacy-reports"
+        bucket                      = "workshop-legacy-reports"
+        bucket_domain_name          = "workshop-legacy-reports.s3.amazonaws.com"
+        bucket_regional_domain_name = "workshop-legacy-reports.s3.us-east-1.amazonaws.com"
+        hosted_zone_id              = "Z3AQBSTGFYJSTF"
+        id                          = "workshop-legacy-reports"
+        object_lock_enabled         = false
+        region                      = "us-east-1"
+        request_payer               = "BucketOwner"
+        tags                        = {}
+        tags_all                    = {}
+        ...
+    }
+
+Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + legacy_bucket_arn = "arn:aws:s3:::workshop-legacy-reports"
+```
+
+**`1 to import, 0 to add`**: no bucket gets created. "Will be imported" means
+the apply will **write a state entry** that maps the address
+`aws_s3_bucket.legacy` to the real bucket `workshop-legacy-reports`. Nothing on
+the bucket itself changes. Every attribute shown (`arn`, `region`, the
+`grant`, `versioning`, …) was **read from the live bucket** during
+`Preparing import...`; you never wrote them. **`0 to change`** matters as much
+as the import: it says your resource block already matches the real bucket, so
+adopting it will not modify it.
+</details>
+
+Apply the adoption, check the inventory, then retire the import block:
+
+```bash
+tofu apply -auto-approve
+tofu state list
+rm import.tf
+tofu plan
+```
+
+**Task:** What does the apply summary call what happened? What does
+`state list` show now, and what does the plan say once the import block is gone?
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ tofu apply -auto-approve
+...
+Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.
+...
+aws_s3_bucket.legacy: Importing... [id=workshop-legacy-reports]
+aws_s3_bucket.legacy: Import complete [id=workshop-legacy-reports]
+
+Apply complete! Resources: 1 imported, 0 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+legacy_bucket_arn = "arn:aws:s3:::workshop-legacy-reports"
+
+$ tofu state list
+aws_s3_bucket.legacy
+
+$ rm import.tf
+$ tofu plan
+aws_s3_bucket.legacy: Refreshing state... [id=workshop-legacy-reports]
+
+No changes. Your infrastructure matches the configuration.
+```
+
+**`1 imported, 0 added`**: the bucket was adopted, not recreated. `state list`
+now shows `aws_s3_bucket.legacy`, the same inventory view as Step 3, and the
+address maps to the bucket that already existed. From here the bucket is
+**managed**: a config change produces a plan against it, and `tofu destroy` in
+this directory would delete it. With the import block gone the plan is still
+`No changes`, because state now holds the mapping the block was there to
+create. Delete import blocks once the adoption has been applied; they have no
+further job.
+</details>
+
+### 8d — Reference it, don't own it: a `data` source
+
+Import is a change of **ownership**. When the bucket belongs to someone else
+(another team, another stack, or the console crowd who still run it) and you
+only need its attributes, use a **data source** instead. The `reference/`
+workdir is that second config:
+
+<!-- source: labs/day-1/04-state/reference/main.tf -->
+```hcl
+# Reference it, don't own it: a data source READS the bucket at plan time.
+# It never enters this config's managed state, so destroy cannot touch it.
+data "aws_s3_bucket" "legacy" {
+  bucket = "workshop-legacy-reports"
+}
+
+output "legacy_bucket_arn" {
+  description = "ARN of the bucket another config owns, looked up read-only."
+  value       = data.aws_s3_bucket.legacy.arn
+}
+```
+
+```bash
+cd "$(git rev-parse --show-toplevel)"/labs/day-1/04-state/reference
+tofu init
+tofu apply -auto-approve
+tofu state list
+tofu destroy -auto-approve
+docker exec opentofu-workshop-localstack awslocal s3 ls
+```
+
+**Task:** How many resources does the apply add? What does `state list` show,
+and does `destroy` in this directory delete the bucket?
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ tofu apply -auto-approve
+data.aws_s3_bucket.legacy: Reading...
+data.aws_s3_bucket.legacy: Read complete after 0s [id=workshop-legacy-reports]
+
+Changes to Outputs:
+  + legacy_bucket_arn = "arn:aws:s3:::workshop-legacy-reports"
+...
+Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+legacy_bucket_arn = "arn:aws:s3:::workshop-legacy-reports"
+
+$ tofu state list
+data.aws_s3_bucket.legacy
+
+$ tofu destroy -auto-approve
+data.aws_s3_bucket.legacy: Reading...
+data.aws_s3_bucket.legacy: Read complete after 0s [id=workshop-legacy-reports]
+
+Changes to Outputs:
+  - legacy_bucket_arn = "arn:aws:s3:::workshop-legacy-reports" -> null
+...
+Destroy complete! Resources: 0 destroyed.
+
+$ docker exec opentofu-workshop-localstack awslocal s3 ls
+2026-09-25 10:24:09 workshop-legacy-reports
+```
+
+**`0 added`**, and **`0 destroyed`**. The data source is read on every plan and
+its attributes (here the ARN) feed your config, but it is never created,
+changed or destroyed from this directory. `state list` does print
+`data.aws_s3_bucket.legacy`: OpenTofu caches the last read in state under a
+`data.` address, and that cache is not ownership. The bucket survives the
+destroy because this config never owned it. The `adopt/` config does own it,
+which is why the Cleanup below destroys it from there.
+
+Rule of thumb: if you are taking over the bucket's lifecycle, **import** it. If
+someone else keeps running it, **reference** it.
+</details>
+
 ## Expected observations
 
 - **State is the map** from config addresses (`random_pet.env`) to real
@@ -680,6 +1026,15 @@ told your 2 a.m. hotfix apart from its own work.
   edited or deleted by hand). The **refresh** phase of `tofu plan` catches it,
   and the plan reconciles **actual back to desired** — the config's values win,
   and the fix is a plain `apply`.
+- **Adoption** is the other direction: an object that exists but is not in
+  state. A resource block alone plans `1 to add` and the apply fails
+  (`BucketAlreadyExists`). With an `import {}` block the plan reads
+  `1 to import, 0 to add, 0 to change`, the apply reports `1 imported`,
+  `state list` shows `aws_s3_bucket.legacy`, and after the block is deleted the
+  plan is `No changes`.
+- A **`data` source** references an object without owning it: `0 added`,
+  `0 destroyed`, the bucket survives `destroy`, and `state list` shows only the
+  cached `data.aws_s3_bucket.legacy` read.
 - *(Stretch)* A **remote backend** is the same migration pointed at shared
   storage: `backend "s3"` + `tofu init -migrate-state` moves this exact state
   into a LocalStack bucket, and `use_lockfile = true` (OpenTofu ≥ 1.10) makes
@@ -688,27 +1043,42 @@ told your 2 a.m. hotfix apart from its own work.
 
 ## Cleanup / panic reset
 
-Destroy the (local-only) resources, restore the tracked `backend.tf`, and remove
-all generated residue — including the state file that holds the plaintext secret.
-No cloud resources exist, so nothing to bill or leak. This block is safe from
+Destroy Step 8's adopted bucket (on LocalStack) and the local resources, restore
+the tracked `backend.tf`, and remove all generated residue — including the state
+file that holds the plaintext secret. Nothing touches real AWS, so nothing to
+bill or leak. This block is safe from
 **any** point in the lab, including mid-stretch (the stretch lines are no-ops if
 you never started it):
 
 ```bash
 cd labs/day-1/04-state
+tofu -chdir=adopt destroy -auto-approve || true       # Step 8: deletes the adopted bucket (needs LocalStack up)
+rm -f adopt/import.tf                                 # Step 8: the activated import block (the tracked .off stays)
+rm -rf adopt/.terraform adopt/.terraform.lock.hcl reference/.terraform reference/.terraform.lock.hcl
+find adopt reference -maxdepth 1 -name 'terraform.tfstate*' -delete   # Step 8 state files
 tofu destroy -auto-approve || true                    # best-effort — see the note below
 rm -f backend-s3.tf                                   # stretch: retire the activated S3 variant (the tracked .off stays)
 mv -f backend.tf.off backend.tf 2>/dev/null || true   # stretch: un-park the local backend
 mv -f backend.tf.bak backend.tf 2>/dev/null || true   # revert the Step 5 backend edit
 rm -rf .terraform .terraform.lock.hcl state out backend.tf.bak
 find . -maxdepth 1 -name 'terraform.tfstate*' -delete   # all root state incl. secret-bearing *.<ts>.backup (shell-agnostic)
-task lab:down 2>/dev/null || true                     # stretch: stop LocalStack if you started it
+task lab:down 2>/dev/null || true                     # Step 8 / stretch: stop LocalStack, wipe its volume
 git status --short .      # expect: no output
 ```
 
 <details><summary>Expected output</summary>
 
 ```console
+$ tofu -chdir=adopt destroy -auto-approve
+aws_s3_bucket.legacy: Refreshing state... [id=workshop-legacy-reports]
+...
+Plan: 0 to add, 0 to change, 1 to destroy.
+...
+aws_s3_bucket.legacy: Destroying... [id=workshop-legacy-reports]
+aws_s3_bucket.legacy: Destruction complete after 0s
+
+Destroy complete! Resources: 1 destroyed.
+
 $ tofu destroy -auto-approve
 random_password.session: Destroying... [id=none]
 random_password.session: Destruction complete after 0s
@@ -723,14 +1093,24 @@ Destroy complete! Resources: 3 destroyed.
 The generated state (with its plaintext secret), `.terraform`, the rendered
 `out/` file, the migrated `state/` dir, and the `backend.tf.bak` from Step 5 are
 all gitignored or removed; the panic reset leaves the tracked `main.tf`,
-`backend.tf`, `backend-s3.tf.off` and `terraform.tfvars` exactly as CI verified
-them (backend path back to `terraform.tfstate`). Order matters: `tofu destroy`
+`backend.tf`, `backend-s3.tf.off`, `terraform.tfvars` and the `adopt/` /
+`reference/` files exactly as CI verified them (backend path back to
+`terraform.tfstate`). Order matters: `tofu destroy`
 runs **before** the file restores, so whatever backend is active *right now* —
 the migrated `state/` path, or the stretch's S3 bucket — is the one the destroy
 reads, and it actually removes the resources.
 
-**Why `|| true` on the destroy is honest, not sloppy:** every resource in this
-lab is local to this directory — two random values and one rendered file under
+**Step 8's bucket goes first, and from `adopt/`:** that config owns the
+bucket after the import, so its destroy deletes it — `1 destroyed`. The
+`reference/` config never owned it and has nothing to destroy. If you stopped
+before the importing apply in 8c (bucket created, never imported), the `adopt/`
+destroy finds nothing in state and reports `0 destroyed`; the bucket then goes with LocalStack's
+volume at `task lab:down` (the workshop runs LocalStack with `PERSISTENCE=0`).
+To remove it by hand without stopping LocalStack:
+`docker exec opentofu-workshop-localstack awslocal s3 rb s3://workshop-legacy-reports`.
+
+**Why `|| true` on the destroy is honest, not sloppy:** every resource in
+Steps 0–7 is local to this directory — two random values and one rendered file under
 `out/`. If the destroy cannot reach its state (say you panic mid-stretch after
 `task lab:down` wiped the bucket), nothing real survives it anyway: `rm -rf …
 out` removes the only artifact, and the random values die with the state. The
@@ -744,11 +1124,13 @@ the directory never ends up with **two** active backend files.
 
 ### The real thing — this state, in S3, with locking (`localstack ✓`, ~15 min)
 
-Everything above ran against **local paths**. This stretch replays Step 5's exact
+The project's state has so far lived on **local paths**. This stretch replays Step 5's exact
 mechanic against a real (emulated) **S3 remote backend** — the setup a team
 shares — and then proves the thing local state can never give you: a **lock**.
 Continue straight from the end of Step 7 (state migrated to
-`state/terraform.tfstate`, all three resources applied).
+`state/terraform.tfstate`, all three resources applied), in
+`labs/day-1/04-state`. If you did Step 8, `cd ..` out of `reference/` first:
+Step 8 never touched this directory's state, and LocalStack can stay up.
 
 **Requirements:** Docker (for LocalStack on `:4566`) and `tofu` **≥ 1.10** —
 `use_lockfile` is OpenTofu 1.10's native S3 locking (no DynamoDB table, no extra
@@ -1060,3 +1442,63 @@ LocalStack even if you bail out mid-stretch instead).
   `sensitive_values` block — OpenTofu *marks* which attributes are sensitive, but
   still stores their plaintext right beside the marker. That contrast is the whole
   argument for S05.
+- **Let OpenTofu draft the resource block** (Step 8, needs LocalStack up and the
+  bucket from 8a). With an `import {}` block and **no** resource block,
+  `tofu plan -generate-config-out=generated.tf` writes a resource block from
+  what the provider reads back. Run it in a throwaway directory so the `adopt/`
+  state is untouched (from `labs/day-1/04-state/adopt`):
+
+  ```bash
+  mkdir -p /tmp/adopt-draft
+  cp providers.tf /tmp/adopt-draft/
+  cp import.tf.off /tmp/adopt-draft/import.tf
+  cd /tmp/adopt-draft
+  tofu init
+  tofu plan -generate-config-out=generated.tf
+  cat generated.tf
+  ```
+
+  <details><summary>Solution / expected output (the draft needs one fix)</summary>
+
+  ```console
+  $ tofu plan -generate-config-out=generated.tf
+  aws_s3_bucket.legacy: Preparing import... [id=workshop-legacy-reports]
+  aws_s3_bucket.legacy: Refreshing state... [id=workshop-legacy-reports]
+
+  Planning failed. OpenTofu encountered an error while generating this plan.
+
+  ╷
+  │ Warning: Config generation is experimental
+  ...
+  │ Error: Conflicting configuration arguments
+  │
+  │   with aws_s3_bucket.legacy,
+  │   on generated.tf line 1:
+  │   (source code not available)
+  │
+  │ "bucket": conflicts with bucket_prefix
+  ╵
+
+  $ cat generated.tf
+  # __generated__ by OpenTofu
+  # Please review these resources and move them into your main configuration files.
+
+  # __generated__ by OpenTofu
+  resource "aws_s3_bucket" "legacy" {
+    bucket              = "workshop-legacy-reports"
+    bucket_prefix       = ""
+    force_destroy       = null
+    object_lock_enabled = false
+    tags                = {}
+    tags_all            = {}
+  }
+  ```
+
+  The file is written even though the plan fails, and it is a **draft**: the
+  provider reports both `bucket` and an empty `bucket_prefix`, which the schema
+  forbids together. Delete the `bucket_prefix` line and `tofu plan` reads
+  `Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.` The generator saves
+  typing on a resource with many attributes; you still review every line before
+  it goes into your config. Clean up with `cd - && rm -rf /tmp/adopt-draft`
+  (it has its own state; the bucket stays owned by `adopt/`).
+  </details>
