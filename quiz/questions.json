@@ -264,6 +264,74 @@
       ]
     },
     {
+      "id": "S02-Q-04",
+      "section": "S02",
+      "prompt": "A config has `var.environment = \"dev\"`. What does `mode = var.environment == \"prod\" ? \"ha\" : \"single\"` evaluate to?",
+      "options": [
+        {
+          "id": "single",
+          "text": "`\"single\"` — the condition is false, so the conditional takes the value after the `:`.",
+          "rationale": "Correct: `cond ? a : b` yields `a` when the condition is true and `b` otherwise; `\"dev\" == \"prod\"` is false, so the value is `\"single\"`."
+        },
+        {
+          "id": "ha",
+          "text": "`\"ha\"` — the first value after `?` is always the default.",
+          "rationale": "Reads the conditional left to right as if the first branch were a default. The first branch is chosen only when the condition is true, and `\"dev\" == \"prod\"` is not."
+        },
+        {
+          "id": "bool",
+          "text": "`false` — the expression returns the result of the comparison.",
+          "rationale": "Stops at the comparison. The comparison only selects a branch; the whole expression evaluates to one of the two branch values, not to the boolean itself."
+        },
+        {
+          "id": "error",
+          "text": "An error — conditionals are only allowed inside `count`.",
+          "rationale": "Generalises from the `count = var.x ? 1 : 0` pattern. A conditional is an ordinary expression and is valid in any argument or local, not only in `count`."
+        }
+      ],
+      "answer": "single",
+      "explanation": "A conditional expression `condition ? true_value : false_value` evaluates the condition and returns one of the two values. With `environment = \"dev\"` the condition is false, so the value is `\"single\"`. `tofu console` evaluates it directly.",
+      "difficulty": "introductory",
+      "learningObjective": "Evaluate a conditional expression and state which branch it returns.",
+      "references": [
+        "https://opentofu.org/docs/language/expressions/conditionals/"
+      ]
+    },
+    {
+      "id": "S02-Q-05",
+      "section": "S02",
+      "prompt": "Given `var.tags = { team = \"ops\", cost = null }`, what does `{ for k, v in var.tags : k => upper(v) if v != null }` evaluate to?",
+      "options": [
+        {
+          "id": "filtered-map",
+          "text": "`{ team = \"OPS\" }` — a map with the `null` entry filtered out before `upper` runs.",
+          "rationale": "Correct: curly braces with `k => v` build a map, the `if` clause drops entries whose value is `null`, and `upper` transforms the values that remain."
+        },
+        {
+          "id": "list",
+          "text": "`[\"OPS\"]` — a `for` expression always returns a list.",
+          "rationale": "Treats every `for` as a list comprehension. The result type follows the brackets: `[ … ]` builds a list, while `{ … : k => v }` builds a map."
+        },
+        {
+          "id": "keeps-null",
+          "text": "`{ cost = null, team = \"OPS\" }` — the `if` only decides whether `upper` is applied.",
+          "rationale": "Reads `if` as a per-element branch. In a `for` expression the `if` clause filters: an element whose condition is false is left out of the result entirely."
+        },
+        {
+          "id": "null-error",
+          "text": "An error — `upper(null)` is called for the `cost` entry.",
+          "rationale": "A reasonable worry, since `upper` rejects `null`, but the `if` filter is evaluated first, so `upper` is never called for the dropped entry."
+        }
+      ],
+      "answer": "filtered-map",
+      "explanation": "A `for` expression inside `{ }` with `key => value` produces a map; a trailing `if` filters out elements where the condition is false. The `cost` entry is removed before `upper` runs, so the result is `{ team = \"OPS\" }`.",
+      "difficulty": "intermediate",
+      "learningObjective": "Evaluate a for expression over a map, including its if filter and result type.",
+      "references": [
+        "https://opentofu.org/docs/language/expressions/for/"
+      ]
+    },
+    {
       "id": "S03-Q-01",
       "section": "S03",
       "prompt": "A plan line shows `-/+ resource \"local_file\" \"manifest\"`. If you approve this plan, what happens to the resource?",
