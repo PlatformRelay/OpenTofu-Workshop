@@ -9,5 +9,6 @@ terraform.tfstate.*
 *.tfstate.*
 build/
 broken.tf
+mine.tf
 crash.log
 crash.*.log
