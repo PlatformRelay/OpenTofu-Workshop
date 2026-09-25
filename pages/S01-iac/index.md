@@ -283,8 +283,8 @@ reveal: OpenTofu inherits all six from Terraform, and Day 1 walks them in this
 order, so treat this slide as the map of the day. Be accurate about where each one
 lands: 5 is taught in S03, where the plan reads `-/+ destroy and then create
 replacement` — NOT in S04/S05, which teach state and its encryption and contain no
-replacement content. Immutability as a named principle recurs in S09, which the
-Day-1 fit plan skips, so S03 is the only place a canonical-cut learner meets it.
+replacement content. Immutability as a named principle recurs in S09, which closes
+Day 1 — there `local_file` replacement drives the count-renumbering trap.
 Sources, verified at authoring time — cite if challenged. OpenTofu's own overview,
 https://opentofu.org/docs/intro/ : declarative configuration files describing
 end-state infrastructure; "OpenTofu creates an execution plan"; "resource graph to

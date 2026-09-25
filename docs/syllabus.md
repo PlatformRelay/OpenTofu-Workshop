@@ -12,7 +12,7 @@ on GitHub.
 
 | Phase | Days (canonical cut) | What learners build |
 | --- | --- | --- |
-| **Author** | Day 1 | HCL, plan/apply, state + encryption, variables, validation, modules, naming/labels |
+| **Author** | Day 1 | HCL, plan/apply, state + encryption, variables, validation, modules, naming/labels, `count` vs `for_each` + safe refactoring |
 | **Test** | Day 2 | Testing pyramid, fmt/lint, scanners, `tofu test`, mocks, CI honesty |
 | **Scale** | Day 3 | Terramate stacks, codegen, orchestration, change detection, capstone |
 
@@ -37,15 +37,18 @@ propagate.
 Stage numbers are the teaching sequence. Section IDs never change — nothing is
 renumbered, so the Day-1 IDs are deliberately out of numeric order. Since the
 Day-1 resequencing landed (US-C-RESEQ) the live delivery order **is** the stage
-order: `S00 → S01 → S02 → S03 → S06 → S15 → S04 → S05 → S07 → S08`.
+order: `S00 → S01 → S02 → S03 → S06 → S15 → S04 → S05 → S07 → S08 → S09`.
 
 **Where each concept is introduced:** `resource` → stage 0 · `variable` →
 stage 2 (block taxonomy; first appears as a feature switch at stage 0b; typed,
 validated and sensitive at stage 4) · `output` → stage 2 (block taxonomy; first
 appears in the stage-1 lab config) · `plan` → stage 0 (read line by line at
 stage 3) · `apply` → stage 0 (full lifecycle at stage 3) · state → stage 6
-(named at stage 0, motivated at stage 3) · modules → stage 8 · testing → stage 10
-(`tofu test` with `mock_provider` first taught at stage 9) · CI → stage 14.
+(named at stage 0, motivated at stage 3) · modules → stage 8 · `count` vs
+`for_each` → stage 9b (`count` first appears as a `0`/`1` feature switch at
+stage 0b) · `dynamic` → stage 9b · `lifecycle` → stage 9b · `moved`/`removed` →
+stage 9b · testing → stage 10 (`tofu test` with `mock_provider` first taught at
+stage 9) · CI → stage 14.
 
 | Stage | Section | Workdir | Introduces |
 | --- | --- | --- | --- |
@@ -60,6 +63,7 @@ stage 3) · `apply` → stage 0 (full lifecycle at stage 3) · state → stage 6
 | 7 | S05 · State encryption | `labs/day-1/05-state-encryption/` | encrypted state and encrypted plan (optional Step 6: `aws_kms` key provider on LocalStack) |
 | 8 | S07 · Modules | `labs/day-1/07-modules/` | **`module`** — `./modules/service-manifest` consumed twice |
 | 9 | S08 · Naming & labelling module | `examples/naming-labels-demo/` | one naming + labelling taxonomy — and the first `tofu test` run, with an aliased `mock_provider` |
+| 9b | S09 · Best practices | `labs/day-1/09-best-practices/` | **`count` vs `for_each`**, `dynamic` blocks, the `lifecycle` meta-arguments, and `moved`/`removed` refactoring — the spine's `local_file.manifest` fanned out per service |
 | 10 | S12, S13 | `labs/day-2/12-testing-pyramid/`, `13-static-analysis/` | **testing as a discipline** — the pyramid, `fmt`, TFLint, pre-commit |
 | 11 | S14 · Security & policy scanners | `labs/day-2/14-security-scanners/` | policy + security scanning (planted insecure fixture — deliberately *not* the learner's project) |
 | 12 | S16, S17 | `labs/day-2/16-tofu-test/`, `17-mocking/` | `tofu test` in depth — apply vs plan runs, and mocking beyond stage 9's first taste |
@@ -67,15 +71,17 @@ stage 3) · `apply` → stage 0 (full lifecycle at stage 3) · state → stage 6
 | 14 | S19 · Testing in CI/CD | `labs/day-2/19-testing-cicd/` | **CI** — the whole ladder as pipeline jobs |
 | 15 | S20–S26 | `labs/day-3/**`, `examples/capstone/` | stacks → codegen → ordering → filtering → capstone |
 
-**Three Day-1 sections carry no stage number.** The Day-1 fit plan skips S09 and
-S10, and S11 is hidden in the 3-day cut, so all three sit outside the Day-1 stage
-sequence. This is a Day-1 statement only — being skippable does not by itself
-remove a section from the map: S18 is hidden yet holds stage 13, S25 sits inside
-stage 15's S20–S26 span, and the S27/S28 appendices have no stage.
+**Two Day-1 sections carry no stage number.** The Day-1 fit plan skips S10, and
+S11 is hidden in the 3-day cut, so both sit outside the Day-1 stage sequence.
+This is a Day-1 statement only — being skippable does not by itself remove a
+section from the map: S18 is hidden yet holds stage 13, S25 sits inside stage
+15's S20–S26 span, and the S27/S28 appendices have no stage.
 
-S09 is not outside the *project*, though: if it is delivered, the
-`local_file.manifest` in `labs/day-1/09-best-practices/` **is** the spine address
-and must keep that name. S10 and S11 stand apart from the project by design.
+S09 is delivered and holds **stage 9b**, closing Day 1. It is numbered 9b rather
+than 10 so the Day-2 and Day-3 stage numbers stay stable, the same way S00's
+stretch is 0b. The `local_file.manifest` in `labs/day-1/09-best-practices/`
+**is** the spine address and keeps that name. S10 and S11 stand apart from the
+project by design.
 
 ### What "one evolving project" means here
 
@@ -173,8 +179,8 @@ in the [README](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/REA
 
 - **Tier:** `core` (always in the cut) · `recommended` (keep if time) · `optional` (cut first).
 - **Canonical cut:** [slides-3day.md](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/slides-3day.md) — serve with `task dev:3day`.
-- **Day totals (slides + labs, unrehearsed planning estimates)** against a 390 min/day budget, from `canonicalDayTotals()`: **Day 1 = 790 (540 + 250), +400 over** · **Day 2 = 360 (180 + 180), 30 under** · **Day 3 = 400 (200 + 200), +10 over**. Published in the [runbook](facilitator-runbook.md#live-cut-order), with the executable compression rows in its [Day 1 fit plan](facilitator-runbook.md#day-1-fit-plan).
-- **Day 1 and Day 3 do not fit.** The facilitator-runbook [Day 1 fit plan](facilitator-runbook.md#day-1-fit-plan) compresses Day-1 *slide* time from 705 to 400; the 250 minutes of Day-1 labs sit on top, so a fit-plan Day 1 is still 650 of slides + labs. Apply it before facilitating, and plan the overflow.
+- **Day totals (slides + labs, unrehearsed planning estimates)** against a 390 min/day budget, from `canonicalDayTotals()`: **Day 1 = 925 (615 + 310), +535 over** · **Day 2 = 360 (180 + 180), 30 under** · **Day 3 = 400 (200 + 200), +10 over**. Published in the [runbook](facilitator-runbook.md#live-cut-order), with the executable compression rows in its [Day 1 fit plan](facilitator-runbook.md#day-1-fit-plan).
+- **Day 1 and Day 3 do not fit.** The facilitator-runbook [Day 1 fit plan](facilitator-runbook.md#day-1-fit-plan) compresses Day-1 *slide* time from 705 to 475; the 310 minutes of Day-1 labs sit on top, so a fit-plan Day 1 is still 785 of slides + labs. Day 1 exceeds its budget by design since S09 returned to the delivered cut — see the runbook's fit plan. Apply it before facilitating, and plan the overflow.
 
 ## Section map (S00–S28)
 
@@ -190,7 +196,7 @@ in the [README](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/REA
 | S05 | State encryption | core | 1 | authored | Compress |
 | S07 | Modules | core | 1 | authored | Compress |
 | S08 | Naming & labelling module | core | 1 | authored | Keep |
-| S09 | Best practices | recommended | 1 | authored | Skip (fit plan) |
+| S09 | Best practices | recommended | 1 | authored | Keep |
 | S10 | OpenTofu differentiators | recommended | 1 | authored | Skip (fit plan) |
 | S11 | The TACO landscape | optional | 1 | authored | Skip (`hide`) |
 | S12 | Why test IaC + testing pyramid | core | 2 | authored | Keep |
@@ -215,7 +221,7 @@ in the [README](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/REA
 Slides and lab minutes are **unrehearsed planning estimates** from
 `scripts/deck-manifest.mjs`. Day 1 fit-plan compression lives in the README and
 `slides-3day.md` markers — not in this table. Summing the rows the section map
-marks as kept in the three-day cut — that is, excluding S09, S10 and S11 (Day 1),
+marks as kept in the three-day cut — that is, excluding S10 and S11 (Day 1),
 S18 (Day 2) and S25, S27 and S28 (Day 3) — gives that day's published total above.
 
 | ID | Section | Slides | Lab |
@@ -251,7 +257,7 @@ S18 (Day 2) and S25, S27 and S28 (Day 3) — gives that day's published total ab
 | S28 | Ecosystem tooling | 20 | 20 |
 
 Canonical visible Day 1 order after fit-plan skips:
-`S00 → S01 → S02 → S03 → S06 → S15 → S04 → S05 → S07 → S08`.
+`S00 → S01 → S02 → S03 → S06 → S15 → S04 → S05 → S07 → S08 → S09`.
 
 **Section covers vs delivery position.** Cover art is referenced by section ID in
 each `pages/SNN-*/index.md` frontmatter, so every cover still resolves — but the
@@ -271,7 +277,7 @@ deliberately **not** renamed or recreated; use this mapping instead.
 | 8 | S05 | `public/covers/section-05-sealing-the-ledger.webp` | Sealing the ledger |
 | 9 | S07 | `public/covers/section-07-the-parts-depot.webp` | The parts depot |
 | 10 | S08 | `public/covers/section-08-tagging-the-works.webp` | Tagging the works |
-| — (skipped) | S09 | `public/covers/section-09-the-tidy-worksite.webp` | The tidy worksite |
+| 11 | S09 | `public/covers/section-09-the-tidy-worksite.webp` | The tidy worksite |
 | — (skipped) | S10 | `public/covers/section-10-the-advanced-rig.webp` | The advanced rig |
 | — (skipped) | S11 | `public/covers/section-11-the-contractors-fair.webp` | The contractors' fair |
 

@@ -81,8 +81,9 @@ facilitator never has to guess whether a gap is accidental.
 
 1. After the S26 closing table, point curious learners here — not at an exam
    outline.
-2. When cutting Day 1 (**S09** / **S10** via fit plan), say which Associate
-   themes thin out (meta-args / refactoring; OpenTofu differentiators).
+2. When cutting Day 1 (**S10** via fit plan), say which Associate themes thin
+   out (OpenTofu differentiators). S09 is delivered, so meta-args and
+   refactoring stay covered unless a delivery cuts it too.
 3. When skipping optional **S11**, say the collaboration theme is covered only
    lightly via **S19** CI — HCP hands-on remains out-of-scope either way.
 

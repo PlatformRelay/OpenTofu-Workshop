@@ -40,7 +40,7 @@ syllabus first.
 
 Stage numbers below are the teaching sequence, and since the Day-1 resequencing
 landed (US-C-RESEQ) they **match delivery order**: Day 1 runs
-S00 → S01 → S02 → S03 → S06 → S15 → S04 → S05 → S07 → S08. Section IDs never
+S00 → S01 → S02 → S03 → S06 → S15 → S04 → S05 → S07 → S08 → S09. Section IDs never
 change, so the IDs are not consecutive — read the stage column, not the number.
 
 **Stage adjacency is now delivery adjacency.** A room reaching S04 (stage 6) has
@@ -52,8 +52,10 @@ stage 2 (block taxonomy; first appears as a feature switch at stage 0b; typed,
 validated and sensitive at stage 4) · `output` → stage 2 (block taxonomy; first
 appears in the stage-1 lab config) · `plan` → stage 0 (read line by line at
 stage 3) · `apply` → stage 0 (full lifecycle at stage 3) · state → stage 6
-(named at stage 0, motivated at stage 3) · modules → stage 8 · testing → stage 10
-(`tofu test` with `mock_provider` first taught at stage 9) · CI → stage 14.
+(named at stage 0, motivated at stage 3) · modules → stage 8 · `count` vs
+`for_each` → stage 9b (`count` first appears as a `0`/`1` feature switch at
+stage 0b) · `dynamic`, `lifecycle`, `moved`/`removed` → stage 9b · testing →
+stage 10 (`tofu test` with `mock_provider` first taught at stage 9) · CI → stage 14.
 
 | Stage | Section | Workdir | Introduces |
 | --- | --- | --- | --- |
@@ -68,6 +70,7 @@ stage 3) · `apply` → stage 0 (full lifecycle at stage 3) · state → stage 6
 | 7 | S05 · State encryption | `labs/day-1/05-state-encryption/` | encrypted state and encrypted plan (optional Step 6: `aws_kms` key provider on LocalStack) |
 | 8 | S07 · Modules | `labs/day-1/07-modules/` | **`module`** — `./modules/service-manifest` consumed twice |
 | 9 | S08 · Naming & labelling module | `examples/naming-labels-demo/` | one naming + labelling taxonomy — and the first `tofu test` run, with an aliased `mock_provider` |
+| 9b | S09 · Best practices | `labs/day-1/09-best-practices/` | **`count` vs `for_each`**, `dynamic` blocks, the `lifecycle` meta-arguments, and `moved`/`removed` refactoring — the spine's `local_file.manifest` fanned out per service |
 | 10 | S12, S13 | `labs/day-2/12-testing-pyramid/`, `13-static-analysis/` | **testing as a discipline** — the pyramid, `fmt`, TFLint, pre-commit |
 | 11 | S14 · Security & policy scanners | `labs/day-2/14-security-scanners/` | policy + security scanning (planted insecure fixture — deliberately *not* the learner's project) |
 | 12 | S16, S17 | `labs/day-2/16-tofu-test/`, `17-mocking/` | `tofu test` in depth — apply vs plan runs, and mocking beyond stage 9's first taste |
@@ -75,11 +78,11 @@ stage 3) · `apply` → stage 0 (full lifecycle at stage 3) · state → stage 6
 | 14 | S19 · Testing in CI/CD | `labs/day-2/19-testing-cicd/` | **CI** — the whole ladder as pipeline jobs |
 | 15 | S20–S26 | `labs/day-3/**`, `examples/capstone/` | stacks → codegen → ordering → filtering → capstone |
 
-**S09, S10 and S11 carry no stage number** — the fit plan skips S09 and S10, and
-S11 is hidden in the 3-day cut, so all three sit outside the **Day-1** stage
-sequence. Skippable does not mean unstaged elsewhere: S18 is hidden yet holds
-stage 13, and S25 sits inside stage 15's span. If you do run S09, its
-`local_file.manifest` is the same project spine, not a new example.
+**S10 and S11 carry no stage number** — the fit plan skips S10, and S11 is
+hidden in the 3-day cut, so both sit outside the **Day-1** stage sequence.
+Skippable does not mean unstaged elsewhere: S18 is hidden yet holds stage 13,
+and S25 sits inside stage 15's span. S09 is delivered as stage 9b, the close of
+Day 1; its `local_file.manifest` is the same project spine, not a new example.
 
 **What carries forward.** Labs do not share one mutating directory — each runs
 standalone from its own tracked workdir (`task lab:validate DIR=…`), and the
@@ -115,12 +118,12 @@ planning totals for the canonical cut — **slides *and* labs**, computed by
 
 | Day | Slides | Labs | Slides+labs (planned) | Against the 390 budget |
 | --- | ---: | ---: | ---: | --- |
-| 1 | 540 | 250 | **790** | **+400 over** |
+| 1 | 615 | 310 | **925** | **+535 over** |
 | 2 | 180 | 180 | 360 | 30 under |
 | 3 | 200 | 200 | **400** | **+10 over** |
 
 **Day 1 and Day 3 do not fit.** Say so when you plan the delivery: the honest
-statement is "Day 1 is 400 over a one-day budget", not "Day 1 fits once you apply
+statement is "Day 1 is 535 over a one-day budget", not "Day 1 fits once you apply
 the fit plan". These are **unrehearsed planning estimates** from section
 frontmatter and lab headers — no rehearsal has timed them, so treat them as a
 budget, not a stopwatch.
@@ -129,85 +132,98 @@ budget, not a stopwatch.
 
 This plan compresses **slide time only**. It starts at **705 minutes** of slide
 time across all thirteen Day-1 sections (`dayOneSupersetSlidesTotal()`) and ends
-at **400** (`dayOneFitTotal()`). Day-1 lab time — 250 minutes — is untouched, so
-a fit-plan delivery still runs **650 minutes** of slides+labs against a 390
-budget. Be precise about what the plan now buys. Since S01 grew to carry the
-design-principles and alternatives beats, the compressed **deck alone** is 10
-minutes over the whole-day budget, so the plan no longer makes even the deck fit
-the day. What it does is remove 305 minutes of slide time and turn the remaining
-overflow into a planned, published one instead of a mid-morning surprise.
-Apply the rows in order. The first three remove optional/recommended material;
+at **475** (`dayOneFitTotal()`). Day-1 lab time — 310 minutes, S09's 60-minute
+lab included — is untouched, so a fit-plan delivery still runs **785 minutes**
+of slides+labs against a 390 budget. Be precise about what the plan now buys:
+the compressed **deck alone** is 85 minutes over the whole-day budget, so the
+plan does not make even the deck fit the day. What it does is remove 230
+minutes of slide time and turn the remaining overflow into a planned, published
+one instead of a mid-morning surprise.
+Apply the rows in order. The first two remove optional/recommended material;
 the remaining rows shorten core delivery while preserving each section's outcome.
-The arithmetic is explicit: **705 → 670 → 615 → 540**, then
-**540 → 525 → 500 → 485 → 470 → 455 → 440 → 425 → 410 → 400**.
+S09 is **kept whole** (75 slide minutes, 60 lab minutes) — it is not a row here.
+The arithmetic is explicit: **705 → 670 → 615**, then
+**615 → 600 → 575 → 560 → 545 → 530 → 515 → 500 → 485 → 475**.
 
 | Order | Action | Minutes | Running total | Pedagogical cost |
 | ---: | --- | ---: | ---: | --- |
 | 1 | Skip S11 (optional); its `hide: true` toggle is already set | −35 | 670 | Defer the TACO vendor-selection landscape |
 | 2 | Skip S10 (recommended) at its `DAY1-FIT` marker; keep `hide: false` | −55 | 615 | Defer the differentiator deep dive (incl. the import/adoption drill); S01's teaser and S05's encryption demo remain |
-| 3 | Skip S09 (recommended) at its `DAY1-FIT` marker; keep `hide: false` | −75 | 540 | Defer the `count` vs `for_each` lesson, `dynamic` blocks, and `moved`/`removed` refactoring to follow-up study |
-| 4 | Compress S00 from 40→25 at its marker | −15 | 525 | Move installation checks before class; retain orientation and first apply |
-| 5 | Compress S01 from 55→30 at its marker | −25 | 500 | Make the detailed fork timeline pre-reading; retain why IaC, the design principles, the differentiators teaser, the alternatives, and governance |
-| 6 | Compress S02 from 50→35 at its marker | −15 | 485 | Demo fewer block variants; retain syntax, references, and the break→fix |
-| 7 | Compress S03 from 60→45 at its marker | −15 | 470 | Use one lifecycle run; retain plan reading and destroy |
-| 8 | Compress S06 from 50→35 at its marker | −15 | 455 | Teach typed objects and validation; assign precedence variants as follow-up |
-| 9 | Compress S15 from 50→35 at its marker | −15 | 440 | Teach one blocking condition plus `check`; assign the full assertion matrix |
-| 10 | Compress S04 from 50→35 at its marker | −15 | 425 | Demonstrate state inspection live; assign backend migration as follow-up |
-| 11 | Compress S05 from 60→45 at its marker | −15 | 410 | Demonstrate encryption; assign key rotation as follow-up |
-| 12 | Compress S07 from 60→50 at its marker | −10 | **400** | Keep local module composition; demo registry/OCI lookup instead of running it |
+| 3 | Compress S00 from 40→25 at its marker | −15 | 600 | Move installation checks before class; retain orientation and first apply |
+| 4 | Compress S01 from 55→30 at its marker | −25 | 575 | Make the detailed fork timeline pre-reading; retain why IaC, the design principles, the differentiators teaser, the alternatives, and governance |
+| 5 | Compress S02 from 50→35 at its marker | −15 | 560 | Demo fewer block variants; retain syntax, references, and the break→fix |
+| 6 | Compress S03 from 60→45 at its marker | −15 | 545 | Use one lifecycle run; retain plan reading and destroy |
+| 7 | Compress S06 from 50→35 at its marker | −15 | 530 | Teach typed objects and validation; assign precedence variants as follow-up |
+| 8 | Compress S15 from 50→35 at its marker | −15 | 515 | Teach one blocking condition plus `check`; assign the full assertion matrix |
+| 9 | Compress S04 from 50→35 at its marker | −15 | 500 | Demonstrate state inspection live; assign backend migration as follow-up |
+| 10 | Compress S05 from 60→45 at its marker | −15 | 485 | Demonstrate encryption; assign key rotation as follow-up |
+| 11 | Compress S07 from 60→50 at its marker | −10 | **475** | Keep local module composition; demo registry/OCI lookup instead of running it |
 
-`hide: true` remains reserved for optional sections, so S09/S10 and every core
+`hide: true` remains reserved for optional sections, so S09, S10 and every core
 section stay `hide: false`. Their comments in
 [the three-day deck](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/slides-3day.md)
 are delivery markers, not tier changes.
 
-The fit plan's **400 is a different figure** from the day totals above: it is
+The fit plan's **475 is a different figure** from the day totals above: it is
 Day-1 **slide** runtime only (`dayOneFitTotal()`), compressed from 705. Day-1
-lab time (250) is untouched by it, so a fit-plan Day 1 still runs **650** of
-slides+labs. Use 400 to check the deck against the day; use 790 to plan the day
-itself. Note that 400 does not fit either: since S01 grew, the compressed deck
-is 10 minutes over the 390 budget before a single lab runs.
+lab time (310) is untouched by it, so a fit-plan Day 1 still runs **785** of
+slides+labs. Use 475 to check the deck against the day; use 925 to plan the day
+itself. Note that 475 does not fit either: the compressed deck is 85 minutes
+over the 390 budget before a single lab runs.
+
+**Day 1 exceeds its budget by design.** Restoring S09 to the delivered cut
+(operator decision) added 75 slide and 60 lab minutes, taking the planned day
+from 790 to 925 and the fit-plan slide target from 400 to 475. That was chosen
+over the budget on purpose: `count` is already used in the Day-1 labs
+(`labs/day-1/00-setup/`, the naming module), and without S09 the delivered path
+never taught it next to `for_each`. No fit-plan row claims the overflow away —
+plan a long day, split Day 1 across two sessions, or trim further by the
+cut order below. Rebalancing Day 1 is the open item under *Exploring* in the
+[ROADMAP](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/ROADMAP.md#exploring-no-commitment-yet).
 
 ### Day 1 (author → guard → package)
 
-**Standard delivery order** (core path after fit-plan skips):
+**Standard delivery order** (delivered path after fit-plan skips):
 
-`S00 → S01 → S02 → S03 → S06 → S15 → S04 → S05 → S07 → S08`
+`S00 → S01 → S02 → S03 → S06 → S15 → S04 → S05 → S07 → S08 → S09`
 
 | Priority | Action | Source |
 | --- | --- | --- |
 | 1 | Skip **S11** (optional; already `hide: true`) | Fit plan row 1 (−35) |
-| 2 | Skip **S10**, then **S09** at their `DAY1-FIT` markers | Fit plan rows 2–3 (−55, −75) |
-| 3 | Compress S00–S03, S06, S15, S04, S05, S07 at markers until slide time is ≤400 | Fit plan rows 4–12 |
+| 2 | Skip **S10** at its `DAY1-FIT` marker | Fit plan row 2 (−55) |
+| 3 | Compress S00–S03, S06, S15, S04, S05, S07 at markers until slide time is ≤475 | Fit plan rows 3–11 |
 | Keep | **S08** at 65 min — flagship synthesis | `slides-3day.md` marker |
+| Keep | **S09** at 75 min + 60 min lab — `count` vs `for_each`, `dynamic`, `lifecycle`, `moved`/`removed` | `slides-3day.md` marker |
 
 Cut optional → recommended → compress core. Never drop S08 or S15's blocking
-`precondition` + `check` beat when compressing.
+`precondition` + `check` beat when compressing. S09 stays `recommended`, so a
+delivery that truly cannot run long may still cut it after S10 — but say so to
+the room: it is the only place the delivered path teaches `count` vs `for_each`.
 
 **The Day-1 resequencing was timing-neutral.** Moving S06 and S15 ahead of S04
 and S05 changed no section's length, so it left the planning total and every
 fit-plan row exactly as they were before the reorder — only the order changed.
 What did move the total was S01 growing: 40→50 minutes to carry the
 design-principles and alternatives beats, then 50→55 to carry the OpenTofu
-differentiators teaser, plus Lab 04 growing 20→25 to add the drift step. Day 1
-is now **790** planned, and the fit-plan slide target is **400**. The
+differentiators teaser, plus Lab 04 growing 20→25 to add the drift step, and
+then S09 returning to the delivered cut (+75 slides, +60 lab). Day 1 is now
+**925** planned, and the fit-plan slide target is **475**. The
 Terraform→OpenTofu migration beat (two slides after the teaser) was absorbed
 into S01's existing 55 planned minutes rather than growing them again — with
 the fork timeline moved to pre-reading, the block carries it; watch the clock
 there when delivering uncompressed.
 
-**Accepted cost of the canonical cut: `for_each` is never taught.** S09 and S10
-are both skipped, which removes S09's `count` vs `for_each` lesson (and
-`moved`-based refactoring without replacement) and S10's provider-level
-`for_each` / `-exclude` — and, with S10, the hands-on `import`/adoption
-drill (Lab 10 Part B). S01's differentiators teaser now *names* provider
-`for_each` and `-exclude` and points at S10 as follow-up, so a canonical-cut
-learner at least hears the "why OpenTofu" feature story — but naming is not
-teaching: beyond the teaser the keyword survives only incidentally, in a
-`dynamic` block toggle in the Day-3 capstone's provider boilerplate and an
-optional stretch prompt at the end of Lab 07, and is never taught or checked.
-This is deliberate, not an oversight; S09 is the first section to restore when
-time returns.
+**S09 is delivered: `count` vs `for_each` is taught on Day 1.** S09 closes the
+day and restores four things to the delivered path: the `count` vs `for_each`
+decision (index vs key addressing, and what a middle removal costs under each),
+`dynamic` blocks, the `lifecycle` meta-arguments (`create_before_destroy`,
+`prevent_destroy`, `ignore_changes`), and `moved`/`removed` refactoring without
+replacement. The remaining accepted cost is S10: provider-level `for_each`,
+`-exclude` and the hands-on `import`/adoption drill (Lab 10 Part B) stay off the
+canonical cut. S01's differentiators teaser *names* provider `for_each` and
+`-exclude` and points at S10 as follow-up, and S09's plan-time-width slide shows
+`-exclude` as the workaround OpenTofu itself suggests — but naming is not
+teaching, and the `import` drill is not run.
 
 ### Day 2 (test)
 
@@ -333,7 +349,7 @@ share of the day. **3-day cut** = compress / skip from the fit plan or `hide:` i
 | S05 | State encryption | core | 60 → **45** | 25 | Compress | Prove ciphertext on disk; what does `enforced = true` change? | PBKDF2 lab key handling; fallback migrate; optional +10 min KMS step (Lab 05 Step 6) |
 | S07 | Modules | core | 60 → **50** | 35 | Compress | What is the module contract (inputs/outputs)? Demo registry/OCI only | No registry network on runnable path |
 | S08 | Naming & labelling | core | **65** | 30 | Keep | Mock plan green, then LocalStack apply — validation enforces convention? | Step 4 needs LocalStack; panic-reset safe |
-| S09 | Best practices | recommended | 75 | 60 | **Skip** | (If run) `count` vs `for_each` — which rebuilds on middle removal? And what does a `removed` block's plan tally say that a destroy's doesn't? | Only if time returns; lab 09 authors a `dynamic` block and runs `moved`/`removed` refactors hands-on (archive provider, still no Docker) |
+| S09 | Best practices | recommended | **75** | 60 | Keep | `count` vs `for_each` — which rebuilds on middle removal? And what does a `removed` block's plan tally say that a destroy's doesn't? | Closes Day 1 on an already-over-budget day; lab 09 authors a `dynamic` block and runs `moved`/`removed` refactors hands-on (archive provider, still no Docker) |
 | S10 | Differentiators | recommended | 55 | 55 | **Skip** | (If run) Provider `for_each` / `-exclude` / `import` adoption — needs live LocalStack | Heavy emulator use |
 | S11 | TACO landscape | optional | 35 | 20 | **Skip** (`hide`) | (If run) Constraints-first platform pick — paper only | No tooling |
 
