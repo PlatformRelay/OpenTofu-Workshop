@@ -4,7 +4,10 @@
 # is generated at apply time, by the backend migration in this lab, or by the
 # Stretch's backend swap. The state file MUST NEVER be committed: it holds the
 # generated secret in plaintext.
-# The tracked files are main.tf, backend.tf, backend-s3.tf.off, terraform.tfvars.
+# The tracked files are main.tf, backend.tf, backend-s3.tf.off, terraform.tfvars,
+# plus Step 8's adopt/{providers.tf,main.tf,import.tf.off} and
+# reference/{providers.tf,main.tf}. adopt/import.tf is the activated import
+# block — a learner copy, removed again in Step 8c.
 .terraform/
 .terraform.lock.hcl
 terraform.tfstate
@@ -19,3 +22,4 @@ backend.tf.off
 backend-s3.tf
 crash.log
 crash.*.log
+adopt/import.tf
