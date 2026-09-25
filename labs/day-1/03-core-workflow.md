@@ -2,7 +2,7 @@
 
 | | |
 | --- | --- |
-| **Section** | S03 — Core workflow *(red line: **init** → read a **plan** → **apply** → **destroy** → the **dependency graph** → a cycle break→fix)* |
+| **Section** | S03 — Core workflow *(red line: **init** → read a **plan** → **apply** → **destroy** → the **dependency graph** → a cycle break→fix → a hidden dependency with **`depends_on`**)* |
 | **Environment** | `mock ✓ (no docker)` — no cloud, no Docker; uses the `local` + `random` providers only |
 | **Estimated time** | 20 min |
 
@@ -13,7 +13,8 @@ Run the entire OpenTofu lifecycle end to end — `init`, `plan`, `apply`,
 the `+` / `~` / `-` symbols, `Plan: N to add …`, and `(known after apply)`. Along
 the way you'll see the **dependency graph** decide creation order, prove that a
 second `apply` is a **no-op** (idempotency), and force a real **dependency cycle**
-so `tofu` refuses to plan — then fix it.
+so `tofu` refuses to plan — then fix it. Last, you add a dependency **no reference
+expresses**, watch the graph miss it, and declare it with `depends_on`.
 
 You run **tracked files**, not heredocs — what you apply is exactly what CI
 verified. The config lives in this repo at `labs/day-1/03-core-workflow/`:
@@ -53,7 +54,8 @@ All tracked in `labs/day-1/03-core-workflow/` — you run them, you do not paste
 - `main.tf` — the config: a `random_pet` and two `local_file` resources wired by
   references into a dependency chain, plus an `output`.
 - `.gitignore` — keeps the state / `.terraform` / `build/` you generate (and the
-  scratch `broken.tf` from Step 6) out of version control.
+  scratch `broken.tf` from Step 6 and `hidden.tf` from Step 7) out of version
+  control.
 
 ---
 
@@ -65,7 +67,7 @@ ls
 ```
 
 **Task:** Confirm the config is already present — you author nothing (until the
-break→fix, where you add one scratch file).
+break→fix steps, where you add scratch files).
 
 <details><summary>Solution / expected output</summary>
 
@@ -148,7 +150,8 @@ random_pet.env  →  local_file.manifest  →  local_file.summary
 OpenTofu builds this graph from the references — **not** from the order the
 blocks appear in the file. Create order is `env` → `manifest` → `summary`;
 `destroy` runs it in **reverse**. You never declare the order yourself; the graph
-does.
+does. (Step 7 shows the one case where you must tell it: a dependency with no
+reference.)
 </details>
 
 ---
@@ -220,8 +223,9 @@ the point is that they are now *pinned* for this repo.)
 
 ## Step 3 — `plan`: read the execution plan
 
-`plan` computes the diff between your config and reality (here, empty state) and
-prints it — **without changing anything**.
+`plan` refreshes state against reality, then diffs your config against that
+refreshed state, and prints the result — **without changing anything**. Here there
+is no state yet, so every resource is new.
 
 ```bash
 tofu plan
@@ -359,8 +363,9 @@ found no differences, so no changes are needed.
 Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
 ```
 
-`0 added, 0 changed, 0 destroyed` — a **no-op**. OpenTofu refreshed the real
-resources, compared them to the config, found no drift, and did nothing. The pet
+`0 added, 0 changed, 0 destroyed` — a **no-op**. The `Refreshing state...` lines
+are the refresh: OpenTofu refreshed state against reality, then diffed your config
+against that refreshed state, found no difference, and did nothing. The pet
 name is stable because it lives in state, so nothing is regenerated. That is
 **idempotency**: the outcome depends on the desired state, not on how many times
 you run. An imperative script would have rolled a new value and rewritten the
@@ -460,15 +465,164 @@ and the fix. Remove the scratch file in cleanup.
 
 ---
 
-## Step 7 — `destroy`: tear it down in reverse
+## Step 7 — A dependency the graph cannot see
+
+Every edge so far came from a **reference**. Some dependencies have none: a
+release note that tells people to "read `build/manifest.txt` first" names the
+manifest only as text inside a string. A human sees the link; OpenTofu does not.
+Add that note in a second scratch file, `hidden.tf` (gitignored, like
+`broken.tf`), and ask the graph what it knows:
+
+```bash
+rm -f broken.tf
+cat > hidden.tf <<'EOF'
+# Tells the reader to open the manifest — by path, in a string.
+# A string is not a reference, so the graph has no edge here.
+resource "local_file" "release_note" {
+  filename = "${path.module}/build/release-note.txt"
+  content  = "Before deploying, read build/manifest.txt first.\n"
+}
+EOF
+tofu graph | grep 'release_note (expand)" ->'
+```
+
+**Task (break):** Which edges leave `local_file.release_note`? Does the graph know
+it must come after `local_file.manifest`?
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ tofu graph | grep 'release_note (expand)" ->'
+  "[root] local_file.release_note (expand)" -> "[root] provider[\"registry.opentofu.org/hashicorp/local\"]"
+```
+
+One edge, and it goes to the **provider** — not to the manifest. (`tofu graph`
+indents with tabs; shown here with spaces.) Compare `local_file.manifest`, whose
+edges include `random_pet.env` because it references the pet's `id`. The path
+inside the note's `content` is just characters; OpenTofu does not read strings for
+meaning. As far as the graph knows, the note and the manifest are unrelated, so
+`apply` is free to write the note **first**.
+</details>
+
+See what that freedom means. Rebuild from empty so every resource is created in
+one apply, and watch the order:
+
+```bash
+tofu destroy -auto-approve
+tofu apply -auto-approve
+```
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ tofu apply -auto-approve
+...
+random_pet.env: Creating...
+local_file.release_note: Creating...
+random_pet.env: Creation complete after 0s [id=tough-cat]
+local_file.release_note: Creation complete after 0s [id=1b2ca49d28181387ba685591eb35e122632d7b44]
+local_file.manifest: Creating...
+local_file.manifest: Creation complete after 0s [id=ca499e9be695c145944428830607879409527b2b]
+local_file.summary: Creating...
+local_file.summary: Creation complete after 0s [id=408a25db84e77cc3d97d68e32ce7e5703b2e6c3c]
+
+Apply complete! Resources: 4 added, 0 changed, 0 destroyed.
+```
+
+The note has no dependencies, so OpenTofu starts it in the **first wave**,
+alongside `random_pet.env` — it is written **before the manifest it points at
+exists**. (The exact interleaving can vary between runs; what cannot vary is that
+nothing makes the note wait. The pet name changed because you destroyed it.)
+</details>
+
+Now **fix** it: declare the hidden dependency with `depends_on`, then ask the
+graph and the plan again:
+
+```bash
+cat > hidden.tf <<'EOF'
+# Tells the reader to open the manifest — by path, in a string.
+# A string is not a reference, so the graph has no edge here.
+resource "local_file" "release_note" {
+  filename = "${path.module}/build/release-note.txt"
+  content  = "Before deploying, read build/manifest.txt first.\n"
+
+  depends_on = [local_file.manifest]
+}
+EOF
+tofu graph | grep 'release_note (expand)" ->'
+tofu plan
+```
+
+**Task (fix):** What edge appeared, and why does `plan` propose no change?
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ tofu graph | grep 'release_note (expand)" ->'
+  "[root] local_file.release_note (expand)" -> "[root] local_file.manifest (expand)"
+
+$ tofu plan
+...
+No changes. Your infrastructure matches the configuration.
+```
+
+`depends_on = [local_file.manifest]` adds the edge the string could not:
+`release_note → manifest`. It replaces the provider edge in `tofu graph`'s output
+because the provider is now reached *through* the manifest. The plan is
+`No changes` because `depends_on` changes **order only** — no attribute of the
+note is different, so there is nothing to create, update or destroy.
+</details>
+
+Rebuild once more and watch the order the edge enforces:
+
+```bash
+tofu destroy -auto-approve
+tofu apply -auto-approve
+```
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ tofu apply -auto-approve
+...
+random_pet.env: Creating...
+random_pet.env: Creation complete after 0s [id=quality-turkey]
+local_file.manifest: Creating...
+local_file.manifest: Creation complete after 0s [id=21bc3f4e4bffd92d999118986cf52ca3b28e7d20]
+local_file.summary: Creating...
+local_file.release_note: Creating...
+local_file.release_note: Creation complete after 0s [id=1b2ca49d28181387ba685591eb35e122632d7b44]
+local_file.summary: Creation complete after 0s [id=2835986cc8588a3b4bd8cefe4c8518deb14bc72f]
+
+Apply complete! Resources: 4 added, 0 changed, 0 destroyed.
+```
+
+`local_file.release_note: Creating...` now appears only **after**
+`local_file.manifest: Creation complete` — the same position as `summary`, which
+waits for the manifest through a reference. The note's `id` is identical in both
+runs because a `local_file` id is a hash of its content, which did not change.
+
+**The rule:** use `depends_on` only for a dependency no reference can express — an
+IAM policy that must exist before a role is used, a file that must be written
+before a script reads it. If you *can* reference an attribute, do: a reference
+carries the value **and** the edge; `depends_on` carries the edge alone.
+</details>
+
+---
+
+## Step 8 — `destroy`: tear it down in reverse
 
 `destroy` is the last command in the lifecycle: it removes everything in state,
 in **reverse** dependency order.
 
 ```bash
-rm -f broken.tf
+rm -f broken.tf hidden.tf
 tofu destroy -auto-approve
 ```
+
+Removing `hidden.tf` first is safe: `destroy` works from **state**, so it still
+removes `local_file.release_note` — and, because state recorded its dependency on
+the manifest, still in the right order.
 
 **Task:** What does the `-` symbol mean, and why is the destroy order the reverse
 of the create order?
@@ -484,35 +638,46 @@ OpenTofu will perform the following actions:
   - resource "local_file" "manifest" {
       ...
     }
+
+  # local_file.release_note will be destroyed
+  - resource "local_file" "release_note" {
+      ...
+    }
+
   # local_file.summary will be destroyed
   - resource "local_file" "summary" {
       ...
     }
+
   # random_pet.env will be destroyed
   - resource "random_pet" "env" {
-      - id        = "firm-jackal" -> null
+      - id        = "quality-turkey" -> null
       ...
     }
 
-Plan: 0 to add, 0 to change, 3 to destroy.
+Plan: 0 to add, 0 to change, 4 to destroy.
 ...
-local_file.summary: Destroying... [id=06ab671c8f091a7a4aad2da0229b777664762b6d]
+local_file.release_note: Destroying... [id=1b2ca49d28181387ba685591eb35e122632d7b44]
+local_file.summary: Destroying... [id=2835986cc8588a3b4bd8cefe4c8518deb14bc72f]
 local_file.summary: Destruction complete after 0s
-local_file.manifest: Destroying... [id=0ac42dc11a96850f22e26aee50136aaa6d4865f0]
+local_file.release_note: Destruction complete after 0s
+local_file.manifest: Destroying... [id=21bc3f4e4bffd92d999118986cf52ca3b28e7d20]
 local_file.manifest: Destruction complete after 0s
-random_pet.env: Destroying... [id=firm-jackal]
+random_pet.env: Destroying... [id=quality-turkey]
 random_pet.env: Destruction complete after 0s
 
-Destroy complete! Resources: 3 destroyed.
+Destroy complete! Resources: 4 destroyed.
 ```
 
 - **`- destroy`** — each resource is being removed (attributes shown going
   `-> null`).
-- Destruction order is **`summary` → `manifest` → `env`** — the **reverse** of
-  create order. OpenTofu tears down dependents before their dependencies, so it
-  never deletes something another resource still needs. The graph orders both
-  directions for you. (If you removed `broken.tf` before this step, the plan is
-  `3 to destroy`; if `ping`/`pong` were still applied it would be more.)
+- Destruction order is **`summary` and `release_note` → `manifest` → `env`** — the
+  **reverse** of create order. OpenTofu tears down dependents before their
+  dependencies, so it never deletes something another resource still needs. Both
+  kinds of edge count: `summary` waits on a reference, `release_note` on
+  `depends_on`. The graph orders both directions for you. (If you stopped before
+  Step 7, the plan is `3 to destroy`; if `ping`/`pong` from Step 6 were ever
+  applied it would be more.)
 
 </details>
 
@@ -529,6 +694,10 @@ Destroy complete! Resources: 3 destroyed.
   create order and reverses it for `destroy`.
 - A **dependency cycle** fails with `Error: Cycle: …`; breaking the two-way
   reference makes the graph acyclic and lets `plan` succeed again.
+- A dependency **no reference expresses** (a path inside a string) leaves no edge
+  in `tofu graph`, so `apply` may create the dependent first; `depends_on` adds
+  the edge, changes order only (`plan` shows `No changes`), and is for hidden
+  dependencies — never a substitute for a reference.
 
 ## Cleanup / panic reset
 
@@ -537,7 +706,7 @@ resources exist, so nothing to bill or leak:
 
 ```bash
 cd labs/day-1/03-core-workflow
-rm -f broken.tf
+rm -f broken.tf hidden.tf
 tofu destroy -auto-approve
 rm -rf .terraform .terraform.lock.hcl terraform.tfstate terraform.tfstate.* build
 git status --short .      # expect: no output
@@ -557,8 +726,13 @@ random_pet.env: Destruction complete after 0s
 Destroy complete! Resources: 3 destroyed.
 ```
 
-The generated state, `.terraform`, `build/`, and the scratch `broken.tf` are all
-gitignored or removed; the panic reset leaves the tracked `main.tf` exactly as CI
+That is a reset from before Step 7. From inside Step 7 the note is in state too:
+`local_file.release_note` is destroyed alongside `summary` and the count reads
+`4 destroyed`. After Step 8 there is nothing left, and `destroy` reports
+`0 destroyed`.
+
+The generated state, `.terraform`, `build/`, and the scratch `broken.tf` and
+`hidden.tf` are all gitignored or removed; the panic reset leaves the tracked `main.tf` exactly as CI
 verified it.
 </details>
 
