@@ -4,7 +4,7 @@
 | --- | --- |
 | **Section** | S04 — State *(red line: **apply** a config with a secret → **inspect** state → **grep the plaintext secret** out of the file → **migrate** the backend → **break→fix** with `state rm` → **drift**: mutate the rendered file out-of-band and watch `plan` reconcile → **adopt**: bring a bucket made outside OpenTofu under management with `import {}`, and read it from a second config with a `data` source → **stretch**: the same migration for real, to `backend "s3"` on LocalStack with native locking)* |
 | **Environment** | `mock ✓ (no docker)` — Steps 0–7: no cloud, no Docker; `random` + `local` providers only. `localstack ✓` **Step 8 and the Stretch** — the adopt/reference step and the optional S3-backend stretch need Docker/LocalStack on `:4566` and the `hashicorp/aws` provider |
-| **Estimated time** | 25 min for Steps 0–7 (+ ~15 min Step 8 on LocalStack) (+ ~15 min optional S3-backend stretch) |
+| **Estimated time** | 40 min — 25 for Steps 0–7, ~15 for Step 8 on LocalStack (+ ~15 min optional S3-backend stretch) |
 
 ## Objective
 

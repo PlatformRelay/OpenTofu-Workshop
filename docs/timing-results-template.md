@@ -39,16 +39,16 @@ Fill this in per run:
 | ID | Section | PLANNED slides | PLANNED lab | MEASURED slides | MEASURED lab | Δ slides | Δ lab | Blockers / notes |
 | --- | --- | ---: | ---: | --- | --- | --- | --- | --- |
 | S00 | Welcome & setup | 40 | 20 | | | | | |
-| S01 | Infrastructure as Code | 40 | 20 | | | | | |
-| S02 | HCL & building blocks | 50 | 20 | | | | | |
-| S03 | The core workflow | 60 | 20 | | | | | |
-| S06 | Variables, validation & types | 50 | 25 | | | | | |
+| S01 | Infrastructure as Code | 55 | 20 | | | | | |
+| S02 | HCL & building blocks | 56 | 35 | | | | | |
+| S03 | The core workflow | 68 | 20 | | | | | |
+| S06 | Variables, validation & types | 50 | 30 | | | | | |
 | S15 | Validation, preconditions & checks | 50 | 30 | | | | | |
-| S04 | State | 50 | 20 | | | | | |
+| S04 | State | 58 | 40 | | | | | |
 | S05 | State encryption | 60 | 25 | | | | | |
 | S07 | Modules | 60 | 35 | | | | | |
 | S08 | Naming & labelling module | 65 | 30 | | | | | |
-| S09 | Best practices | 50 | 30 | | | | | |
+| S09 | Best practices | 75 | 60 | | | | | |
 | S10 | OpenTofu differentiators | 55 | 55 | | | | | |
 | S11 | The TACO landscape | 35 | 20 | | — | | — | Paper exercise — lab column n/a. |
 

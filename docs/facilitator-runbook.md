@@ -124,62 +124,69 @@ planning totals for the canonical cut — **slides *and* labs**, computed by
 
 | Day | Slides | Labs | Slides+labs (planned) | Against the 390 budget |
 | --- | ---: | ---: | ---: | --- |
-| 1 | 615 | 310 | **925** | **+535 over** |
+| 1 | 637 | 345 | **982** | **+592 over** |
 | 2 | 180 | 180 | 360 | 30 under |
 | 3 | 200 | 200 | **400** | **+10 over** |
 
 **Day 1 and Day 3 do not fit.** Say so when you plan the delivery: the honest
-statement is "Day 1 is 535 over a one-day budget", not "Day 1 fits once you apply
+statement is "Day 1 is 592 over a one-day budget", not "Day 1 fits once you apply
 the fit plan". These are **unrehearsed planning estimates** from section
 frontmatter and lab headers — no rehearsal has timed them, so treat them as a
 budget, not a stopwatch.
 
 ### Day 1 fit plan
 
-This plan compresses **slide time only**. It starts at **705 minutes** of slide
+This plan compresses **slide time only**. It starts at **727 minutes** of slide
 time across all thirteen Day-1 sections (`dayOneSupersetSlidesTotal()`) and ends
-at **475** (`dayOneFitTotal()`). Day-1 lab time — 310 minutes, S09's 60-minute
-lab included — is untouched, so a fit-plan delivery still runs **785 minutes**
+at **497** (`dayOneFitTotal()`). Day-1 lab time — 345 minutes, S09's 60-minute
+lab included — is untouched, so a fit-plan delivery still runs **842 minutes**
 of slides+labs against a 390 budget. Be precise about what the plan now buys:
-the compressed **deck alone** is 85 minutes over the whole-day budget, so the
+the compressed **deck alone** is 107 minutes over the whole-day budget, so the
 plan does not make even the deck fit the day. What it does is remove 230
 minutes of slide time and turn the remaining overflow into a planned, published
 one instead of a mid-morning surprise.
 Apply the rows in order. The first two remove optional/recommended material;
 the remaining rows shorten core delivery while preserving each section's outcome.
 S09 is **kept whole** (75 slide minutes, 60 lab minutes) — it is not a row here.
-The arithmetic is explicit: **705 → 670 → 615**, then
-**615 → 600 → 575 → 560 → 545 → 530 → 515 → 500 → 485 → 475**.
+The compressed rows for S02, S03 and S04 keep the slides the fundamentals lanes
+added (expressions; what plan compares against and `depends_on`; `import` and
+`data`), so each still removes only its original 15 minutes.
+The arithmetic is explicit: **727 → 692 → 637**, then
+**637 → 622 → 597 → 582 → 567 → 552 → 537 → 522 → 507 → 497**.
 
 | Order | Action | Minutes | Running total | Pedagogical cost |
 | ---: | --- | ---: | ---: | --- |
-| 1 | Skip S11 (optional); its `hide: true` toggle is already set | −35 | 670 | Defer the TACO vendor-selection landscape |
-| 2 | Skip S10 (recommended) at its `DAY1-FIT` marker; keep `hide: false` | −55 | 615 | Defer the differentiator deep dive (incl. the import/adoption drill); S01's teaser and S05's encryption demo remain |
-| 3 | Compress S00 from 40→25 at its marker | −15 | 600 | Move installation checks before class; retain orientation and first apply |
-| 4 | Compress S01 from 55→30 at its marker | −25 | 575 | Make the detailed fork timeline pre-reading; retain why IaC, the design principles, the differentiators teaser, the alternatives, and governance |
-| 5 | Compress S02 from 50→35 at its marker | −15 | 560 | Demo fewer block variants; retain syntax, references, and the break→fix |
-| 6 | Compress S03 from 60→45 at its marker | −15 | 545 | Use one lifecycle run; retain plan reading and destroy |
-| 7 | Compress S06 from 50→35 at its marker | −15 | 530 | Teach typed objects and validation; assign precedence variants as follow-up |
-| 8 | Compress S15 from 50→35 at its marker | −15 | 515 | Teach one blocking condition plus `check`; assign the full assertion matrix |
-| 9 | Compress S04 from 50→35 at its marker | −15 | 500 | Demonstrate state inspection live; assign backend migration as follow-up |
-| 10 | Compress S05 from 60→45 at its marker | −15 | 485 | Demonstrate encryption; assign key rotation as follow-up |
-| 11 | Compress S07 from 60→50 at its marker | −10 | **475** | Keep local module composition; demo registry/OCI lookup instead of running it |
+| 1 | Skip S11 (optional); its `hide: true` toggle is already set | −35 | 692 | Defer the TACO vendor-selection landscape |
+| 2 | Skip S10 (recommended) at its `DAY1-FIT` marker; keep `hide: false` | −55 | 637 | Defer the differentiator deep dive (incl. the import/adoption drill); S01's teaser and S05's encryption demo remain |
+| 3 | Compress S00 from 40→25 at its marker | −15 | 622 | Move installation checks before class; retain orientation and first apply |
+| 4 | Compress S01 from 55→30 at its marker | −25 | 597 | Make the detailed fork timeline pre-reading; retain why IaC, the design principles, the differentiators teaser, the alternatives, and governance |
+| 5 | Compress S02 from 56→41 at its marker | −15 | 582 | Demo fewer block variants; retain syntax, references, the expressions slide, and the break→fix |
+| 6 | Compress S03 from 68→53 at its marker | −15 | 567 | Use one lifecycle run; retain plan reading, what plan compares against, `depends_on`, and destroy |
+| 7 | Compress S06 from 50→35 at its marker | −15 | 552 | Teach typed objects and validation; assign precedence variants as follow-up |
+| 8 | Compress S15 from 50→35 at its marker | −15 | 537 | Teach one blocking condition plus `check`; assign the full assertion matrix |
+| 9 | Compress S04 from 58→43 at its marker | −15 | 522 | Demonstrate state inspection live; retain `import` adoption and the `data` reference; assign backend migration as follow-up |
+| 10 | Compress S05 from 60→45 at its marker | −15 | 507 | Demonstrate encryption; assign key rotation as follow-up |
+| 11 | Compress S07 from 60→50 at its marker | −10 | **497** | Keep local module composition; demo registry/OCI lookup instead of running it |
 
 `hide: true` remains reserved for optional sections, so S09, S10 and every core
 section stay `hide: false`. Their comments in
 [the three-day deck](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/slides-3day.md)
 are delivery markers, not tier changes.
 
-The fit plan's **475 is a different figure** from the day totals above: it is
-Day-1 **slide** runtime only (`dayOneFitTotal()`), compressed from 705. Day-1
-lab time (310) is untouched by it, so a fit-plan Day 1 still runs **785** of
-slides+labs. Use 475 to check the deck against the day; use 925 to plan the day
-itself. Note that 475 does not fit either: the compressed deck is 85 minutes
+The fit plan's **497 is a different figure** from the day totals above: it is
+Day-1 **slide** runtime only (`dayOneFitTotal()`), compressed from 727. Day-1
+lab time (345) is untouched by it, so a fit-plan Day 1 still runs **842** of
+slides+labs. Use 497 to check the deck against the day; use 982 to plan the day
+itself. Note that 497 does not fit either: the compressed deck is 107 minutes
 over the 390 budget before a single lab runs.
 
 **Day 1 exceeds its budget by design.** Restoring S09 to the delivered cut
 (operator decision) added 75 slide and 60 lab minutes, taking the planned day
-from 790 to 925 and the fit-plan slide target from 400 to 475. That was chosen
+from 790 to 925 and the fit-plan slide target from 400 to 475. The
+fundamentals lanes then added 22 slide minutes (S02 +6 expressions, S03 +8 for
+what plan compares against and `depends_on`, S04 +8 for `import` and `data`) and
+35 lab minutes (Lab 02 +15, Lab 04 Step 8 +15, Lab 06 +5), taking the day to
+**982** and the fit-plan slide target to **497**. That was chosen
 over the budget on purpose: `count` is already used in the Day-1 labs
 (`labs/day-1/00-setup/`, the naming module), and without S09 the delivered path
 never taught it next to `for_each`. No fit-plan row claims the overflow away —
@@ -197,7 +204,7 @@ cut order below. Rebalancing Day 1 is the open item under *Exploring* in the
 | --- | --- | --- |
 | 1 | Skip **S11** (optional; already `hide: true`) | Fit plan row 1 (−35) |
 | 2 | Skip **S10** at its `DAY1-FIT` marker | Fit plan row 2 (−55) |
-| 3 | Compress S00–S03, S06, S15, S04, S05, S07 at markers until slide time is ≤475 | Fit plan rows 3–11 |
+| 3 | Compress S00–S03, S06, S15, S04, S05, S07 at markers until slide time is ≤497 | Fit plan rows 3–11 |
 | Keep | **S08** at 65 min — flagship synthesis | `slides-3day.md` marker |
 | Keep | **S09** at 75 min + 60 min lab — `count` vs `for_each`, `dynamic`, `lifecycle`, `moved`/`removed` | `slides-3day.md` marker |
 
@@ -212,8 +219,9 @@ fit-plan row exactly as they were before the reorder — only the order changed.
 What did move the total was S01 growing: 40→50 minutes to carry the
 design-principles and alternatives beats, then 50→55 to carry the OpenTofu
 differentiators teaser, plus Lab 04 growing 20→25 to add the drift step, and
-then S09 returning to the delivered cut (+75 slides, +60 lab). Day 1 is now
-**925** planned, and the fit-plan slide target is **475**. The
+then S09 returning to the delivered cut (+75 slides, +60 lab), then the
+fundamentals lanes (+22 slides, +35 lab: expressions, `depends_on`, `import`).
+Day 1 is now **982** planned, and the fit-plan slide target is **497**. The
 Terraform→OpenTofu migration beat (two slides after the teaser) was absorbed
 into S01's existing 55 planned minutes rather than growing them again — with
 the fork timeline moved to pre-reading, the block carries it; watch the clock
@@ -347,11 +355,11 @@ share of the day. **3-day cut** = compress / skip from the fit plan or `hide:` i
 | --- | --- | --- | ---: | ---: | --- | --- | --- |
 | S00 | Welcome & setup | core | 40 → **25** | 20 | Compress | Can everyone `tofu apply` local + reach LocalStack health? | First LocalStack boot; Docker not running |
 | S01 | Infrastructure as Code | core | 55 → **30** | 20 | Compress | Declarative vs imperative — what does the plan give you that a script doesn’t? | Fork timeline is pre-reading when compressed; keep the six design principles, the differentiators teaser, the migration beat and the alternatives beat |
-| S02 | HCL & building blocks | core | 50 → **35** | 20 | Compress | Name the six block types; which one alone mutates the world? What does `var.env == "prod" ? "ha" : "single"` return when `env = "dev"`? | Reference wiring; `.tofu` vs `.tf` aside |
-| S03 | Core workflow | core | 60 → **45** | 20 | Compress | Read a plan line: `+` / `~` / `-` and “known after apply”? What does plan diff your config against — and when, if ever, do you need `depends_on`? | One lifecycle run when compressed |
-| S06 | Variables & types | core | 50 → **35** | 25 | Compress | Break a validation on purpose — which phase fails? | Precedence variants follow-up when compressed |
+| S02 | HCL & building blocks | core | 56 → **41** | 35 | Compress | Name the six block types; which one alone mutates the world? What does `var.env == "prod" ? "ha" : "single"` return when `env = "dev"`? | Reference wiring; `.tofu` vs `.tf` aside |
+| S03 | Core workflow | core | 68 → **53** | 20 | Compress | Read a plan line: `+` / `~` / `-` and “known after apply”? What does plan diff your config against — and when, if ever, do you need `depends_on`? | One lifecycle run when compressed |
+| S06 | Variables & types | core | 50 → **35** | 30 | Compress | Break a validation on purpose — which phase fails? | Precedence variants follow-up when compressed |
 | S15 | Preconditions & checks | core | 50 → **35** | 30 | Compress | Which guards fail at plan vs apply? What is `check` for? | Keep one blocking condition + `check` |
-| S04 | State | core | 50 → **35** | 25 | Compress | Why is `terraform.tfstate` a secret store even when the CLI redacts? Then: a bucket exists that you must now own, and another team only needs its ARN — who writes `import {}`, and who writes `data`? | Backend migration is follow-up when compressed; Lab 04 Step 8 (adopt with `import {}`, reference with `data`, +~15 min, not in the lab-minutes column) needs LocalStack up (`task lab:up`) — `BucketAlreadyExists` on 8b's plain apply is the intended break, `Cannot import non-existent remote object` means LocalStack restarted and the bucket must be recreated; optional S3/LocalStack locking stretch (+~15 min) needs Docker + OpenTofu ≥1.10 |
+| S04 | State | core | 58 → **43** | 40 | Compress | Why is `terraform.tfstate` a secret store even when the CLI redacts? Then: a bucket exists that you must now own, and another team only needs its ARN — who writes `import {}`, and who writes `data`? | Backend migration is follow-up when compressed; Lab 04 Step 8 (adopt with `import {}`, reference with `data`, ~15 of the 40 lab minutes) needs LocalStack up (`task lab:up`) — `BucketAlreadyExists` on 8b's plain apply is the intended break, `Cannot import non-existent remote object` means LocalStack restarted and the bucket must be recreated; optional S3/LocalStack locking stretch (+~15 min) needs Docker + OpenTofu ≥1.10 |
 | S05 | State encryption | core | 60 → **45** | 25 | Compress | Prove ciphertext on disk; what does `enforced = true` change? | PBKDF2 lab key handling; fallback migrate; optional +10 min KMS step (Lab 05 Step 6) |
 | S07 | Modules | core | 60 → **50** | 35 | Compress | What is the module contract (inputs/outputs)? Demo registry/OCI only | No registry network on runnable path |
 | S08 | Naming & labelling | core | **65** | 30 | Keep | Mock plan green, then LocalStack apply — validation enforces convention? | Step 4 needs LocalStack; panic-reset safe |

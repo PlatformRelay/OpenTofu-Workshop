@@ -7,12 +7,13 @@ sections you keep.
 - **The section library is a content superset** — `S00`–`S28` is deliberately
   larger than fits in three days, and the canonical three-day cut overflows too.
   Against a **390 min/day** budget (6.5 h), the planned slides+labs totals are
-  **Day 1 = 925 — 535 over**, Day 2 = 360, and **Day 3 = 400 — 10 over**. Day 1
+  **Day 1 = 982 — 592 over**, Day 2 = 360, and **Day 3 = 400 — 10 over**. Day 1
   exceeds its budget by design: S09 (`count` vs `for_each`, `dynamic`,
-  `lifecycle`, `moved`/`removed`) is delivered even though it does not fit. Use the
+  `lifecycle`, `moved`/`removed`) is delivered, and expressions, `depends_on` and
+  `import` were added, even though they do not fit. Use the
   [Day 1 fit plan](https://platformrelay.github.io/OpenTofu-Workshop/facilitator-runbook/#day-1-fit-plan)
-  before facilitating — it compresses Day-1 *slide* time to 475 and leaves the
-  310 minutes of Day-1 labs untouched; cut **`optional` first, then
+  before facilitating — it compresses Day-1 *slide* time to 497 and leaves the
+  345 minutes of Day-1 labs untouched; cut **`optional` first, then
   `recommended`**, and keep `core`.
 - **Syllabus minute marks** are planning aids for facilitators, not measured
   delivery facts. Adjust on the day.

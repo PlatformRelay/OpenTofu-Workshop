@@ -105,7 +105,7 @@
       "tools": "Docker for Step 8 (import/data) and the S3-backend Stretch",
       "pinned": "`random` + `local` providers; Step 8: `hashicorp/aws` `>= 5.0, < 6.0`, LocalStack `:4566`; Stretch: OpenTofu ≥1.10 (`use_lockfile`)",
       "validationState": "unrun",
-      "estimatedDurationMin": 25,
+      "estimatedDurationMin": 40,
       "automationTier": "mixed",
       "cleanupCommand": "cd labs/day-1/04-state"
     },
