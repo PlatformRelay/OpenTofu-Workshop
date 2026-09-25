@@ -64,3 +64,8 @@ src: ./pages/S07-modules/index.md
 # S08 · Naming & labelling module · core · Day 1
 src: ./pages/S08-naming/index.md
 ---
+
+---
+# S09 · Best practices · recommended · Day 1
+src: ./pages/S09-best-practices/index.md
+---
