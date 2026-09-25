@@ -88,7 +88,8 @@ plaintext-in-state beat.
 - Network access the first time (`tofu init` downloads the `random` + `local`
   providers, and in Step 8 `hashicorp/aws`). No Docker, no cloud, no AWS in
   Steps 0–7. **Step 8** needs Docker for LocalStack (`task lab:up`); the
-  `import {}` block needs `tofu` ≥ 1.5, which the ≥ 1.9 floor covers. **The
+  `import {}` block is in every OpenTofu release (OpenTofu began at 1.6.0;
+  Terraform added the block in 1.5), so the ≥ 1.9 floor covers it. **The
   optional Stretch** needs Docker (for LocalStack) and `tofu` **≥ 1.10** (`use_lockfile` is
   an OpenTofu 1.10 feature; the workshop pin 1.10.3 satisfies it — check
   `tofu version` before starting the stretch, and skip it below 1.10).
@@ -825,7 +826,7 @@ backend) and read it:
 
 <!-- source: labs/day-1/04-state/adopt/import.tf.off -->
 ```hcl
-# Declarative import (OpenTofu 1.5+).
+# import block: in every OpenTofu release (Terraform 1.5+).
 import {
   # to: the config address that will own it
   to = aws_s3_bucket.legacy
