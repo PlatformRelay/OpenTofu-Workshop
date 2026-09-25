@@ -160,6 +160,125 @@ longer matches state, the refresh catches it, and the plan proposes to reconcile
 ACTUAL back to your config — it always steers reality toward what you declared, not
 the other way. State is the fixed reference point both comparisons pivot on. The
 values here are illustrative; you'll see real ones in the lab. (~5 min)
+Then: "Drift is reality moving behind you. What about reality that was there first?"
+-->
+
+---
+layout: code-annotated
+heading: 'Adopting what already exists'
+lab: labs/day-1/04-state.md
+---
+
+<!-- source: labs/day-1/04-state/adopt/import.tf.off -->
+```hcl {none|3-4|5-6|2-7|8}
+# Declarative import (OpenTofu 1.5+).
+import {
+  # to: the config address that will own it
+  to = aws_s3_bucket.legacy
+  # id: the real object's id (for S3, its name)
+  id = "workshop-legacy-reports"
+}
+# Plan: "will be imported". Apply. Then delete me.
+```
+
+<div class="mt-3 kw-muted text-sm">
+
+**resource block** → **`import {}`** → `plan` → `apply` → **state maps it** →
+**delete the block**. No resource block yet? `tofu plan -generate-config-out=…`
+drafts one: review it, don't trust it.
+
+</div>
+
+::notes::
+
+<CodeNote at="1" label="to — the owner" variant="ok">
+  A <code>resource "aws_s3_bucket" "legacy"</code> block you wrote first. Alone
+  it means <em>create</em>: the apply fails on <code>BucketAlreadyExists</code>.
+</CodeNote>
+
+<CodeNote at="2" label="id — the real object">
+  The provider's own identifier for what exists: for a bucket, its name.
+</CodeNote>
+
+<CodeNote at="3" label="plan: will be imported" variant="warn">
+  <code>1 to import, 0 to add, 0 to change</code>: nothing created, nothing
+  touched, and the config already matches.
+</CodeNote>
+
+<CodeNote at="4" label="apply, then delete it" variant="ok">
+  <code>1 imported</code>: state maps the address to the bucket. Delete the
+  block; the next plan is <code>No changes</code>.
+</CodeNote>
+
+<!--
+Say: Drift was reality changing behind OpenTofu's back. Adoption is reality that was
+there before OpenTofu — the bucket someone clicked together in the console years ago.
+The move is always the same five steps. Write the resource block that describes it;
+on its own that block means "create", and the apply fails because the name is taken.
+Add an import block: to names the config address that will own the object, id names
+the real object in the provider's vocabulary — for S3 the bucket name. Plan says
+"will be imported" and "1 to import, 0 to add": nothing created, nothing touched, and
+0 to change means your config already matches the bucket. Apply binds the address
+to the bucket in state — state list shows it. Then delete the import block; it was
+scaffolding, and the next plan is No changes. If you have no resource block yet,
+plan -generate-config-out drafts one from what the provider reads back — a draft,
+not gospel; for S3 it writes a bucket_prefix that conflicts with bucket. Lab 04
+Step 8 runs exactly this on LocalStack. (~5 min)
+Then: "Importing means you now own it. Sometimes you only want to read it."
+-->
+
+---
+layout: two-cols-code
+heading: "Reference it, don't own it — data sources"
+lab: labs/day-1/04-state.md
+---
+
+<!-- source: labs/day-1/04-state/reference/main.tf -->
+```hcl
+# Reference it, don't own it: a data source READS the bucket at plan time.
+# It never enters this config's managed state, so destroy cannot touch it.
+data "aws_s3_bucket" "legacy" {
+  bucket = "workshop-legacy-reports"
+}
+
+output "legacy_bucket_arn" {
+  description = "ARN of the bucket another config owns, looked up read-only."
+  value       = data.aws_s3_bucket.legacy.arn
+}
+```
+
+::right::
+
+<div class="mt-2">
+  <KwCard heading="import → own it" kind="import" variant="warn">
+    The bucket joins <strong>your</strong> state. Your config is now its desired
+    state, and <code>tofu destroy</code> deletes it.
+  </KwCard>
+  <div class="mt-3">
+  <KwCard heading="data → reference it" kind="data" variant="ok">
+    Looked up on every <code>plan</code>. Its attributes feed your config, but it
+    is never created, changed, or destroyed from here: destroy reports
+    <code>0 destroyed</code>.
+  </KwCard>
+  </div>
+  <div class="mt-3">
+  <KwCard heading="Pick by ownership" variant="accent">
+    Another team, another stack, or the console still runs it? Reference it.
+    You are taking over its lifecycle? Import it.
+  </KwCard>
+  </div>
+</div>
+
+<!--
+Say: Import is a change of ownership: the bucket is now in your state, your config is
+its desired state, and your destroy deletes it. Often that is not what you want —
+the bucket belongs to another team or another stack, and you just need its ARN. A
+data source is the read-only alternative: it looks the bucket up on every plan and
+hands you its attributes, but nothing you run from this config creates, changes or
+destroys it. state list shows it as data.aws_s3_bucket.legacy — a cached read, not a
+managed object — and a destroy reports 0 destroyed with the bucket still standing.
+The rule is ownership: taking over the lifecycle means import; anything else means
+reference. The lab does both against the same bucket from two configs. (~3 min)
 Then: "Where does that state file actually live? Backends."
 -->
 
@@ -330,7 +449,7 @@ S05."
 layout: lab
 lab: labs/day-1/04-state.md
 duration: 25 min
-env: 'mock ✓ (no docker)'
+env: 'mock ✓ (no docker) · localstack ✓ (Step 8 + Stretch)'
 ---
 
 # Lab 04 — read and steer state
@@ -339,11 +458,13 @@ env: 'mock ✓ (no docker)'
 `state list`, `state show` (watch the secret get redacted), and — the payoff —
 **`grep` the plaintext secret out of `terraform.tfstate`**. Migrate the state to
 a new local path with `tofu init -migrate-state`, then **break** it with
-`state rm` and reconcile with `apply`. Finally, **drift**: edit the rendered
-file behind OpenTofu's back and read the plan that steers it back.
+`state rm` and reconcile with `apply`. Then **drift**: edit the rendered
+file behind OpenTofu's back and read the plan that steers it back. Finally, on
+LocalStack, **adopt** a bucket made outside OpenTofu with `import {}`, and read
+it from a second config with a `data` source.
 
 Every task and question has a `<details>` spoiler; panic reset is `tofu destroy`
-plus `rm` — nothing cloud, nothing to leak.
+plus `rm`, and `task lab:down` wipes LocalStack — nothing real, nothing to leak.
 
 <!--
 Say: Set up the lab and its payoff moment. You apply a three-resource config that
@@ -354,9 +475,12 @@ sitting there" moment. Then you migrate the state to a new local path with tofu 
 -migrate-state — the real backend mechanic, cloud-free — and finally the break-fix:
 state rm forgets a resource, plan wants to recreate it, and apply reconciles. The
 closer is drift: learners edit the rendered file by hand, and the refresh catches it —
-the reconcile slide's fourth step, experienced live. Every
-task and question has a spoiler; panic reset is destroy plus rm. (~25 min, matches the
-lab duration)
+the reconcile slide's fourth step, experienced live. Step 8 needs LocalStack (task
+lab:up): create a bucket with the AWS CLI, watch a plain apply fail on
+BucketAlreadyExists, adopt it with an import block, then look it up read-only from a
+second config. Every task and question has a spoiler; panic reset is destroy plus rm
+plus task lab:down. (~25 min for Steps 0-7, matches the lab duration; Step 8 adds
+~15 min)
 Then: regroup for the recap.
 -->
 
@@ -374,6 +498,9 @@ next: 'Next: State encryption'
   `tofu init -migrate-state`.
 - **`tofu state`** reads and steers it: `list`, `show`, `mv` (rename), `rm`
   (forget → next `plan` recreates).
+- **`import {}`** adopts what already exists: `plan` shows *will be imported*,
+  `apply` maps the address to the real object in state, then delete the block.
+  A **`data`** source only *references* it — never owned, never destroyed.
 - **The risk:** `terraform.tfstate` is **plaintext JSON**. A `sensitive` value is
   redacted by the CLI but sits in the file as a literal — `grep` finds it.
 - That plaintext secret is **exactly** what **S05 — state encryption** closes.
@@ -384,7 +511,8 @@ plan reconciles against desired and actual to catch both config changes and hand
 drift. Backends hold it: local is a disk file with no locking; remote is shared storage
 with locking so two applies can't corrupt each other, and you migrate with tofu init
 -migrate-state. The tofu state subcommands read and steer it — list, show, mv to rename,
-rm to forget. And the risk that motivates everything next: terraform.tfstate is plaintext
+rm to forget. An import block adopts something that already exists into state; a data
+source only reads it. And the risk that motivates everything next: terraform.tfstate is plaintext
 JSON, a sensitive value is redacted in the CLI but sits in the file as a literal string a
 grep pulls straight out. (~2 min)
 Then: transition into S05 — state encryption, which encrypts that file client-side.
