@@ -11,7 +11,8 @@ with [OpenTofu](https://opentofu.org)**. The learning journey follows the way
 infrastructure grows in practice:
 
 1. **Author** — learn HCL, the plan/apply workflow, state, encryption,
-   validation, modules, naming, and labelling.
+   validation, modules, naming, labelling, `count` vs `for_each`, and
+   refactoring without replacement.
 2. **Test** — add static checks, policy and security scanners, `check` blocks,
    native `tofu test`, mocks, integration tests, and CI.
 3. **Scale** — use Terramate stacks, generation, orchestration, and change
@@ -145,7 +146,7 @@ cut.
 > facilitator runbook: the published
 > [day totals](docs/facilitator-runbook.md#live-cut-order) and the executable
 > [Day 1 fit plan](docs/facilitator-runbook.md#day-1-fit-plan), which
-> compresses Day-1 **slide** time from 705 minutes to 400 and leaves the labs
+> compresses Day-1 **slide** time from 705 minutes to 475 and leaves the labs
 > untouched. Apply the fit plan before facilitating; when trimming further,
 > cut **`optional` first, then `recommended`**, and keep `core`. All totals
 > are unrehearsed planning estimates, never measured timings.
