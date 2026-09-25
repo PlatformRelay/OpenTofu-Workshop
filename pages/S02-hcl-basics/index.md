@@ -255,6 +255,78 @@ that OpenTofu resolves every reference at plan time and builds a dependency grap
 from them — which is why file order never matters, only what references what. That
 graph is exactly what makes the undeclared-reference error in the lab possible. (~4
 min)
+Then: "References are one kind of expression — here are the others you will meet
+today."
+-->
+
+---
+layout: code-annotated
+heading: Expressions — the value side, evaluated
+lab: labs/day-1/02-hcl-blocks.md
+compact: true
+---
+
+```hcl {none|4-5|7-10|12-16|18-19|all}
+# given: env = "dev", apps = ["api", "web"],
+#        tags = { team = "ops", cost = null }
+
+mode = var.env == "prod" ? "ha" : "single"
+# → "single"
+
+apps = [for s in var.apps : upper(s)]
+# → ["API", "WEB"]
+tags = { for k, v in var.tags : k => v if v != null }
+# → { team = "ops" }
+
+n    = length(var.apps)                  # → 2
+all  = merge(var.tags, { cost = "cc1" })
+# → { cost = "cc1", team = "ops" }
+tier = lookup({ prod = "gold" }, var.env, "bronze")
+# → "bronze"
+
+hex  = random_id.suffix[0].hex           # → e.g. "a1f3"
+team = var.tags["team"]                  # → "ops"
+```
+
+::notes::
+
+<CodeNote at="1" label="cond ? a : b">
+  True → <code>a</code>, false → <code>b</code>. Both branches share one type.
+</CodeNote>
+
+<CodeNote at="2" label="for … in … : …" variant="ok">
+  <code>[ … ]</code> builds a list, <code>{ k => v }</code> a map; a trailing
+  <code>if</code> filters.
+</CodeNote>
+
+<CodeNote at="3" label="function(…)">
+  Built-ins only. <code>merge</code>: later keys win. <code>lookup</code>: the
+  third argument is the default.
+</CodeNote>
+
+<CodeNote at="4" label="[index] and .attr" variant="warn">
+  <code>[0]</code> picks a <code>count</code> instance, <code>.hex</code> reads
+  an attribute, <code>["team"]</code> a map key.
+</CodeNote>
+
+<CodeNote at="5" label="tofu console" variant="ok">
+  Evaluates any of these against your config and state. Lab 02 Step 6 uses it.
+</CodeNote>
+
+<!--
+Say: Expressions are the value side of every argument, and four shapes cover almost
+everything you will read on Day 1. Read the "given" line first — every value on the
+right follows from it. Click 1: the conditional, cond ? a : b — env is "dev", so the
+value is "single"; both branches must have the same type. Click 2: for expressions —
+square brackets build a list, curly braces with => build a map, and a trailing if
+filters, which is how the null cost disappears. Click 3: function calls — built-ins
+only, no user-defined functions; merge lets later keys win, lookup takes a default for
+a missing key. Click 4: indexing and attribute access — [0] picks one instance of a
+count resource, .hex reads its attribute, ["team"] reads a map key; you will meet
+exactly this random_id.suffix[0].hex line in S08's naming module, and the count-plus-
+conditional pattern in Lab 00's bucket. Click 5: you never have to guess — tofu console
+evaluates any of these against the real config; Lab 02 Step 6 has you predict five
+values on paper and then check them there. (~6 min)
 Then: "One practical note before the lab: the files themselves and the .tofu
 extension."
 -->
@@ -298,7 +370,7 @@ Then: "Now build one yourself — Lab 02."
 ---
 layout: lab
 lab: labs/day-1/02-hcl-blocks.md
-duration: 20 min
+duration: 35 min
 env: 'mock ✓ (no docker)'
 ---
 
@@ -309,7 +381,8 @@ Read and run one small config that uses **every core block type** —
 `module` block as a **forward reference to S07** — and
 watch references wire them into a dependency graph. Then **break it on purpose**:
 reference an undeclared variable, read the `plan` error, and fix it by declaring
-the block OpenTofu asks for.
+the block OpenTofu asks for. Finally **predict, then evaluate** five expressions in
+`tofu console`, and **write** a `local` and an `output` from a blank file.
 
 Every task and question has a `<details>` spoiler; panic reset is `tofu destroy`
 plus `rm`.
@@ -319,9 +392,12 @@ Say: Set up the lab. You'll cat and run a single tracked config that exercises a
 six block types — plus a module block you only read, not learn — then read the
 generated file line by line to see each reference resolve. The payoff is the break-fix: add a scratch file that references
 var.maintainer without declaring it, watch plan refuse with "Reference to
-undeclared input variable," then declare the variable and watch plan go green. Every
-task and question has a spoiler; panic reset is tofu destroy plus rm — nothing
-cloud, nothing to leak. (~20 min, matches the lab duration)
+undeclared input variable," then declare the variable and watch plan go green. Then
+two writing beats: predict five expressions on paper and check them in tofu console,
+and write a local plus an output from memory into a blank mine.tf and plan it — the
+first HCL they author themselves. Every task and question has a spoiler; panic reset
+is tofu destroy plus rm — nothing cloud, nothing to leak. (~35 min, matches the lab
+duration)
 Then: regroup for the recap.
 -->
 
@@ -336,6 +412,7 @@ next: 'Next: Core workflow (init/plan/apply/destroy)'
 - **Six core block types:** `resource`, `variable`, `output`, `provider`, `data`, `locals` — plus the top-level `terraform {}` settings block. (`module` appears in the lab config as a **forward reference**; it is taught in S07.)
 - Only **`resource`** blocks create, change, or destroy real objects; the rest configure, compute, read, or report.
 - **References** (`var.*`, `local.*`, `data.*.*`, `<res>.*`, `module.*.*`), wrapped in `"${…}"`, wire blocks into a **dependency graph** resolved at plan time.
+- **Expressions** compute values: conditionals (`c ? a : b`), `for` over lists and maps (with `if` filters), built-in functions (`length`, `merge`, `lookup`, `upper`), and indexing (`[0]`, `["key"]`) — `tofu console` evaluates any of them.
 - Every `*.tf` in a directory is one merged config; OpenTofu also reads **`.tofu`** (which wins over a same-named `.tf`).
 
 <!--
@@ -345,7 +422,8 @@ and of those only resource actually changes the world; module is a forward
 reference to S07, seen but not taught. References — var, local,
 data, resource attributes, module outputs — wrapped in "${}" wire everything into a
 dependency graph that OpenTofu resolves at plan time, which is why file order never
-matters. And every .tf in a directory is one config, with .tofu accepted too and
+matters. Expressions — conditionals, for, functions, indexing — compute the values,
+and tofu console answers "what does this evaluate to?". And every .tf in a directory is one config, with .tofu accepted too and
 taking precedence. (~2 min)
 Then: transition into S03 — the core workflow, init/plan/apply/destroy.
 -->
