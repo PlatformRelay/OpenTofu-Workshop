@@ -300,8 +300,8 @@ team = var.tags["team"]                  # → "ops"
 </CodeNote>
 
 <CodeNote at="3" label="function(…)">
-  Built-ins only. <code>merge</code>: later keys win. <code>lookup</code>: the
-  third argument is the default.
+  Built-ins plus provider functions (<code>provider::aws::…</code>, S10) —
+  never user-defined.
 </CodeNote>
 
 <CodeNote at="4" label="[index] and .attr" variant="warn">
@@ -310,7 +310,7 @@ team = var.tags["team"]                  # → "ops"
 </CodeNote>
 
 <CodeNote at="5" label="tofu console" variant="ok">
-  Evaluates any of these against your config and state. Lab 02 Step 6 uses it.
+  Evaluates any of these against your state. Lab 02 Step 6.
 </CodeNote>
 
 <!--
@@ -319,10 +319,11 @@ everything you will read on Day 1. Read the "given" line first — every value o
 right follows from it. Click 1: the conditional, cond ? a : b — env is "dev", so the
 value is "single"; both branches must have the same type. Click 2: for expressions —
 square brackets build a list, curly braces with => build a map, and a trailing if
-filters, which is how the null cost disappears. Click 3: function calls — built-ins
-only, no user-defined functions; merge lets later keys win, lookup takes a default for
-a missing key. Click 4: indexing and attribute access — [0] picks one instance of a
-count resource, .hex reads its attribute, ["team"] reads a map key; you will meet
+filters, which is how the null cost disappears. Click 3: function calls — no
+user-defined functions in HCL; you get the built-ins plus functions a provider ships,
+called as provider::aws::… (OpenTofu 1.7+, S10 covers those). merge lets later keys
+win, lookup takes a default for a missing key. Click 4: indexing and attribute
+access — [0] picks one instance of a count resource, .hex reads its attribute, ["team"] reads a map key; you will meet
 exactly this random_id.suffix[0].hex line in S08's naming module, and the count-plus-
 conditional pattern in Lab 00's bucket. Click 5: you never have to guess — tofu console
 evaluates any of these against the real config; Lab 02 Step 6 has you predict five
