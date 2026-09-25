@@ -380,6 +380,74 @@
       ]
     },
     {
+      "id": "S03-Q-04",
+      "section": "S03",
+      "prompt": "`local_file.release_note` must be written after `local_file.manifest`, but its content only mentions the manifest's path inside a string. `tofu graph` shows no edge between them. What is the right change?",
+      "options": [
+        {
+          "id": "reorder-blocks",
+          "text": "Move the release note's block below the manifest's block in the file.",
+          "rationale": "File position never sets execution order — the graph is built from references and `depends_on` alone, so the two resources stay unordered wherever the blocks sit."
+        },
+        {
+          "id": "depends-on",
+          "text": "Add `depends_on = [local_file.manifest]` to the release note — the dependency is real but no reference expresses it.",
+          "rationale": "Correct: a path inside a string is not a reference, so the graph cannot see the link; `depends_on` adds exactly that edge and changes ordering only."
+        },
+        {
+          "id": "no-change",
+          "text": "Nothing — OpenTofu reads the path in the string and orders the two resources on its own.",
+          "rationale": "OpenTofu does not interpret string contents; with no reference and no `depends_on` there is no edge, and apply is free to write the note before the manifest exists."
+        },
+        {
+          "id": "depends-on-everywhere",
+          "text": "Add `depends_on` to every resource that already references another, so the order is always explicit.",
+          "rationale": "A reference already creates the edge and carries the value; stacking `depends_on` on top adds nothing but noise and hides which dependencies are genuinely hidden."
+        }
+      ],
+      "answer": "depends-on",
+      "explanation": "`depends_on` is for dependencies no reference can express, such as a file a script reads or an IAM policy a role needs; where a reference exists, it already supplies the edge and the value.",
+      "difficulty": "intermediate",
+      "learningObjective": "Decide when `depends_on` is needed and when a reference already provides the dependency edge.",
+      "references": [
+        "https://opentofu.org/docs/language/meta-arguments/depends_on/"
+      ]
+    },
+    {
+      "id": "S03-Q-05",
+      "section": "S03",
+      "prompt": "`tofu plan` prints `random_pet.env: Refreshing state... [id=delicate-grouper]` and then its proposed changes. What is the plan diff computed between?",
+      "options": [
+        {
+          "id": "config-vs-last-apply",
+          "text": "Your config and the state file exactly as the last apply wrote it; the real objects are never consulted.",
+          "rationale": "Skips the refresh: the `Refreshing state...` lines are plan reading each recorded object back from the provider before it diffs, which is how a change made outside OpenTofu shows up."
+        },
+        {
+          "id": "config-vs-reality-no-state",
+          "text": "Your config and the real infrastructure directly; state plays no part in a plan.",
+          "rationale": "Without state, OpenTofu could not map `random_pet.env` to the real object `delicate-grouper` — it would have nothing to refresh and would propose creating everything again."
+        },
+        {
+          "id": "config-vs-refreshed-state",
+          "text": "Your config and the state — after plan has refreshed that state against the real objects.",
+          "rationale": "Correct: plan refreshes state against reality, then diffs your config against that refreshed state."
+        },
+        {
+          "id": "old-vs-new-config",
+          "text": "The previous version of your config and the current one.",
+          "rationale": "OpenTofu keeps no copy of your old config; what it remembers is state, the record of what it built, and that is the other side of the diff."
+        }
+      ],
+      "answer": "config-vs-refreshed-state",
+      "explanation": "State maps each address to a real object; plan refreshes that state against reality and then diffs your config against the refreshed state.",
+      "difficulty": "introductory",
+      "learningObjective": "State what a plan compares against: config versus state refreshed from reality.",
+      "references": [
+        "https://opentofu.org/docs/cli/commands/plan/"
+      ]
+    },
+    {
       "id": "S06-Q-01",
       "section": "S06",
       "prompt": "`variable \"environment\"` has `default = \"dev\"`, `terraform.tfvars` sets it to `staging`, and you run `tofu apply -var environment=prod`. Which value is used, and why?",

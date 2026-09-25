@@ -51,7 +51,8 @@ sequence with the fit-plan skips applied.
 stage 2 (block taxonomy; first appears as a feature switch at stage 0b; typed,
 validated and sensitive at stage 4) · `output` → stage 2 (block taxonomy; first
 appears in the stage-1 lab config) · `plan` → stage 0 (read line by line at
-stage 3) · `apply` → stage 0 (full lifecycle at stage 3) · state → stage 6
+stage 3) · `apply` → stage 0 (full lifecycle at stage 3) · `depends_on` →
+stage 3 (only for a dependency no reference expresses) · state → stage 6
 (named at stage 0, motivated at stage 3) · modules → stage 8 · testing → stage 10
 (`tofu test` with `mock_provider` first taught at stage 9) · CI → stage 14.
 
@@ -326,7 +327,7 @@ share of the day. **3-day cut** = compress / skip from the fit plan or `hide:` i
 | S00 | Welcome & setup | core | 40 → **25** | 20 | Compress | Can everyone `tofu apply` local + reach LocalStack health? | First LocalStack boot; Docker not running |
 | S01 | Infrastructure as Code | core | 55 → **30** | 20 | Compress | Declarative vs imperative — what does the plan give you that a script doesn’t? | Fork timeline is pre-reading when compressed; keep the six design principles, the differentiators teaser, the migration beat and the alternatives beat |
 | S02 | HCL & building blocks | core | 50 → **35** | 20 | Compress | Name the six block types; which one alone mutates the world? | Reference wiring; `.tofu` vs `.tf` aside |
-| S03 | Core workflow | core | 60 → **45** | 20 | Compress | Read a plan line: `+` / `~` / `-` and “known after apply”? | One lifecycle run when compressed |
+| S03 | Core workflow | core | 60 → **45** | 20 | Compress | Read a plan line: `+` / `~` / `-` and “known after apply”? What does plan diff your config against — and when, if ever, do you need `depends_on`? | One lifecycle run when compressed |
 | S06 | Variables & types | core | 50 → **35** | 25 | Compress | Break a validation on purpose — which phase fails? | Precedence variants follow-up when compressed |
 | S15 | Preconditions & checks | core | 50 → **35** | 30 | Compress | Which guards fail at plan vs apply? What is `check` for? | Keep one blocking condition + `check` |
 | S04 | State | core | 50 → **35** | 25 | Compress | Why is `terraform.tfstate` a secret store even when the CLI redacts? | Backend migration is follow-up when compressed; optional S3/LocalStack locking stretch (+~15 min) needs Docker + OpenTofu ≥1.10 |
