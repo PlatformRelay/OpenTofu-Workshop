@@ -670,6 +670,75 @@
       ]
     },
     {
+      "id": "S04-Q-IMPORT-01",
+      "section": "S04",
+      "prompt": "A bucket created by hand in the console must now be managed by your OpenTofu config, including its eventual deletion. Another team's config only needs that bucket's ARN. Which pairing is right?",
+      "options": [
+        {
+          "id": "import-own-data-read",
+          "text": "Your config adopts it with a resource block plus an `import {}` block; the other team reads it with a `data \"aws_s3_bucket\"` lookup.",
+          "rationale": "Import transfers ownership into your state, so your plans and destroys manage it; a data source only reads it, so the other team's config never creates, changes or destroys it."
+        },
+        {
+          "id": "data-both",
+          "text": "Both configs use a `data \"aws_s3_bucket\"` lookup; a data source adopts the bucket the first time it is read.",
+          "rationale": "A data source never adopts anything. It is read on every plan and cached under a `data.` address, but destroy reports 0 destroyed and the bucket is never managed."
+        },
+        {
+          "id": "import-both",
+          "text": "Both configs import it with an `import {}` block so each can read its attributes.",
+          "rationale": "Two states owning one object means two configs that each plan changes to it and can each destroy it; reading attributes needs only a data source."
+        },
+        {
+          "id": "resource-only",
+          "text": "Your config just declares `resource \"aws_s3_bucket\"` with the same name; apply notices the bucket exists and takes it over.",
+          "rationale": "Without an import block the resource has no state entry, so the plan is `1 to add` and the create fails with `BucketAlreadyExists`."
+        }
+      ],
+      "answer": "import-own-data-read",
+      "explanation": "Choose by ownership. `import {}` binds an existing object to a resource address in your state, making it fully managed. A `data` source references an object that something else manages: its attributes are available to your config, but nothing in your config's lifecycle touches it.",
+      "difficulty": "intermediate",
+      "learningObjective": "Choose between adopting an existing resource with an import block and referencing it with a data source.",
+      "references": [
+        "https://opentofu.org/docs/language/import/",
+        "https://opentofu.org/docs/language/data-sources/"
+      ]
+    },
+    {
+      "id": "S04-Q-IMPORT-02",
+      "section": "S04",
+      "prompt": "With an `import {}` block in place, `tofu plan` prints `# aws_s3_bucket.legacy will be imported` and `Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.` What will the apply do?",
+      "options": [
+        {
+          "id": "write-state-mapping",
+          "text": "Write a state entry mapping `aws_s3_bucket.legacy` to the existing bucket, without creating or modifying the bucket.",
+          "rationale": "Correct: import is a state operation. `0 to add` means nothing is created and `0 to change` means the config already matches the real bucket."
+        },
+        {
+          "id": "recreate-bucket",
+          "text": "Delete the bucket and create it again from the resource block, so that state and reality start in sync.",
+          "rationale": "That would be a replacement, shown as `1 to add, 1 to destroy`. The importing plan destroys nothing."
+        },
+        {
+          "id": "copy-config-to-bucket",
+          "text": "Push every attribute in the resource block to the bucket, then record it in state.",
+          "rationale": "Only a mismatch between config and the real object produces changes, and the plan would count them under `to change`. Here it says `0 to change`."
+        },
+        {
+          "id": "import-every-run",
+          "text": "Re-import the bucket on every later apply for as long as the import block stays in the config.",
+          "rationale": "Once the address is in state the block has nothing left to do, and the follow-up plan is `No changes`. It is deleted after the importing apply because it is no longer needed, not because it would repeat."
+        }
+      ],
+      "answer": "write-state-mapping",
+      "explanation": "\"Will be imported\" describes a change to state, not to infrastructure: after the apply (`1 imported, 0 added, 0 changed`), `tofu state list` shows `aws_s3_bucket.legacy` and the address maps to the bucket that already existed. Delete the import block afterwards; the next plan is `No changes`.",
+      "difficulty": "introductory",
+      "learningObjective": "Explain what an importing plan and apply change in state and what they leave untouched in reality.",
+      "references": [
+        "https://opentofu.org/docs/language/import/"
+      ]
+    },
+    {
       "id": "S05-Q-01",
       "section": "S05",
       "prompt": "A teammate argues: \"Our remote backend already encrypts state at rest on the server, so we don't need an `encryption` block.\" What are they missing?",
