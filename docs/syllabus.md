@@ -44,7 +44,9 @@ stage 2 (block taxonomy; first appears as a feature switch at stage 0b; typed,
 validated and sensitive at stage 4) · `output` → stage 2 (block taxonomy; first
 appears in the stage-1 lab config) · `plan` → stage 0 (read line by line at
 stage 3) · `apply` → stage 0 (full lifecycle at stage 3) · state → stage 6
-(named at stage 0, motivated at stage 3) · modules → stage 8 · testing → stage 10
+(named at stage 0, motivated at stage 3) · `import` → stage 6 (adopting an
+existing bucket on LocalStack; `data`, a block type since stage 2, returns there
+as the read-only alternative) · modules → stage 8 · testing → stage 10
 (`tofu test` with `mock_provider` first taught at stage 9) · CI → stage 14.
 
 | Stage | Section | Workdir | Introduces |
@@ -56,7 +58,7 @@ stage 3) · `apply` → stage 0 (full lifecycle at stage 3) · state → stage 6
 | 3 | S03 · The core workflow | `labs/day-1/03-core-workflow/` | the four-command loop — **plan diffs**, the graph, `destroy`, and *why* state exists |
 | 4 | S06 · Variables, validation & types | `labs/day-1/06-variables/` | **typed, validated and sensitive `variable`s** — the project's own inputs |
 | 5 | S15 · Validation, preconditions & checks | `labs/day-1/15-conditions-checks/` | `precondition`, `postcondition`, `check` |
-| 6 | S04 · State | `labs/day-1/04-state/` | **state**, drift, backends |
+| 6 | S04 · State | `labs/day-1/04-state/` | **state**, drift, backends, **`import`** (adopt an existing bucket; `data` as the read-only alternative) |
 | 7 | S05 · State encryption | `labs/day-1/05-state-encryption/` | encrypted state and encrypted plan (optional Step 6: `aws_kms` key provider on LocalStack) |
 | 8 | S07 · Modules | `labs/day-1/07-modules/` | **`module`** — `./modules/service-manifest` consumed twice |
 | 9 | S08 · Naming & labelling module | `examples/naming-labels-demo/` | one naming + labelling taxonomy — and the first `tofu test` run, with an aliased `mock_provider` |

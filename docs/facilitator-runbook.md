@@ -64,7 +64,7 @@ stage 3) · `apply` → stage 0 (full lifecycle at stage 3) · state → stage 6
 | 3 | S03 · The core workflow | `labs/day-1/03-core-workflow/` | the four-command loop — **plan diffs**, the graph, `destroy`, and *why* state exists |
 | 4 | S06 · Variables, validation & types | `labs/day-1/06-variables/` | **typed, validated and sensitive `variable`s** — the project's own inputs |
 | 5 | S15 · Validation, preconditions & checks | `labs/day-1/15-conditions-checks/` | `precondition`, `postcondition`, `check` |
-| 6 | S04 · State | `labs/day-1/04-state/` | **state**, drift, backends |
+| 6 | S04 · State | `labs/day-1/04-state/` | **state**, drift, backends, **`import`** (adopt an existing bucket; `data` as the read-only alternative) |
 | 7 | S05 · State encryption | `labs/day-1/05-state-encryption/` | encrypted state and encrypted plan (optional Step 6: `aws_kms` key provider on LocalStack) |
 | 8 | S07 · Modules | `labs/day-1/07-modules/` | **`module`** — `./modules/service-manifest` consumed twice |
 | 9 | S08 · Naming & labelling module | `examples/naming-labels-demo/` | one naming + labelling taxonomy — and the first `tofu test` run, with an aliased `mock_provider` |
@@ -329,7 +329,7 @@ share of the day. **3-day cut** = compress / skip from the fit plan or `hide:` i
 | S03 | Core workflow | core | 60 → **45** | 20 | Compress | Read a plan line: `+` / `~` / `-` and “known after apply”? | One lifecycle run when compressed |
 | S06 | Variables & types | core | 50 → **35** | 25 | Compress | Break a validation on purpose — which phase fails? | Precedence variants follow-up when compressed |
 | S15 | Preconditions & checks | core | 50 → **35** | 30 | Compress | Which guards fail at plan vs apply? What is `check` for? | Keep one blocking condition + `check` |
-| S04 | State | core | 50 → **35** | 25 | Compress | Why is `terraform.tfstate` a secret store even when the CLI redacts? | Backend migration is follow-up when compressed; optional S3/LocalStack locking stretch (+~15 min) needs Docker + OpenTofu ≥1.10 |
+| S04 | State | core | 50 → **35** | 25 | Compress | Why is `terraform.tfstate` a secret store even when the CLI redacts? Then: a bucket exists that you must now own, and another team only needs its ARN — who writes `import {}`, and who writes `data`? | Backend migration is follow-up when compressed; Lab 04 Step 8 (adopt with `import {}`, reference with `data`, +~15 min, not in the lab-minutes column) needs LocalStack up (`task lab:up`) — `BucketAlreadyExists` on 8b's plain apply is the intended break, `Cannot import non-existent remote object` means LocalStack restarted and the bucket must be recreated; optional S3/LocalStack locking stretch (+~15 min) needs Docker + OpenTofu ≥1.10 |
 | S05 | State encryption | core | 60 → **45** | 25 | Compress | Prove ciphertext on disk; what does `enforced = true` change? | PBKDF2 lab key handling; fallback migrate; optional +10 min KMS step (Lab 05 Step 6) |
 | S07 | Modules | core | 60 → **50** | 35 | Compress | What is the module contract (inputs/outputs)? Demo registry/OCI only | No registry network on runnable path |
 | S08 | Naming & labelling | core | **65** | 30 | Keep | Mock plan green, then LocalStack apply — validation enforces convention? | Step 4 needs LocalStack; panic-reset safe |
