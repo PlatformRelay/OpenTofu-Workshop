@@ -50,8 +50,10 @@ sequence with the fit-plan skips applied.
 **Where each concept is introduced:** `resource` → stage 0 · `variable` →
 stage 2 (block taxonomy; first appears as a feature switch at stage 0b; typed,
 validated and sensitive at stage 4) · `output` → stage 2 (block taxonomy; first
-appears in the stage-1 lab config) · `plan` → stage 0 (read line by line at
-stage 3) · `apply` → stage 0 (full lifecycle at stage 3) · state → stage 6
+appears in the stage-1 lab config) · expressions (conditionals, `for`,
+functions, indexing) → stage 2 (first used by the stage-0b feature switch) ·
+`plan` → stage 0 (read line by line at stage 3) · `apply` → stage 0 (full
+lifecycle at stage 3) · state → stage 6
 (named at stage 0, motivated at stage 3) · modules → stage 8 · testing → stage 10
 (`tofu test` with `mock_provider` first taught at stage 9) · CI → stage 14.
 
@@ -60,7 +62,7 @@ stage 3) · `apply` → stage 0 (full lifecycle at stage 3) · state → stage 6
 | 0 | S00 · Welcome & setup | `labs/day-1/00-setup/` | **`resource`**, `init`, the first **`plan`** and **`apply`** |
 | 0b | S00 · stretch | `labs/day-1/00-setup/` | the first cloud-shaped resource (S3 on LocalStack), gated by the first `variable` — a `bool` feature switch |
 | 1 | S01 · Infrastructure as Code | `labs/day-1/01-iac-fork/` | declarative vs imperative — the lab config surfaces its first `output`, though the block type is taught at stage 2 |
-| 2 | S02 · HCL & building blocks | `labs/day-1/02-hcl-blocks/` | the block taxonomy — **`variable`**, **`output`**, `locals`, `data`, references (`module` is only a forward reference to stage 8) |
+| 2 | S02 · HCL & building blocks | `labs/day-1/02-hcl-blocks/` | the block taxonomy — **`variable`**, **`output`**, `locals`, `data`, references, **expressions** in `tofu console` (`module` is only a forward reference to stage 8) |
 | 3 | S03 · The core workflow | `labs/day-1/03-core-workflow/` | the four-command loop — **plan diffs**, the graph, `destroy`, and *why* state exists |
 | 4 | S06 · Variables, validation & types | `labs/day-1/06-variables/` | **typed, validated and sensitive `variable`s** — the project's own inputs |
 | 5 | S15 · Validation, preconditions & checks | `labs/day-1/15-conditions-checks/` | `precondition`, `postcondition`, `check` |
@@ -325,7 +327,7 @@ share of the day. **3-day cut** = compress / skip from the fit plan or `hide:` i
 | --- | --- | --- | ---: | ---: | --- | --- | --- |
 | S00 | Welcome & setup | core | 40 → **25** | 20 | Compress | Can everyone `tofu apply` local + reach LocalStack health? | First LocalStack boot; Docker not running |
 | S01 | Infrastructure as Code | core | 55 → **30** | 20 | Compress | Declarative vs imperative — what does the plan give you that a script doesn’t? | Fork timeline is pre-reading when compressed; keep the six design principles, the differentiators teaser, the migration beat and the alternatives beat |
-| S02 | HCL & building blocks | core | 50 → **35** | 20 | Compress | Name the six block types; which one alone mutates the world? | Reference wiring; `.tofu` vs `.tf` aside |
+| S02 | HCL & building blocks | core | 50 → **35** | 20 | Compress | Name the six block types; which one alone mutates the world? What does `var.env == "prod" ? "ha" : "single"` return when `env = "dev"`? | Reference wiring; `.tofu` vs `.tf` aside |
 | S03 | Core workflow | core | 60 → **45** | 20 | Compress | Read a plan line: `+` / `~` / `-` and “known after apply”? | One lifecycle run when compressed |
 | S06 | Variables & types | core | 50 → **35** | 25 | Compress | Break a validation on purpose — which phase fails? | Precedence variants follow-up when compressed |
 | S15 | Preconditions & checks | core | 50 → **35** | 30 | Compress | Which guards fail at plan vs apply? What is `check` for? | Keep one blocking condition + `check` |
