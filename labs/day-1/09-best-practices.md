@@ -35,10 +35,10 @@ retirement that would delete the artifact it means to keep — each caught in
 `tofu plan` before any damage, then fixed. You run **tracked files**, not
 heredocs — what you apply is exactly what CI verified.
 
-### Continuity — S09 sits beside the stage sequence
+### Continuity — S09 is stage 9b
 
-S09 carries no stage number in the `service-manifest` map, but it is not outside
-the project: **`local_file.manifest` is the spine address** and keeps that name
+S09 is **stage 9b** in the `service-manifest` map — the close of Day 1, after
+S08: **`local_file.manifest` is the spine address** and keeps that name
 here, fanned out per service exactly as stage 8 left it namespaced per module
 instance. New **auxiliary** material in this lab: `bundle.tf` adds
 `data.archive_file.bundle` and `output "bundle_sha256"` — the workbench for the
