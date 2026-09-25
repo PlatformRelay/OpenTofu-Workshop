@@ -63,8 +63,9 @@ const sectionDefinitions = [
     fitPlan: 'KEEP S08 65 min; flagship synthesis and learner proof remain intact.',
   },
   {
-    id: 'S09', slug: 'best-practices', title: 'Best practices', tier: 'recommended', day: 1, canonical: false,
-    status: 'authored', fitAction: 'skip', fitPlan: 'SKIP S09 (-75) in delivery; recommended must remain hide:false.',
+    id: 'S09', slug: 'best-practices', title: 'Best practices', tier: 'recommended', day: 1, canonical: true,
+    status: 'authored', fitAction: 'keep', compressedSlides: 75,
+    fitPlan: 'KEEP S09 75 min; restores count vs for_each, dynamic, moved/removed and lifecycle to the delivered path.',
   },
   {
     id: 'S10', slug: 'opentofu-differentiators', title: 'OpenTofu differentiators', tier: 'recommended', day: 1, canonical: false,

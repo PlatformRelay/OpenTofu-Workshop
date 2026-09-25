@@ -95,7 +95,7 @@ hide: false
 ---
 
 ---
-# DAY1-FIT: SKIP S09 (-75) in delivery; recommended must remain hide:false.
+# DAY1-FIT: KEEP S09 75 min; restores count vs for_each, dynamic, moved/removed and lifecycle to the delivered path.
 # S09 · Best practices · recommended · Day 1
 src: ./pages/S09-best-practices/index.md
 hide: false
