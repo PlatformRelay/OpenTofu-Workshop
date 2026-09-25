@@ -43,7 +43,8 @@ order: `S00 → S01 → S02 → S03 → S06 → S15 → S04 → S05 → S07 → 
 stage 2 (block taxonomy; first appears as a feature switch at stage 0b; typed,
 validated and sensitive at stage 4) · `output` → stage 2 (block taxonomy; first
 appears in the stage-1 lab config) · `plan` → stage 0 (read line by line at
-stage 3) · `apply` → stage 0 (full lifecycle at stage 3) · state → stage 6
+stage 3) · `apply` → stage 0 (full lifecycle at stage 3) · `depends_on` →
+stage 3 (only for a dependency no reference expresses) · state → stage 6
 (named at stage 0, motivated at stage 3) · modules → stage 8 · testing → stage 10
 (`tofu test` with `mock_provider` first taught at stage 9) · CI → stage 14.
 
