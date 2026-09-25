@@ -1,6 +1,7 @@
 # Learner-generated artifacts from running this lab in place — never committed.
 # The lab's canonical HCL is main.tf (tracked, drift-checked). Everything below
-# is generated at apply time, or is the scratch broken.tf from the break→fix.
+# is generated at apply time, or is a scratch file (broken.tf, hidden.tf) from
+# the break→fix steps.
 .terraform/
 .terraform.lock.hcl
 terraform.tfstate
@@ -9,5 +10,6 @@ terraform.tfstate.*
 *.tfstate.*
 build/
 broken.tf
+hidden.tf
 crash.log
 crash.*.log
