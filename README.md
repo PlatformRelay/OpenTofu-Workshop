@@ -146,7 +146,7 @@ cut.
 > facilitator runbook: the published
 > [day totals](docs/facilitator-runbook.md#live-cut-order) and the executable
 > [Day 1 fit plan](docs/facilitator-runbook.md#day-1-fit-plan), which
-> compresses Day-1 **slide** time from 705 minutes to 475 and leaves the labs
+> compresses Day-1 **slide** time from 727 minutes to 497 and leaves the labs
 > untouched. Apply the fit plan before facilitating; when trimming further,
 > cut **`optional` first, then `recommended`**, and keep `core`. All totals
 > are unrehearsed planning estimates, never measured timings.

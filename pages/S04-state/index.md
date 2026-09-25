@@ -448,7 +448,7 @@ S05."
 ---
 layout: lab
 lab: labs/day-1/04-state.md
-duration: 25 min
+duration: 40 min
 env: 'mock ✓ (no docker) · localstack ✓ (Step 8 + Stretch)'
 ---
 
@@ -479,8 +479,8 @@ the reconcile slide's fourth step, experienced live. Step 8 needs LocalStack (ta
 lab:up): create a bucket with the AWS CLI, watch a plain apply fail on
 BucketAlreadyExists, adopt it with an import block, then look it up read-only from a
 second config. Every task and question has a spoiler; panic reset is destroy plus rm
-plus task lab:down. (~25 min for Steps 0-7, matches the lab duration; Step 8 adds
-~15 min)
+plus task lab:down. (~40 min, matches the lab duration: ~25 for Steps 0-7, ~15 for
+Step 8)
 Then: regroup for the recap.
 -->
 

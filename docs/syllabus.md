@@ -184,8 +184,8 @@ in the [README](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/REA
 
 - **Tier:** `core` (always in the cut) · `recommended` (keep if time) · `optional` (cut first).
 - **Canonical cut:** [slides-3day.md](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/slides-3day.md) — serve with `task dev:3day`.
-- **Day totals (slides + labs, unrehearsed planning estimates)** against a 390 min/day budget, from `canonicalDayTotals()`: **Day 1 = 925 (615 + 310), +535 over** · **Day 2 = 360 (180 + 180), 30 under** · **Day 3 = 400 (200 + 200), +10 over**. Published in the [runbook](facilitator-runbook.md#live-cut-order), with the executable compression rows in its [Day 1 fit plan](facilitator-runbook.md#day-1-fit-plan).
-- **Day 1 and Day 3 do not fit.** The facilitator-runbook [Day 1 fit plan](facilitator-runbook.md#day-1-fit-plan) compresses Day-1 *slide* time from 705 to 475; the 310 minutes of Day-1 labs sit on top, so a fit-plan Day 1 is still 785 of slides + labs. Day 1 exceeds its budget by design since S09 returned to the delivered cut — see the runbook's fit plan. Apply it before facilitating, and plan the overflow.
+- **Day totals (slides + labs, unrehearsed planning estimates)** against a 390 min/day budget, from `canonicalDayTotals()`: **Day 1 = 982 (637 + 345), +592 over** · **Day 2 = 360 (180 + 180), 30 under** · **Day 3 = 400 (200 + 200), +10 over**. Published in the [runbook](facilitator-runbook.md#live-cut-order), with the executable compression rows in its [Day 1 fit plan](facilitator-runbook.md#day-1-fit-plan).
+- **Day 1 and Day 3 do not fit.** The facilitator-runbook [Day 1 fit plan](facilitator-runbook.md#day-1-fit-plan) compresses Day-1 *slide* time from 727 to 497; the 345 minutes of Day-1 labs sit on top, so a fit-plan Day 1 is still 842 of slides + labs. Day 1 exceeds its budget by design since S09 returned to the delivered cut and the expressions, `depends_on` and `import` material was added — see the runbook's fit plan. Apply it before facilitating, and plan the overflow.
 
 ## Section map (S00–S28)
 
@@ -233,11 +233,11 @@ S18 (Day 2) and S25, S27 and S28 (Day 3) — gives that day's published total ab
 | --- | --- | ---: | ---: |
 | S00 | Welcome & setup | 40 | 20 |
 | S01 | Infrastructure as Code | 55 | 20 |
-| S02 | HCL & building blocks | 50 | 20 |
-| S03 | The core workflow | 60 | 20 |
-| S06 | Variables, validation & types | 50 | 25 |
+| S02 | HCL & building blocks | 56 | 35 |
+| S03 | The core workflow | 68 | 20 |
+| S06 | Variables, validation & types | 50 | 30 |
 | S15 | Validation, preconditions & checks | 50 | 30 |
-| S04 | State | 50 | 25 |
+| S04 | State | 58 | 40 |
 | S05 | State encryption | 60 | 25 |
 | S07 | Modules | 60 | 35 |
 | S08 | Naming & labelling module | 65 | 30 |

@@ -39,14 +39,14 @@ hide: false
 ---
 
 ---
-# DAY1-FIT: COMPRESS S02 50→35 (-15); fewer block variants, retain references + break/fix.
+# DAY1-FIT: COMPRESS S02 56→41 (-15); fewer block variants, retain references + break/fix + the expressions slide.
 # S02 · HCL & building blocks · core · Day 1
 src: ./pages/S02-hcl-basics/index.md
 hide: false
 ---
 
 ---
-# DAY1-FIT: COMPRESS S03 60→45 (-15); one lifecycle run, retain plan reading + destroy.
+# DAY1-FIT: COMPRESS S03 68→53 (-15); one lifecycle run, retain plan reading + what plan compares against + depends_on + destroy.
 # S03 · The core workflow · core · Day 1
 src: ./pages/S03-core-workflow/index.md
 hide: false
@@ -67,7 +67,7 @@ hide: false
 ---
 
 ---
-# DAY1-FIT: COMPRESS S04 50→35 (-15); demo inspection, assign backend migration follow-up.
+# DAY1-FIT: COMPRESS S04 58→43 (-15); demo inspection, retain import adoption + data-source reference, assign backend migration follow-up.
 # S04 · State · core · Day 1
 src: ./pages/S04-state/index.md
 hide: false

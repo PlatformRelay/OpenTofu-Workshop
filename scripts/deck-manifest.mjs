@@ -2,8 +2,8 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 export const sectionTimings = {
-  S00: [40, 20], S01: [55, 20], S02: [50, 20], S03: [60, 20], S04: [50, 25],
-  S05: [60, 25], S06: [50, 25], S15: [50, 30], S07: [60, 35], S08: [65, 30],
+  S00: [40, 20], S01: [55, 20], S02: [56, 35], S03: [68, 20], S04: [58, 40],
+  S05: [60, 25], S06: [50, 30], S15: [50, 30], S07: [60, 35], S08: [65, 30],
   S09: [75, 60], S10: [55, 55], S11: [35, 20],
   S12: [20, 20], S13: [30, 30], S14: [35, 35], S16: [35, 35], S17: [30, 30],
   S18: [30, 30], S19: [30, 30],
@@ -24,13 +24,13 @@ const sectionDefinitions = [
   },
   {
     id: 'S02', slug: 'hcl-basics', title: 'HCL & building blocks', tier: 'core', day: 1, canonical: true,
-    status: 'authored', fitAction: 'compress', compressedSlides: 35,
-    fitPlan: 'COMPRESS S02 50→35 (-15); fewer block variants, retain references + break/fix.',
+    status: 'authored', fitAction: 'compress', compressedSlides: 41,
+    fitPlan: 'COMPRESS S02 56→41 (-15); fewer block variants, retain references + break/fix + the expressions slide.',
   },
   {
     id: 'S03', slug: 'core-workflow', title: 'The core workflow', tier: 'core', day: 1, canonical: true,
-    status: 'authored', fitAction: 'compress', compressedSlides: 45,
-    fitPlan: 'COMPRESS S03 60→45 (-15); one lifecycle run, retain plan reading + destroy.',
+    status: 'authored', fitAction: 'compress', compressedSlides: 53,
+    fitPlan: 'COMPRESS S03 68→53 (-15); one lifecycle run, retain plan reading + what plan compares against + depends_on + destroy.',
   },
   {
     id: 'S06', slug: 'variables', title: 'Variables, validation & types', tier: 'core', day: 1, canonical: true,
@@ -44,8 +44,8 @@ const sectionDefinitions = [
   },
   {
     id: 'S04', slug: 'state', title: 'State', tier: 'core', day: 1, canonical: true,
-    status: 'authored', fitAction: 'compress', compressedSlides: 35,
-    fitPlan: 'COMPRESS S04 50→35 (-15); demo inspection, assign backend migration follow-up.',
+    status: 'authored', fitAction: 'compress', compressedSlides: 43,
+    fitPlan: 'COMPRESS S04 58→43 (-15); demo inspection, retain import adoption + data-source reference, assign backend migration follow-up.',
   },
   {
     id: 'S05', slug: 'state-encryption', title: 'State encryption', tier: 'core', day: 1, canonical: true,

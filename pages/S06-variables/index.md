@@ -276,7 +276,7 @@ Then: "Now go parameterize a real config and break a rule on purpose — Lab 06.
 ---
 layout: lab
 lab: labs/day-1/06-variables.md
-duration: 25 min
+duration: 30 min
 env: 'mock ✓ (no docker)'
 ---
 
@@ -297,7 +297,7 @@ diagnostic name both variables it read, and fix it. The second payoff is
 precedence: a terraform.tfvars value visibly overridden by -var at apply, and a
 sensitive output masked as angle-bracket-sensitive. No Docker — pure local
 providers. Every task has a spoiler; panic reset leaves the tree clean.
-(~25 min, matches the lab duration)
+(~30 min, matches the lab duration)
 Then: regroup for the recap.
 -->
 
