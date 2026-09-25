@@ -14,7 +14,8 @@ cd labs/day-1/06-variables
 ls
 ```
 
-**Task:** Confirm the config files are already present — you author nothing.
+**Task:** Confirm the config files are already present — you author nothing in
+the tracked files. (Step 0b has you write one declaration into a scratch file.)
 
 ---
 
@@ -28,6 +29,78 @@ main.tf  terraform.tfvars
 `main.tf` and `terraform.tfvars` are tracked in the repo. Everything below runs
 against these exact files. (`.gitignore` is present too but hidden by `ls`.)
 
+</details>
+
+---
+
+### Step 0b — Write `variable "environment"` from memory, then diff
+
+Before you read `main.tf` (skip the block under *Files used* if you have not yet),
+write one declaration yourself. S06 showed you the pieces: a type, a default,
+and a `validation` block with a `condition` and an `error_message`. One function
+you need for the condition: `contains(list, value)` is `true` when the list holds
+the value.
+
+**Task:** In the workdir, create a scratch file **`draft-environment.hcl`** (the
+`.hcl` extension keeps `tofu` from loading it next to the real declaration). In
+it, write `variable "environment"` from memory:
+
+- type `string`, default `"dev"`, and
+- a `validation` block that accepts only `dev`, `staging` or `prod`, with an
+  `error_message` of your own.
+
+Then compare it with the tracked declaration, ignoring whitespace, and remove the
+draft:
+
+```bash
+diff -u -w draft-environment.hcl <(sed -n '/^variable "environment" {/,/^}/p' main.tf)
+rm draft-environment.hcl
+```
+
+<details><summary>Solution / expected output</summary>
+
+The tracked declaration in `main.tf` — the right-hand side of your diff:
+
+```hcl
+variable "environment" {
+  description = "Deployment environment. Drives the prod replica rule above."
+  type        = string
+  default     = "dev"
+
+  validation {
+    condition     = contains(["dev", "staging", "prod"], var.environment)
+    error_message = "environment must be one of: dev, staging, prod."
+  }
+}
+```
+
+A typical first draft diffs like this — the header line names your draft and a
+process-substitution file descriptor, and your exact lines will differ:
+
+```console
+$ diff -u -w draft-environment.hcl <(sed -n '/^variable "environment" {/,/^}/p' main.tf)
+@@ -1,9 +1,10 @@
+ variable "environment" {
++  description = "Deployment environment. Drives the prod replica rule above."
+   type    = string
+   default = "dev"
+
+   validation {
+     condition     = contains(["dev", "staging", "prod"], var.environment)
+-    error_message = "Pick dev, staging or prod."
++    error_message = "environment must be one of: dev, staging, prod."
+   }
+ }
+```
+
+Judge the diff by meaning, not bytes. **Must match:** `type = string`, a
+`validation` block, and a `condition` that is true only for the three names —
+`contains([...], var.environment)` is the idiomatic form; three `==` joined by
+`||` is also correct. **May differ:** the `description` (optional, but write one)
+and the wording of `error_message`. Your rule reads only `var.environment` — the
+classic single-variable validation you trip in Step 5. The `service` rule next to
+it reads a second variable, the OpenTofu 1.9 cross-variable form that Step 3
+breaks.
 </details>
 
 ---
@@ -253,6 +326,9 @@ tofu output -raw api_token   # explicit unmask
   style — it references only its own value.
 - A `sensitive` variable/output prints as `<sensitive>` and must be unmasked on
   purpose with `tofu output -raw` — masking is display-only, not encryption.
+- A typed, validated `variable` written from memory should differ from the tracked one
+  only in wording (`description`, `error_message`) — the `type` and the
+  `condition` are the contract that must match.
 
 ## Cleanup / panic reset
 
@@ -262,7 +338,7 @@ residue, `git status` clean:
 ```bash
 cd labs/day-1/06-variables
 tofu destroy -auto-approve                                   # tear down local_file + random_password
-rm -rf .terraform .terraform.lock.hcl out
+rm -rf .terraform .terraform.lock.hcl out draft-environment.hcl
 find . -maxdepth 1 -name 'terraform.tfstate*' -delete        # sweep any state/backup files safely
 git status --short .                                          # expect: no output
 ```
@@ -323,6 +399,9 @@ plaintext in state (that's what S05's state encryption is for).
   style — it references only its own value.
 - A `sensitive` variable/output prints as `<sensitive>` and must be unmasked on
   purpose with `tofu output -raw` — masking is display-only, not encryption.
+- A typed, validated `variable` written from memory should differ from the tracked one
+  only in wording (`description`, `error_message`) — the `type` and the
+  `condition` are the contract that must match.
 
 Representative console output from the inline spoilers above applies when your
 toolchain versions match the lab pin.
@@ -350,7 +429,7 @@ residue, `git status` clean:
 ```bash
 cd labs/day-1/06-variables
 tofu destroy -auto-approve                                   # tear down local_file + random_password
-rm -rf .terraform .terraform.lock.hcl out
+rm -rf .terraform .terraform.lock.hcl out draft-environment.hcl
 find . -maxdepth 1 -name 'terraform.tfstate*' -delete        # sweep any state/backup files safely
 git status --short .                                          # expect: no output
 ```

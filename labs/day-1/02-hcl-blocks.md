@@ -2,9 +2,9 @@
 
 | | |
 | --- | --- |
-| **Section** | S02 — HCL & building blocks *(red line: **syntax** → the six block types → **references** → break→fix)* |
+| **Section** | S02 — HCL & building blocks *(red line: **syntax** → the six block types → **references** → break→fix → **expressions** → write from blank)* |
 | **Environment** | `mock ✓ (no docker)` — no cloud, no Docker; uses the `local` + `random` providers only |
-| **Estimated time** | 20 min |
+| **Estimated time** | 35 min |
 
 ## Objective
 
@@ -15,8 +15,9 @@ through **references**. One extra block, `module "greeting"`, is in the file as 
 **forward reference**: you read it so the shape is familiar, but composition is
 taught at stage 8 (S07 · Modules). Then hit the single most common HCL error on
 purpose: reference something you never declared, read the error, and fix it by
-declaring it. By the end you can point at any block in a real
-config and name what it does.
+declaring it. Then predict and evaluate five **expressions** in `tofu console`,
+and write a `local` and an `output` yourself, from a blank file. By the end you can
+point at any block in a real config, name what it does, and write one.
 
 You run **tracked files**, not heredocs — what you apply is exactly what CI
 verified. The config lives in this repo at `labs/day-1/02-hcl-blocks/`:
@@ -56,7 +57,8 @@ All tracked in `labs/day-1/02-hcl-blocks/` — you run them, you do not paste th
   `output` out.
 - `motd.txt` — the static input the `data` block reads.
 - `.gitignore` — keeps the state/`.terraform`/`build/` you generate (and the
-  scratch `broken.tf` from Step 5) out of version control.
+  scratch `broken.tf` from Step 5 and your own `mine.tf` from Step 7) out of
+  version control.
 
 ---
 
@@ -67,8 +69,9 @@ cd labs/day-1/02-hcl-blocks
 ls
 ```
 
-**Task:** Confirm the config is already present — you author nothing (until the
-break→fix, where you add one scratch file).
+**Task:** Confirm the config is already present — you author nothing yet. You add
+one scratch file in the break→fix (Step 5) and write your own file from blank in
+Step 7.
 
 <details><summary>Solution / expected output</summary>
 
@@ -397,6 +400,163 @@ not need to `apply` this; the point was the break and the fix. Remove the scratc
 file in cleanup.
 </details>
 
+---
+
+## Step 6 — Predict, then evaluate: expressions in `tofu console`
+
+S02's *Expressions* slide showed the value side of an argument: conditionals,
+`for` expressions, function calls, and indexing. `tofu console` evaluates any
+expression against **this** config and the state you just applied, so you can
+check what you think a value is instead of guessing.
+
+**Task:** For each expression below, **write your prediction on paper first** —
+the exact value, including quotes and brackets. Only then run `tofu console` in the
+workdir, type the expression, and compare. Open each spoiler only after you have
+checked your own answer.
+
+```bash
+tofu console
+```
+
+Type these one at a time at the `>` prompt (`exit` or Ctrl-D leaves the console):
+
+1. `var.owner == "workshop" ? "default owner" : "custom owner"`
+2. `length(split("-", random_pet.env.id))`
+3. `[for part in ["api", "web"] : "${local.banner}-${part}"]`
+4. `{ for k, v in { owner = var.owner, banner = local.banner, motd = null } : k => lower(v) if v != null }`
+5. `merge({ owner = var.owner }, { owner = "platform", team = "infra" })`
+
+<details><summary>1 — the conditional</summary>
+
+```console
+> var.owner == "workshop" ? "default owner" : "custom owner"
+"default owner"
+```
+
+`var.owner` still holds its default, `"workshop"`, so the condition is true and
+the value is the **first** branch. Re-run the console as
+`tofu console -var owner=alice` and the same expression returns
+`"custom owner"` — a conditional is how one config picks between two values.
+</details>
+
+<details><summary>2 — a function over a resource attribute</summary>
+
+```console
+> length(split("-", random_pet.env.id))
+2
+```
+
+Your pet name differs, but the answer does not: `random_pet.env` has
+`length = 2`, so its id is two words joined by `-`. `split` returns a list of
+those two words and `length` counts them. The value is a **number**, so it prints
+without quotes.
+</details>
+
+<details><summary>3 — a <code>for</code> expression over a list</summary>
+
+```console
+> [for part in ["api", "web"] : "${local.banner}-${part}"]
+[
+  "WORKSHOP-api",
+  "WORKSHOP-web",
+]
+```
+
+Square brackets build a **list**: one element per input element, in order.
+`local.banner` is `upper(var.owner)`, so each element starts with `WORKSHOP`.
+</details>
+
+<details><summary>4 — a <code>for</code> expression over a map, with a filter</summary>
+
+```console
+> { for k, v in { owner = var.owner, banner = local.banner, motd = null } : k => lower(v) if v != null }
+{
+  "banner" = "workshop"
+  "owner" = "workshop"
+}
+```
+
+Curly braces and `k => v` build a **map**. The `if v != null` clause drops the
+`motd` entry before `lower` ever sees it, and `lower` turns `WORKSHOP` back into
+`workshop`. The console prints map keys in sorted order.
+</details>
+
+<details><summary>5 — <code>merge</code>: later keys win</summary>
+
+```console
+> merge({ owner = var.owner }, { owner = "platform", team = "infra" })
+{
+  "owner" = "platform"
+  "team" = "infra"
+}
+```
+
+Both maps have an `owner` key; `merge` keeps the value from the **last** map that
+sets it, so `"platform"` beats `"workshop"`. This is the pattern for layering
+default tags under caller-supplied ones.
+</details>
+
+If a prediction was wrong, that line is the one to re-read on the slide. Nothing
+here changed any file or any state — the console only reads.
+
+---
+
+## Step 7 — Write it from blank: a `local` and an `output`
+
+Every block so far was written for you. Now write two from memory. First remove
+the break→fix scratch file so the plan below shows only your change:
+
+```bash
+rm -f broken.tf
+```
+
+**Task:** Without copying from `main.tf` or the slides, create a new file
+**`mine.tf`** in the workdir (it is gitignored, like `broken.tf`, so the tracked
+config stays the snapshot CI verified). In it, write:
+
+- a `locals` block with one local, `pet_label`, that joins `var.owner` and
+  `random_pet.env.id` with a `-`, and
+- an `output "pet_label"` with a `description` whose value is that local.
+
+Then run `tofu fmt mine.tf` and `tofu plan`.
+
+<details><summary>Solution / expected output</summary>
+
+```hcl
+locals {
+  pet_label = "${var.owner}-${random_pet.env.id}"
+}
+
+output "pet_label" {
+  description = "The owner and the generated pet name, joined."
+  value       = local.pet_label
+}
+```
+
+```console
+$ tofu plan
+data.local_file.motd: Reading...
+random_pet.env: Refreshing state... [id=pleased-javelin]
+data.local_file.motd: Read complete after 0s [id=814df8902c4ba19647d2062068385706580f0ea7]
+local_file.manifest: Refreshing state... [id=0e9c8c56d79c5a4ee533b2339aeec34de48149e9]
+
+Changes to Outputs:
+  + pet_label     = "workshop-pleased-javelin"
+
+You can apply this plan to save these new output values to the OpenTofu
+state, without changing any real infrastructure.
+```
+
+The plan adds **no resources** — only an output — because a `locals` block and an
+`output` block compute and report; neither creates anything. Your pet name will
+differ. A second `locals` block in another file is fine: every `*.tf` in the
+directory is one config. If `plan` fails instead, read the error the way you did
+in Step 5: `Reference to undeclared local value` means the name in `value` does not
+match the name in `locals`; `Unsupported argument` usually means a typo in
+`description` or `value`. `tofu fmt` fixing your alignment is normal — that is its
+job. Remove `mine.tf` in cleanup.
+</details>
+
 ## Expected observations
 
 - One config uses **every core block type**: `terraform`, `provider`, `variable`,
@@ -410,6 +570,11 @@ file in cleanup.
 - A reference to an **undeclared** name fails `plan` with *"Reference to undeclared
   …"* — declaring the missing block fixes it. OpenTofu accepts both `.tf` and
   `.tofu` file extensions for these configs.
+- `tofu console` evaluates any expression against the config and state:
+  a conditional picks a branch, `[for …]` builds a list, `{ for … : k => v if … }`
+  builds a filtered map, and `merge` lets later keys win.
+- A `locals` block plus an `output` you wrote yourself plans as **output changes
+  only** — no resource is added.
 
 ## Cleanup / panic reset
 
@@ -418,7 +583,7 @@ resources exist, so nothing to bill or leak:
 
 ```bash
 cd labs/day-1/02-hcl-blocks
-rm -f broken.tf
+rm -f broken.tf mine.tf
 tofu destroy -auto-approve
 rm -rf .terraform .terraform.lock.hcl terraform.tfstate terraform.tfstate.* build
 git status --short .      # expect: no output
@@ -436,15 +601,15 @@ random_pet.env: Destruction complete after 0s
 Destroy complete! Resources: 2 destroyed.
 ```
 
-The generated state, `.terraform`, `build/`, and the scratch `broken.tf` are all
-gitignored or removed; the panic reset leaves the tracked `main.tf`, `greeting/`,
-and `motd.txt` exactly as CI verified them.
+The generated state, `.terraform`, `build/`, and the scratch `broken.tf` and
+`mine.tf` are all gitignored or removed; the panic reset leaves the tracked
+`main.tf`, `greeting/`, and `motd.txt` exactly as CI verified them.
 </details>
 
 ## Stretch (optional)
 
-- Add a second output that exposes `random_pet.env.id`, `apply`, and read it with
-  `tofu output`.
+- `apply` your Step 7 `mine.tf` and read the new value back with
+  `tofu output pet_label`.
 - Rename `main.tf` to `main.tofu` and re-run `tofu plan` — OpenTofu accepts the
   `.tofu` extension identically. (Rename it back before committing.)
 - Give the `greeting` module a second input (e.g. a `punctuation` variable) and

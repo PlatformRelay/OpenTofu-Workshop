@@ -45,7 +45,7 @@
       "tools": "None",
       "pinned": "`local` + `random` providers",
       "validationState": "unrun",
-      "estimatedDurationMin": 20,
+      "estimatedDurationMin": 35,
       "automationTier": "mock-only",
       "cleanupCommand": "cd labs/day-1/02-hcl-blocks"
     },
@@ -75,7 +75,7 @@
       "tools": "None",
       "pinned": "`local` + `random` providers",
       "validationState": "unrun",
-      "estimatedDurationMin": 25,
+      "estimatedDurationMin": 30,
       "automationTier": "mock-only",
       "cleanupCommand": "cd labs/day-1/06-variables"
     },
