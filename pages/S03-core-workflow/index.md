@@ -35,8 +35,8 @@ Then: "Start at the top — init, the command that prepares the directory."
     config (and after changing providers/backends).
   </KwCard>
   <KwCard heading="plan" variant="ok">
-    Compute the <strong>diff</strong> between your config and reality. A
-    <strong>preview</strong> — it changes nothing.
+    Refresh state against reality, then <strong>diff</strong> your config
+    against that refreshed state. A <strong>preview</strong> — it changes nothing.
   </KwCard>
   <KwCard heading="apply" variant="ok">
     Execute the plan: <strong>converge</strong> reality to the config, in
@@ -58,9 +58,10 @@ yourself.
 <!--
 Say: The four commands, each with one job. init prepares the directory — installs
 providers and writes the lock file — and you run it once per config, or again when
-providers or backends change. plan computes the diff between config and reality and
-previews it without touching anything. apply executes that plan, converging reality
-to the config in dependency order, and a re-run with no changes does nothing.
+providers or backends change. plan refreshes state against reality, then diffs
+your config against that refreshed state, and previews the result without touching
+anything. apply executes that plan, converging reality to the config in dependency
+order, and a re-run with no changes does nothing.
 destroy removes everything in state in reverse order. Click: in practice you live
 in the plan-apply loop; init is occasional and destroy is teardown — and the
 dependency graph orders all of them for you. (~3 min)
@@ -115,7 +116,7 @@ heading: 'Reading a plan — the +/~/- symbols'
 lab: labs/day-1/03-core-workflow.md
 ---
 
-```console {none|1-3|2|3|7,9|12|all}
+```console {none|1-3|2|3|7,9|13|all}
 Resource actions are indicated with the following symbols:
   + create
   -/+ destroy and then create replacement
@@ -126,6 +127,7 @@ Resource actions are indicated with the following symbols:
       + filename = "./build/manifest.txt"
       + id       = (known after apply)
     }
+  # ... local_file.summary, random_pet.env elided ...
 
 Plan: 3 to add, 0 to change, 0 to destroy.
 ```
@@ -164,9 +166,67 @@ create, tilde update, minus destroy — and the compound minus-slash-plus meanin
 destroy-then-recreate when a change can't be done in place. Then known-after-apply:
 a value that doesn't exist yet because the resource that computes it hasn't been
 created — it resolves at apply. Finally the summary line, N to add, change, destroy:
-read THAT first on every plan; it's the entire change in one line. The +/~/- legend
-here is illustrative console text; the lab shows each symbol from a real run. (~6
-min)
+read THAT first on every plan; it's the entire change in one line — here it counts
+all three lab resources, two of which the excerpt elides. The +/~/- legend here is
+illustrative console text; the lab shows each symbol from a real run. (~6 min)
+Then: "A plan is a diff. A diff against what?"
+-->
+
+---
+layout: code-annotated
+heading: 'What plan is comparing against'
+lab: labs/day-1/03-core-workflow.md
+---
+
+```console {none|6-7,11|2|all}
+$ tofu plan
+random_pet.env: Refreshing state... [id=delicate-grouper]
+
+# terraform.tfstate: one resource, pretty-printed, trimmed
+{
+  "type": "random_pet",
+  "name": "env",
+  "instances": [
+    {
+      "attributes": {
+        "id": "delicate-grouper",
+        "length": 2,
+        ...
+      }
+    }
+  ]
+}
+```
+
+::notes::
+
+<CodeNote at="1" label="address → real id">
+  State maps each <strong>address</strong> in your config
+  (<code>random_pet.env</code>) to the <strong>real object</strong> it built
+  (<code>delicate-grouper</code>).
+</CodeNote>
+
+<CodeNote at="2" label="Refreshing state..." variant="warn">
+  Before diffing, plan <strong>refreshes</strong>: it asks the provider what each
+  recorded object looks like <em>now</em>. Plan keeps that refreshed copy in
+  memory; it does not rewrite the file.
+</CodeNote>
+
+<CodeNote at="3" label="then the diff" variant="ok">
+  Plan refreshes state against reality, then diffs your config against that
+  refreshed state. S04 opens this file properly.
+</CodeNote>
+
+<!--
+Say: Every plan so far has been "a diff" — so name the other side. After the first
+apply, OpenTofu writes terraform.tfstate. This is a real excerpt from applying this
+lab's config, pretty-printed and trimmed to one resource. Click: state maps the
+address random_pet.env to the real object it built, delicate-grouper — yours will
+have another name. Click: the Refreshing state line is plan asking the provider what
+each recorded object looks like right now — plan holds that refreshed copy in memory
+and does not rewrite the file. Click: plan refreshes state against reality, then
+diffs your config against that refreshed state. That one sentence is all of state you need until S04, which opens the file,
+backends and drift properly. (~4 min)
 Then: "See the same thing as a morph — config becomes plan becomes shell."
 -->
 
@@ -260,10 +320,10 @@ the memory that makes the *next* plan a diff instead of a fresh create.
 
 <!--
 Say: The whole workflow as one pipeline, four clicks. Config is what you write.
-Plan is the diff OpenTofu computes from config versus state. Apply executes that
-diff and converges reality. State is what apply records — and that last stage is the
-one to stress: state is the memory that lets the NEXT plan be a diff against reality
-instead of a from-scratch create. No state, no idempotency, no drift detection.
+Plan refreshes state against reality, then diffs your config against that refreshed
+state. Apply executes that diff and converges reality. State is what apply records —
+and that last stage is the one to stress: state is the memory that lets the NEXT plan
+be a diff instead of a from-scratch create. No state, no idempotency, no drift detection.
 That's the thread S04 picks up later today, once the config is parameterised
 and guarded. (~2 min)
 Then: "State also encodes order — through the dependency graph."
@@ -312,6 +372,53 @@ runs the exact reverse, dependents before dependencies, so nothing is deleted ou
 from under something that needs it. Final click: if two resources reference each
 other the graph has a cycle, and OpenTofu refuses with Error: Cycle — the graph must
 be acyclic. That's the break-fix you do in the lab. (~4 min)
+Then: "The graph only sees references. What about a dependency with no reference?"
+-->
+
+---
+layout: code-walkthrough
+heading: 'When references are not enough: depends_on'
+---
+
+```hcl
+resource "local_file" "manifest" {
+  filename = "${path.module}/build/manifest.txt"
+  content  = "environment = ${random_pet.env.id}\n"
+}
+
+# Tells the reader to open the manifest — by path, in a string.
+# A string is not a reference, so the graph has no edge here.
+resource "local_file" "release_note" {
+  filename = "${path.module}/build/release-note.txt"
+  content  = "Before deploying, read build/manifest.txt first.\n"
+
+  depends_on = [local_file.manifest]
+}
+```
+
+<div class="kw-cols-2 mt-4">
+  <KwCard heading="Hidden dependencies only" kind="resource" variant="ok">
+    Use <code>depends_on</code> when one thing needs another but reads
+    <strong>none of its attributes</strong>: an IAM policy that must exist before a
+    role is used, a file that must be written before a script reads it.
+  </KwCard>
+  <KwCard heading="Never instead of a reference" variant="danger">
+    If you can reference an attribute, do: the reference carries the
+    <strong>value and the edge</strong>. <code>depends_on</code> carries order
+    only, and a reader cannot see why it is there — so comment it.
+  </KwCard>
+</div>
+
+<!--
+Say: The graph is built from references, so a dependency with no reference is
+invisible to it. release_note names the manifest's path inside a string — a human
+sees the link, OpenTofu sees two unrelated resources and is free to write the note
+first, or at the same moment. depends_on takes a list of resources or modules and
+adds the missing edge: now the note is created after the manifest and destroyed
+before it. The rule: use it only for hidden dependencies — the IAM policy a role
+needs before it is used, the file a script reads — never as a substitute for a
+reference, because a reference gives you the value and the edge, while depends_on
+gives you order and nothing else. You add exactly this edge in the lab. (~4 min)
 Then: "One more property falls out of state and the graph: idempotency."
 -->
 
@@ -348,7 +455,8 @@ env: 'mock ✓ (no docker)'
 Run the **full lifecycle** — `init` (and read the lock file), `plan` (read the
 `+`/`~`/`-` symbols), `apply` (watch the dependency ordering), a second `apply`
 (prove idempotency), and `destroy`. Then **break it**: reference two resources at
-each other, read the real `Error: Cycle:`, and fix the graph.
+each other, read the real `Error: Cycle:`, and fix the graph — and add the one edge
+the graph cannot see with `depends_on`.
 
 Every task and question has a `<details>` spoiler; panic reset is `tofu destroy`
 plus `rm`.
@@ -359,7 +467,9 @@ three-resource config: init and inspect the lock file, plan and read the symbols
 apply and watch the pet-then-manifest-then-summary ordering, apply again to see the
 no-op, and destroy in reverse. The break-fix is the dependency cycle: point two
 files at each other's content, watch tofu refuse with Error: Cycle naming both
-resources, then break the loop and watch plan go green. Every task and question has
+resources, then break the loop and watch plan go green. Then the hidden dependency:
+a release note that names the manifest only in a string, no edge in tofu graph until
+depends_on adds one. Every task and question has
 a spoiler; panic reset is tofu destroy plus rm — nothing cloud, nothing to leak.
 (~20 min, matches the lab duration)
 Then: regroup for the recap.
@@ -378,6 +488,7 @@ next: 'Next: Variables, validation & types'
   `(known after apply)`; the `Plan: N to add / change / destroy` summary line.
 - The **dependency graph** — built from references, not file order — sets create
   order and reverses it for destroy. A **cycle** fails with `Error: Cycle: …`.
+  `depends_on` adds an edge **only** for a dependency no reference expresses.
 - **Idempotency:** a second `apply` with no change is a **no-op** — the outcome
   depends on desired state, not run count.
 - `apply` records the result in **state** — the memory the next plan diffs
@@ -389,7 +500,8 @@ the committed lock file; plan previews the diff; apply converges; destroy tears 
 in reverse. Reading a plan is the core skill — plus create, tilde update, minus
 destroy, minus-slash-plus replace, known-after-apply, and the summary line you read
 first. The dependency graph, built from references and not file order, sets create
-order and reverses it for destroy, and a cycle fails with Error: Cycle. Idempotency
+order and reverses it for destroy, and a cycle fails with Error: Cycle; depends_on
+adds an edge only where no reference can. Idempotency
 means a no-op second apply. And apply records everything in state — the memory the
 next plan diffs against. (~2 min)
 Then: transition into S06 — Variables, validation & types.
