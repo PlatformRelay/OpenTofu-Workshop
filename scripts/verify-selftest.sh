@@ -92,12 +92,16 @@
 #    30. skewed Dockerfile TOFU default → exit !=0 AND pin drift named
 #    31. skewed compose LocalStack image ref → exit !=0 AND pin drift named
 #    32. skewed ci.yml tofu_version → exit !=0 AND pin drift named
+#    32a. ONE of ci.yml's tofu_version lines skewed → exit !=0 (every value
+#         must match, not "at least one occurrence")
+#    32b. all real values skewed, pin only in a comment → exit !=0
 #   SEC-4 offline pin (no network; live verify stays in terratest Dockerfile):
 #    33. versions.env TOFU_VERSION matches committed artifact/SUMS fixture
 #   version-floor skew (US-D-VERSION-FLOOR / section 11):
 #    33a. clean tree → exit 0 AND "version floor: consumers state" (gate ARMED)
 #    33b. bootstrap MIN_TOFU skewed away from TOFU_FLOOR → exit !=0 AND
 #         "floor skew: bootstrap MIN_TOFU" named
+#    33b2. a second, skewed MIN_TOFU assignment → exit !=0
 #    33d. a floor-restating doc consumer (runbook) skewed → exit !=0 AND
 #         "floor skew: runbook any-machine row" named
 #    33e. a planted "~> X" artifact pin → exit !=0 AND "ceiling-imposing
@@ -328,6 +332,10 @@ build_root() {
   cp "$REPO_ROOT/Taskfile.yaml"     "$root/Taskfile.yaml"
   cp "$REPO_ROOT/versions.env"      "$root/versions.env"
   cp "$REPO_ROOT/docker-compose.yml" "$root/docker-compose.yml"
+  cp "$REPO_ROOT/setup/localstack-k8s.yaml" "$root/setup/localstack-k8s.yaml"
+  mkdir -p "$root/labs/day-3/25-terramate-ci-cloud/.github/workflows"
+  cp "$REPO_ROOT/labs/day-3/25-terramate-ci-cloud/.github/workflows/terramate-pr.yml" \
+    "$root/labs/day-3/25-terramate-ci-cloud/.github/workflows/terramate-pr.yml"
   mkdir -p "$root/.github/workflows"
   cp "$REPO_ROOT/.github/workflows/ci.yml" "$root/.github/workflows/ci.yml"
   mkdir -p "$root/setup/terratest"
@@ -635,7 +643,43 @@ m_pin_ci_drift() {
     "$root/.github/workflows/ci.yml"
 }
 
-# --- version-floor skew (US-D-VERSION-FLOOR / verify.sh section 11) ---------
+m_pin_k8s_drift() {
+  local root="$1"
+  perl -pi -e 's/localstack\/localstack:[0-9.]+/localstack\/localstack:9.9.9/' \
+    "$root/setup/localstack-k8s.yaml"
+}
+
+m_pin_fixture_drift() {
+  local root="$1"
+  perl -pi -e 's/version: "[0-9.]+"/version: "9.9.9"/' \
+    "$root/labs/day-3/25-terramate-ci-cloud/.github/workflows/terramate-pr.yml"
+}
+
+# ONE of ci.yml's three `tofu_version:` lines drifts. A whole-file fixed-string
+# grep still found the other two and stayed green; every value must match.
+m_pin_ci_one_drift() {
+  local root="$1" tofu_pin
+  # shellcheck source=versions.env disable=SC1091
+  . "$root/versions.env"
+  tofu_pin="$TOFU_VERSION"
+  perl -pi -e "if (/tofu_version: \"\Q${tofu_pin}\E\"/ && ++\$n == 2) { s/\Q${tofu_pin}\E/1.6.0/ }" \
+    "$root/.github/workflows/ci.yml"
+  grep -q 'tofu_version: "1.6.0"' "$root/.github/workflows/ci.yml" ||
+    { echo "selftest: m_pin_ci_one_drift did not apply" >&2; return 1; }
+}
+
+# Every real `tofu_version:` value drifts, but a COMMENT still carries the pin
+# verbatim. Comments are not configuration; the gate must strip them.
+m_pin_ci_comment_only() {
+  local root="$1" tofu_pin
+  # shellcheck source=versions.env disable=SC1091
+  . "$root/versions.env"
+  tofu_pin="$TOFU_VERSION"
+  perl -pi -e "s/tofu_version: \"\Q${tofu_pin}\E\"/tofu_version: \"1.6.0\"/" \
+    "$root/.github/workflows/ci.yml"
+  printf '# tofu_version: "%s" (comment only)\n' "$tofu_pin" >>"$root/.github/workflows/ci.yml"
+}
+
 
 m_floor_clean() { :; }
 
@@ -652,6 +696,13 @@ m_floor_ceiling() { # a lab artifact demanding more than the floor → scan red
   mkdir -p "$root/labs/day-1/floor-ceiling-selftest"
   printf 'globals {\n  terraform_version      = ">= 99.0"\n}\n' \
     >"$root/labs/day-1/floor-ceiling-selftest/globals.tm.hcl"
+}
+
+m_floor_bootstrap_second_skew() { # a 2nd MIN_TOFU assignment below the first
+  local root="$1"
+  perl -pi -e 's/^(MIN_TOFU="[0-9.]+")$/$1\nMIN_TOFU="1.7"/' "$root/setup/bootstrap.sh"
+  grep -q '^MIN_TOFU="1.7"$' "$root/setup/bootstrap.sh" ||
+    { echo "selftest: m_floor_bootstrap_second_skew did not apply" >&2; return 1; }
 }
 
 m_floor_runbook_skew() { # a newly-inventoried doc consumer stops stating 1.9
@@ -933,8 +984,9 @@ m_lab_tftest_fail() {
     "$root/$LAB_TFTTEST_DIR/tests/unit.tftest.hcl"
 }
 
-# Preflight: a FAILING toolchain probe must be named and the run must continue
-# to its summary — never a silent death.
+# Preflight: a FAILING toolchain probe must be named and the run must ABORT
+# before the ~50-directory sweep — never a silent death, and never a sweep that
+# buries the probe error under init logs.
 #
 # THE HOLE THIS CLOSES: `tofu version` used to be piped through `2>/dev/null |
 # head -n1 | awk`, so under `set -euo pipefail` a non-zero probe (or a SIGPIPE
@@ -1709,10 +1761,10 @@ case "\$1" in
     "$real_cat" "\$@"
     if [ "\$n" -eq 2 ]; then
       : >"\${n_file}.armed"
-      # RENDEZVOUS, not a fixed sleep. `sleep 3` only overlaps the two racers if
+      # RENDEZVOUS, not a fixed sleep. \`sleep 3\` only overlaps the two racers if
       # both reach this window within three seconds of each other. Under load
       # they do not: the window closes on the first before the second arrives,
-      # `armed` comes back 1, and the case reports DISARMED — observed about one
+      # \`armed\` comes back 1, and the case reports DISARMED — observed about one
       # run in four. A gate that reds a quarter of the time trains people to
       # re-run gates, which is worse than the hole it was closing.
       #
@@ -1727,7 +1779,7 @@ case "\$1" in
         i=\$((i + 1))
       done
       # Both are inside the window now. Hold briefly so neither leaves before
-      # the other has resumed, then let them reach the `mv` together.
+      # the other has resumed, then let them reach the \`mv\` together.
       sleep 0.3
     fi
     exit 0
@@ -1868,19 +1920,17 @@ run_case "day-3 nested stack dangling reference armed" fail "$DAY3_VALIDATE_DIR:
 run_case "day-2 nested workdir without tftest swept and armed" fail "$DAY2_SWEEP_NESTED_DIR: validate" m_day2_sweep_nested_broken "$VALIDATE_SCOPE_HEADING"
 run_case "day-2 messy fixtures excluded by path prefix" pass "$DAY2_SWEEP_DIR: validate" m_day2_messy_excluded "$VALIDATE_SCOPE_HEADING"
 run_case "init failure names BOTH provider-cache causes" fail "a COLD or partial provider cache" m_init_provider_cache_failure "no package for registry.opentofu.org" "another process writing .terraform/"
-# `also` pins the SURVIVAL half: exit non-zero alone would also be produced by
-# the silent death this case exists to forbid. Reaching the summary proves the
-# gate reported and kept going.
-# Three needles, all load-bearing and none substitutable:
+# Needles, all load-bearing and none substitutable:
 #   'tofu version probe failed'    — the failure is NAMED
 #   'simulated toolchain probe...' — tofu's OWN words are echoed. This is the
 #                                    whole reason `2>/dev/null` was dropped;
 #                                    without it, deleting the `info "tofu said:"`
 #                                    echo leaves the case green.
-#   'verify FAILED'                — the run SURVIVED to its summary. Exit
-#                                    non-zero alone would also be produced by
-#                                    the silent death this case forbids.
-run_case "tofu version probe failure is named, not a silent death" fail "tofu version probe failed" m_tofu_version_probe_fails "simulated toolchain probe failure" "verify FAILED"
+#   'verify FAILED'                — the run reached its summary (not a silent
+#                                    death, and not a bare assignment failure).
+#   'aborting before the sweep'    — the fix ABORTS; the old code failed the
+#                                    probe then still swept ~50 directories.
+run_case "tofu version probe failure is named, then aborts before the sweep" fail "tofu version probe failed" m_tofu_version_probe_fails "simulated toolchain probe failure" "verify FAILED" "aborting before the sweep"
 # The other half of the same fix: a noisy-but-HEALTHY probe must parse cleanly.
 # Pinning only the failure path would let the parse regress to stderr-first.
 run_case "noisy tofu stderr does not corrupt the parsed version" pass "tofu v1.10.3 (>= 1.9)" m_tofu_version_stderr_noise
@@ -1891,9 +1941,14 @@ run_case "toolchain pin drift clean" pass "toolchain pins: all listed consumers 
 run_case "toolchain pin drift Dockerfile armed" fail "pin drift: TOFU_VERSION (Dockerfile default) in setup/terratest/Dockerfile does not match versions.env" m_pin_drift
 run_case "toolchain pin drift compose LocalStack armed" fail "pin drift: LOCALSTACK_VERSION (compose image) in docker-compose.yml does not match versions.env" m_pin_compose_drift
 run_case "toolchain pin drift ci.yml armed" fail "pin drift: TOFU_VERSION (ci.yml setup-opentofu) in .github/workflows/ci.yml does not match versions.env" m_pin_ci_drift
+run_case "toolchain pin drift ci.yml one-of-three armed" fail "pin drift: TOFU_VERSION (ci.yml setup-opentofu) in .github/workflows/ci.yml does not match versions.env" m_pin_ci_one_drift "found: 1.6.0"
+run_case "toolchain pin drift ci.yml comment-only armed" fail "pin drift: TOFU_VERSION (ci.yml setup-opentofu) in .github/workflows/ci.yml does not match versions.env" m_pin_ci_comment_only
+run_case "toolchain pin drift k8s manifest armed" fail "pin drift: LOCALSTACK_VERSION (k8s manifest) in setup/localstack-k8s.yaml does not match versions.env" m_pin_k8s_drift
+run_case "toolchain pin drift day-3 fixture armed" fail "pin drift: TERRAMATE_VERSION (day-3 fixture) in labs/day-3/25-terramate-ci-cloud/.github/workflows/terramate-pr.yml does not match versions.env" m_pin_fixture_drift
 run_case "version floor clean" pass "version floor: consumers state" m_floor_clean
 run_case "version floor bootstrap skew armed" fail "floor skew: bootstrap MIN_TOFU in setup/bootstrap.sh does not state the floor" m_floor_bootstrap_skew
 run_case "version floor ceiling armed" fail "demands >= 99.0, above the workshop floor" m_floor_ceiling
+run_case "version floor second MIN_TOFU armed" fail "floor skew: bootstrap MIN_TOFU in setup/bootstrap.sh does not state the floor" m_floor_bootstrap_second_skew "found: 1.7"
 run_case "version floor runbook consumer armed" fail "floor skew: runbook any-machine row in docs/facilitator-runbook.md does not state the floor" m_floor_runbook_skew
 run_case "version floor tilde ceiling armed" fail "pins a ceiling-imposing constraint \"~> 1.8\"" m_floor_tilde
 run_case "pointer hygiene clean" pass "pointer hygiene: no tracked prose references ${PTR_NEEDLE}" m_clean
