@@ -2060,8 +2060,34 @@ m_gomod_labs_renamed() {
   git_init_root "$root"
 }
 
+# OVH-variant module: a tracked go.mod under variant/
+# is scanned against the SAME ceiling, NOT counted as an escape. The variant
+# Go twin lives outside labs/ by design, so the ceiling must cover it explicitly
+# rather than red on it.
+plant_gomod_variant() {
+  local root="$1" directive="$2"
+  mkdir -p "$root/variant/ovh/labs/day-2/18-terratest-cost"
+  printf 'module example.com/variant-selftest\n\ngo %s\n' "$directive" \
+    >"$root/variant/ovh/labs/day-2/18-terratest-cost/go.mod"
+}
+
+# Compliant variant module beside a compliant labs module: BOTH scanned, pass.
+m_gomod_variant_compliant() {
+  plant_gomod "$1" "1.25.0"
+  plant_gomod_variant "$1" "1.25.0"
+  git_init_root "$1"
+}
+
+# A variant module above GO_VERSION is caught exactly like a labs one — the
+# whole point of scanning it instead of treating it as an escape.
+m_gomod_variant_above_pin() { plant_gomod_variant "$1" "9.99.0"; git_init_root "$1"; }
+
 run_case "go ceiling: not applicable without modules" pass \
-  "no git index and no labs/**/go.mod present — Go ceiling not applicable here" m_clean
+  "no git index and no labs|variant/**/go.mod present — Go ceiling not applicable here" m_clean
+run_case "go ceiling: variant module is scanned, not treated as an escape" pass \
+  "2 go.mod directive(s) within GO_VERSION=" m_gomod_variant_compliant
+run_case "go ceiling: variant directive above GO_VERSION armed" fail \
+  "declares go 9.99.0, above versions.env GO_VERSION=" m_gomod_variant_above_pin
 run_case "go ceiling: compliant tracked module scanned" pass \
   "1 go.mod directive(s) within GO_VERSION=" m_gomod_compliant
 run_case "go ceiling: directive above GO_VERSION armed" fail \
