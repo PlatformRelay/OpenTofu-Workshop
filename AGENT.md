@@ -38,10 +38,10 @@ Delivery: [facilitator runbook](docs/facilitator-runbook.md). Decisions:
   ```bash
   pnpm install
   task verify                    # tofu fmt/validate/test + drift + repo contracts
-  pnpm lint                      # markdownlint (labs only)
+  pnpm lint                      # markdownlint (labs + variant/ovh docs)
   pnpm decks:check && pnpm test:deck
   node scripts/lab-contract.mjs && node scripts/lab-inventory.mjs --check
-  pnpm link-check                # offline link/anchor check (README, docs, labs)
+  pnpm link-check                # offline link/anchor check (README, docs, labs, variant)
   ```
 
 - `task verify` / `scripts/verify.sh` need **Bash ≥ 4**; the fmt gate scans

@@ -101,6 +101,11 @@ task lab:up && task lab:terratest:host DIR=labs/fixtures/terratest-smoke
 No Docker? The container lane fails fast and points at the host-Go commands
 above.
 
+> [!TIP]
+> No Docker, or would you rather run the cloud beats on real Object Storage?
+> The [OVH variant track](variant/ovh/README.md) runs the same OpenTofu on
+> OVHcloud Public Cloud free credits — same repo, same branch, no AWS account.
+
 ## Choose your route
 
 | I am a… | Start with | Then use |

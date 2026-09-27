@@ -13,8 +13,8 @@ process:
 - **No commit-message conventions.** Write any commit message; maintainers will
   squash-merge and format the final message themselves.
 - **No local toolchain.** Editing the file on github.com is fine — CI is the safety
-  net (markdown lint on labs, an offline link check on README/docs/labs, and a strict
-  docs-site build all run on every PR).
+  net (markdown lint on labs and the OVH variant docs, an offline link check on
+  README/docs/labs/variant, and a strict docs-site build all run on every PR).
 - **In the PR description**, one sentence is enough — delete the template checklist.
 
 One hard rule still applies even to one-liners: no employer, customer, or corporate
@@ -49,8 +49,8 @@ on stock macOS:
 
 | Check | What it needs | Command |
 | --- | --- | --- |
-| Markdown lint (`labs/**/*.md` only — deck sources are excluded by design) | Node ≥ 22 + pnpm | `pnpm install && pnpm lint` |
-| Offline link check (README, `docs/`, `labs/`) | Node only, zero install | `node scripts/link-check.mjs` |
+| Markdown lint (`labs/**/*.md` and `variant/ovh/**/*.md` — deck sources are excluded by design) | Node ≥ 22 + pnpm | `pnpm install && pnpm lint` |
+| Offline link check (README, `docs/`, `labs/`, `variant/`) | Node only, zero install | `node scripts/link-check.mjs` |
 | Docs-site preview / strict build | Python 3 | `python3 -m pip install -r docs/requirements-docs.txt && mkdocs serve` (CI runs `mkdocs build --strict`) |
 
 Note: CI has no path filters, so a docs-only PR still runs the full job matrix (HCL

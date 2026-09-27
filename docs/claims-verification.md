@@ -61,8 +61,9 @@ than assumed:
   none touching this file. That is exactly why the gate matrix runs
   `git clean -Xfd labs` first; a red here is almost always that, not a diff.
 - **`markdownlint-cli2` does NOT lint this file in CI** — its globs are
-  `labs/**` only. It was run against this path by hand instead (0 errors). Worth
-  knowing before trusting a green markdownlint as cover for `docs/**`.
+  `labs/**` and `variant/ovh/**` only. It was run against this path by hand
+  instead (0 errors). Worth knowing before trusting a green markdownlint as cover
+  for `docs/**`.
 
 ## Scope
 

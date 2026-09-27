@@ -95,6 +95,18 @@ Host support is a separate claim from lab validation.
 | [`day-3/27-terragrunt-comparison.md`](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-3/27-terragrunt-comparison.md) | S27 Terragrunt vs Terramate | `mock ✓ (paper + fixture · no docker)` | None (Terramate only for optional stretch) | read-only fixture HCL only | `unrun` |
 | [`day-3/28-ecosystem-tooling.md`](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-3/28-ecosystem-tooling.md) | S28 Ecosystem tooling | `mock ✓ (no docker)` | **pre-commit** (one-time network hook fetch; tenv/terraform-docs optional) | hook repos pinned in `.pre-commit-config.yaml` | `unrun` |
 
+## OVH variant track
+
+The [OVH variant track](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/variant/ovh/README.md)
+is a separate, self-contained lane — not part of the contracted participant labs above. Its unit lane
+(`task ovh:verify`) is validated independently of the base matrix; real-OVH
+integration is not wired (it needs a funded project and CI secrets), so the
+variant's cloud state stays `unrun` until the smoke root has been run.
+
+| Lane | Environment | Tools / deps | Pinned versions / URLs | State |
+| --- | --- | --- | --- | --- |
+| `variant/ovh/**` (bootstrap · smoke · Day-1/2 twins · example twins) | `ovh ✓ (real Object Storage)` · `mock ✓ (no docker)` | OVHcloud account + payment method + S3 credentials; `ovh` provider only for `bootstrap/` | OpenTofu ≥1.9; `OVH_PROVIDER_VERSION` (`versions.env`); S3 endpoint `https://s3.<region>.io.cloud.ovh.net` | `unit-tested` (unit lane) / `unrun` (real OVH) |
+
 ## Tool-heavy labs: canonical install + expected diagnostic beat
 
 These labs need extra tooling beyond OpenTofu. Each lists the canonical install and the
