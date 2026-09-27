@@ -1,7 +1,7 @@
 name: CI
 
 # Fast gate on every PR and every push to main: lint the labs and build all
-# three root decks so a broken deck or malformed lab fails review. PDF export
+# six root decks so a broken deck or malformed lab fails review. PDF export
 # (slow, needs a headless browser) is intentionally left to the release job.
 
 on:
@@ -46,6 +46,38 @@ jobs:
           node --test scripts/supply-chain-policy.test.mjs scripts/pnpm-overrides.test.mjs
           node scripts/supply-chain-policy.mjs
 
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # gitleaks needs the full history to scan every commit, not a
+          # shallow clone.
+          fetch-depth: 0
+      # The CLI image, not gitleaks/gitleaks-action: v2 of that action requires
+      # a GITLEAKS_LICENSE secret for organizations, so the job could never pass
+      # here without one. The CLI is MIT-licensed and scans the same history.
+      # Pinned by digest (supply-chain policy: container actions must be
+      # immutable). Both steps run scripts/gitleaks-scan.sh inside the image:
+      # the container runs as root over a runner-owned checkout, so git refuses
+      # the repo ("dubious ownership") unless it is a safe.directory, and
+      # gitleaks then logs "failed to scan" yet exits 0 with "no leaks found".
+      # The wrapper sets safe.directory for the scan and fails unless the log
+      # shows "N commits scanned" with no read failure.
+      - name: Scan the full git history
+        uses: docker://ghcr.io/gitleaks/gitleaks@sha256:0e99e8821643ea5b235718642b93bb32486af9c8162c8b8731f7cbdc951a7f46 # v8.21.2
+        with:
+          entrypoint: /bin/sh
+          args: scripts/gitleaks-scan.sh history /github/workspace
+      # Positive control: the same image and flags must catch a fake AWS key
+      # planted in a scratch repo, or the scan above proves nothing.
+      - name: Positive control (planted key must be detected)
+        uses: docker://ghcr.io/gitleaks/gitleaks@sha256:0e99e8821643ea5b235718642b93bb32486af9c8162c8b8731f7cbdc951a7f46 # v8.21.2
+        with:
+          entrypoint: /bin/sh
+          args: scripts/gitleaks-scan.sh control
+
   lint:
     name: Lint labs (markdown)
     runs-on: ubuntu-latest
@@ -75,6 +107,12 @@ jobs:
       # ...and the checker's own mutation probes, so the gate is known to red
       # on the defects it names rather than assumed to.
       - run: pnpm test:claims:selftest
+      # Integration discovery/filter regression: the lanes must derive
+      # the `tofu test` filter from the discovered files, not hardcode one.
+      - run: pnpm test:integration-discovery
+      # Taskfile ordering + verify-lock preconditions: parse the
+      # dependency graph and execute each guard; go-task is not installed here.
+      - run: pnpm test:taskfile-contract
 
   lab-contract:
     name: Lab sibling-solution contract
@@ -461,26 +499,15 @@ jobs:
           AWS_SECRET_ACCESS_KEY: test
           AWS_DEFAULT_REGION: us-east-1
           AWS_ENDPOINT_URL: http://localhost:4566
-        # One retry per root absorbs transient LocalStack flakiness
-        # (first-touch service init); a genuine failure still fails the job.
-        # Covers examples/* and labs/day-2/*/tests/integration*.tftest.hcl
-        # (e.g. lab 16) — same discovery as Taskfile verify:integration:tests.
-        run: |
-          for d in examples/* labs/day-2/*; do
-            [ -d "$d" ] || continue
-            ls "$d"/tests/integration*.tftest.hcl >/dev/null 2>&1 || continue
-            echo "::group::$d (integration)"
-            ok=0
-            for attempt in 1 2; do
-              if ( cd "$d" && tofu init -input=false && tofu test -filter=tests/integration.tftest.hcl ); then
-                ok=1; break
-              fi
-              echo "::warning::$d integration tests failed (attempt $attempt/2)"
-              [ "$attempt" -lt 2 ] && sleep 10
-            done
-            echo "::endgroup::"
-            [ "$ok" -eq 1 ] || exit 1
-          done
+        # scripts/integration-tests.sh is the shared loop (Taskfile
+        # verify:integration:tests runs it too). Per root it runs the
+        # participant's plain `tofu init` on a scratch copy — the encrypted
+        # examples take TF_VAR_state_passphrase exactly as a learner does — then
+        # `tofu test -filter=<file>` for every discovered integration file, and
+        # fails on "0 passed" or when no roots are discovered. One retry per
+        # root absorbs transient LocalStack flakiness (first-touch service
+        # init); a genuine failure still fails the job.
+        run: bash scripts/integration-tests.sh --attempts 2
 
   showcase-gif:
     # US-P-GIF: the README's animated deck tour must be reproducible from a

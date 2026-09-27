@@ -3,8 +3,9 @@
 The repository fails CI when a workflow uses a mutable action reference, a pinned
 action lacks a version comment, maintained executable setup code introduces an
 ungoverned remote download or execution path, a job requests write permission
-outside the allowlist, or a dependency carries an unexcepted high/critical
-advisory.
+outside the allowlist, a committed secret is detected (the `secret-scan` gitleaks
+job, plus the same hook locally via `.pre-commit-config.yaml`), or a dependency
+carries an unexcepted high/critical advisory.
 
 Run the same gates locally:
 
@@ -32,8 +33,11 @@ a nearby version comment, for example:
 - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 ```
 
-Container actions, if introduced, must use an image digest. Local actions under
-`./` are allowed. Renovate's GitHub Actions manager has `pinDigests: true`, so
+Container actions must use an image digest. Local actions under
+`./` are allowed. The same rule covers `.pre-commit-config.yaml`: every remote
+hook repo pins `rev:` to a 40-character commit SHA with a version comment
+(`# v8.21.2`); `local` and `meta` repos carry no rev. `scripts/supply-chain-policy.mjs`
+enforces both, so reverting a hook to a tag fails the gate. Renovate's GitHub Actions manager has `pinDigests: true`, so
 updates remain reviewable proposals and preserve immutable references.
 
 Every workflow declares read-only permissions at the workflow level. Jobs that
@@ -44,6 +48,40 @@ permissions they need:
 | --- | --- | --- |
 | `pages.yml` | `deploy` | `pages`, `id-token` |
 | `release.yml` | `publish` | `contents` |
+
+## Secret scanning
+
+The `secret-scan` CI job runs the gitleaks CLI image (v8.21.2, pinned by digest)
+over the **full** history (`fetch-depth: 0`) through `scripts/gitleaks-scan.sh`,
+in two steps:
+
+- **History scan.** The container runs as root over a runner-owned checkout, so
+  git refuses the repository ("detected dubious ownership") unless it is a
+  `safe.directory`. When that happens gitleaks logs `failed to scan Git
+  repository` and still exits 0 with "no leaks found". The wrapper trusts the
+  checkout for its own process only (`GIT_CONFIG_COUNT`/`GIT_CONFIG_KEY_0=safe.directory`),
+  refuses a shallow clone, and fails unless the log shows `N commits scanned`
+  with N ≥ 1 and no read failure. Exit code alone is never the verdict.
+- **Positive control.** The same image and flags scan a scratch repository with
+  a freshly generated fake AWS access key planted in one commit; the step fails
+  unless gitleaks exits non-zero and reports `aws-access-token`. The key is
+  built at runtime, so no key-shaped literal is committed here.
+
+`tests/shell/gitleaks-scan.bats` checks the log verdict against recorded gitleaks
+output (including the dubious-ownership log) without Docker. To run the real
+thing locally:
+
+```sh
+IMG=ghcr.io/gitleaks/gitleaks@sha256:0e99e8821643ea5b235718642b93bb32486af9c8162c8b8731f7cbdc951a7f46
+docker run --rm -v "$PWD:/github/workspace" -w /github/workspace --entrypoint /bin/sh "$IMG" \
+  scripts/gitleaks-scan.sh history /github/workspace
+docker run --rm -v "$PWD:/github/workspace" -w /github/workspace --entrypoint /bin/sh "$IMG" \
+  scripts/gitleaks-scan.sh control
+```
+
+(From a `git worktree`, whose `.git` is a pointer file, scan a clone instead.)
+The pre-commit `gitleaks` hook covers staged changes on the contributor's
+machine.
 
 ## Remote downloads
 

@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
+import { parse as parseYaml } from 'yaml'
 
 import { checkSupplyChainPolicy } from './supply-chain-policy.mjs'
 
@@ -329,4 +330,78 @@ test('CI supply-chain job raises the Node heap for policy steps', async () => {
     workflow,
     /supply-chain:[\s\S]*?NODE_OPTIONS:\s*--max-old-space-size=\d+/,
   )
+})
+
+test('the secret-scan job scans real history and proves detection', async () => {
+  const root = path.join(import.meta.dirname, '..')
+  const workflow = parseYaml(await readFile(path.join(root, '.github/workflows/ci.yml'), 'utf8'))
+  const job = workflow?.jobs?.['secret-scan']
+  assert.ok(job, 'ci.yml must define a secret-scan job (the supply-chain doc claims it)')
+  const steps = job.steps ?? []
+
+  const checkout = steps.find((step) => String(step.uses ?? '').startsWith('actions/checkout@'))
+  assert.equal(checkout?.with?.['fetch-depth'], 0, 'secret-scan must check out full history (fetch-depth: 0)')
+
+  const gitleaksSteps = steps.filter((step) =>
+    /^docker:\/\/ghcr\.io\/gitleaks\/gitleaks@sha256:[0-9a-f]{64}$/i.test(String(step.uses ?? '')))
+  const argsOf = (step) => String(step.with?.args ?? '')
+  assert.ok(
+    gitleaksSteps.some((step) => /^scripts\/gitleaks-scan\.sh history \/github\/workspace$/.test(argsOf(step))),
+    'secret-scan must run the history scan through scripts/gitleaks-scan.sh in the digest-pinned image',
+  )
+  assert.ok(
+    gitleaksSteps.some((step) => /^scripts\/gitleaks-scan\.sh control$/.test(argsOf(step))),
+    'secret-scan must run the planted-key positive control in the same digest-pinned image',
+  )
+  assert.ok(
+    gitleaksSteps.every((step) => step.with?.entrypoint === '/bin/sh'),
+    'the wrapper is POSIX sh run inside the image',
+  )
+
+  const wrapper = await readFile(path.join(root, 'scripts/gitleaks-scan.sh'), 'utf8')
+  assert.match(wrapper, /GIT_CONFIG_KEY_0=safe\.directory/, 'the scan must trust the mounted checkout as a safe.directory')
+  assert.match(wrapper, /failed to scan/, 'the verdict must fail on a gitleaks git read failure')
+  assert.match(wrapper, /commits scanned/, 'the verdict must require a commits-scanned line')
+  assert.match(wrapper, /is-shallow-repository/, 'the scan must refuse a shallow clone')
+  assert.match(wrapper, /aws-access-token/, 'the control must require the planted key to be reported')
+})
+
+test('rejects a pre-commit hook repo pinned by tag instead of commit SHA', async () => {
+  const root = await fixture({
+    '.pre-commit-config.yaml': 'repos:\n  - repo: https://github.com/gitleaks/gitleaks\n    rev: v8.21.2\n    hooks:\n      - id: gitleaks\n',
+  })
+
+  const result = await checkSupplyChainPolicy(root)
+
+  assert.ok(result.errors.some((error) => error.includes('.pre-commit-config.yaml') && error.includes('40-character commit SHA')))
+})
+
+test('requires a version comment beside a pre-commit rev SHA', async () => {
+  const root = await fixture({
+    '.pre-commit-config.yaml': `repos:\n  - repo: https://github.com/gitleaks/gitleaks\n    rev: ${'a'.repeat(40)}\n    hooks:\n      - id: gitleaks\n`,
+  })
+
+  const result = await checkSupplyChainPolicy(root)
+
+  assert.ok(result.errors.some((error) => error.includes('.pre-commit-config.yaml') && error.includes('version comment')))
+})
+
+test('accepts SHA-pinned pre-commit repos and local/meta repos without rev', async () => {
+  const root = await fixture({
+    '.pre-commit-config.yaml': `repos:\n  - repo: https://github.com/gitleaks/gitleaks\n    rev: ${'a'.repeat(40)} # v8.21.2\n    hooks:\n      - id: gitleaks\n  - repo: local\n    hooks:\n      - id: x\n  - repo: meta\n    hooks:\n      - id: check-hooks-apply\n`,
+  })
+
+  const result = await checkSupplyChainPolicy(root)
+
+  assert.deepEqual(result.errors, [])
+})
+
+test('rejects a remote pre-commit repo with no rev at all', async () => {
+  const root = await fixture({
+    '.pre-commit-config.yaml': 'repos:\n  - repo: https://github.com/gitleaks/gitleaks\n    hooks:\n      - id: gitleaks\n',
+  })
+
+  const result = await checkSupplyChainPolicy(root)
+
+  assert.ok(result.errors.some((error) => error.includes('.pre-commit-config.yaml') && error.includes('40-character commit SHA')))
 })

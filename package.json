@@ -43,6 +43,8 @@
     "quiz:validate": "node scripts/quiz/validate.mjs",
     "quiz:export": "node scripts/quiz/export.mjs --out dist-quiz",
     "test:inventory": "node --test scripts/lab-inventory.test.mjs && node scripts/lab-inventory.mjs --check",
+    "test:integration-discovery": "node --test scripts/integration-discovery.test.mjs",
+    "test:taskfile-contract": "node --test scripts/taskfile-contract.test.mjs",
     "inventory:write": "node scripts/lab-inventory.mjs --write"
   },
   "dependencies": {
