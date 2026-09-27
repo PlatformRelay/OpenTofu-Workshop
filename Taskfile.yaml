@@ -17,6 +17,14 @@ silent: true
 # Toolchain pins — single source of truth (US-P-PINS).
 dotenv: ["versions.env"]
 
+# OVH variant track — its own task namespace (`ovh:`), included so the base
+# Taskfile stays the single entrypoint. The included tasks are NOT visible to
+# verify.sh §8's README-navigation parser (it reads this file only), so the base
+# README must never document a `task ovh:*` command. See variant/ovh/README.md.
+includes:
+  ovh:
+    taskfile: variant/ovh/Taskfile.yaml
+
 vars:
   LOCALSTACK_URL: http://localhost:4566
   LOCALSTACK_HEALTH: http://localhost:4566/_localstack/health
@@ -148,7 +156,7 @@ tasks:
         msg: "pnpm is required (run 'task setup')."
 
   lint:
-    desc: "Deck: lint lab Markdown (markdownlint-cli2)"
+    desc: "Deck: lint participant Markdown (markdownlint-cli2)"
     cmds:
       - pnpm run lint
     preconditions:
@@ -182,7 +190,7 @@ tasks:
         msg: "pnpm is required (run 'task setup')."
 
   link-check:
-    desc: "Docs: offline link check for README, docs/**, and labs/**"
+    desc: "Docs: offline link check for README, docs/**, labs/**, and variant/**"
     cmds:
       - pnpm run link-check
     preconditions:
