@@ -29,11 +29,9 @@ start the pinned LocalStack environment and create an emulated
 - [`labs/day-1/00-setup/stretch.tf`](./00-setup/stretch.tf) — the optional
   `random_pet` stretch resource and the variable that switches it on.
 
-Work in the tracked directory throughout:
-
-```bash
-cd labs/day-1/00-setup
-```
+Steps 1 and 3 run from the repository root; Steps 2 and 4, the stretch, and
+the cleanup's `tofu destroy` run in the tracked workdir `labs/day-1/00-setup`.
+Every step that changes directory starts with the `cd` it needs.
 
 ---
 
@@ -65,7 +63,13 @@ Your version and platform may be newer or different. If `task` is missing, run
 
 ## Step 2 — First plan and apply (no Docker, no cloud)
 
-The files are already tracked—read them before running them.
+Enter the tracked workdir; the files are already tracked—read them before
+running them:
+
+```bash
+cd labs/day-1/00-setup
+```
+
 [`versions.tf`](./00-setup/versions.tf) is boilerplate you set once—it sets the
 minimum OpenTofu version and pins every provider the lab uses:
 
@@ -77,7 +81,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 6.0"
+      version = ">= 5.0, < 6.0"
     }
     local = {
       source  = "hashicorp/local"
@@ -141,8 +145,10 @@ docker info >/dev/null && echo "Docker is ready"
 task lab:up
 ```
 
-If `docker info` fails, start Docker and repeat the check. Do not continue to
-Step 4 until `task lab:up` reports `LocalStack is healthy`.
+If `docker info` fails, start Docker and repeat the check. On the Docker-free
+route, run `task lab:up:k8s` instead of both commands
+([`setup/localstack.md`](../../setup/localstack.md)). Do not continue to Step 4
+until the command reports `LocalStack is healthy`.
 
 **Task:** Confirm S3 is available on port 4566.
 
