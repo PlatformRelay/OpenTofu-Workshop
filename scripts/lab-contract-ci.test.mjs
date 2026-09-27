@@ -3,8 +3,9 @@
 // Regression for exit 127 when the job had setup-node only and called `pnpm lab:contract`.
 // Also the mutation gate for the workdirHazards layer check (audit REL-3): recovery
 // blocks must not cd into nonexistent lab dirs or rm a git-tracked .terraform.lock.hcl.
-import { readFileSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import assert from 'node:assert/strict'
 import test from 'node:test'
@@ -40,7 +41,7 @@ test('lab-contract CI job runs its paper gate via node --test', () => {
 // The day-2 lockfile deletion was fixed per-outcome and the class recurred in
 // the day-3 capstone solution. These mutations pin the LAYER: any lab/solution
 // block that cds into a nonexistent dir or rms a tracked lockfile must red.
-import { workdirHazards } from './lab-contract.mjs'
+import { auditVariantLabs, workdirHazards } from './lab-contract.mjs'
 
 const fence = (body) => '```bash\n' + body + '\n```\n'
 
@@ -98,8 +99,116 @@ test('workdirHazards does not guess after a variable cd', () => {
   assert.deepEqual(workdirHazards(varCd), [])
 })
 
+// A repo-root-anchored cd works whether a learner runs blocks from the root or
+// in order from wherever the previous block left them, so the guard resolves
+// it (as the repo root) instead of giving up on the rest of the block.
+test('workdirHazards resolves a git-toplevel-anchored cd and still reds on a bad target', () => {
+  const broken = fence('cd "$(git rev-parse --show-toplevel)/labs/day-9/no-such-lab"')
+  assert.deepEqual(workdirHazards(broken),
+    ['line 2: cd into nonexistent directory: labs/day-9/no-such-lab'])
+})
+
+test('workdirHazards keeps judging after a git-toplevel-anchored cd', () => {
+  const block = fence([
+    'cd "$(git rev-parse --show-toplevel)/examples"',
+    'cd capstone',
+    'rm -f .terraform.lock.hcl',
+  ].join('\n'))
+  const errors = workdirHazards(block)
+  assert.ok(errors.some((e) => /rm of git-tracked lockfile: examples\/capstone\/\.terraform\.lock\.hcl/.test(e)),
+    `expected tracked-lockfile error, got: ${JSON.stringify(errors)}`)
+})
+
+test('workdirHazards accepts a bare git-toplevel cd as the repo root', () => {
+  const block = fence([
+    'cd "$(git rev-parse --show-toplevel)"',
+    'cd examples/capstone',
+  ].join('\n'))
+  assert.deepEqual(workdirHazards(block), [])
+})
+
 test('the live capstone and naming-labels solutions carry no workdir hazards', () => {
   for (const file of ['labs/day-3/26-capstone.solution.md', 'labs/day-1/08-naming-labels.solution.md']) {
     assert.deepEqual(workdirHazards(readFileSync(resolve(ROOT, file), 'utf8')), [], file)
   }
+})
+
+// --- OVH-variant sibling-solution contract ------------------------------------
+// The variant's participant labs live outside the base discovery scope, so the
+// base contract never sees them. This pass enforces the sibling-solution rule
+// (or an explicit thin-delta marker) for variant/ovh/labs/**.
+function variantRoot() {
+  const root = mkdtempSync(join(tmpdir(), 'ot-variant-contract-'))
+  mkdirSync(join(root, 'variant/ovh/labs/day-1/00-setup'), { recursive: true })
+  return root
+}
+
+test('auditVariantLabs is a no-op on a base-only checkout', () => {
+  const root = mkdtempSync(join(tmpdir(), 'ot-variant-contract-'))
+  assert.deepEqual(auditVariantLabs(root), [])
+})
+
+test('auditVariantLabs reds on a variant lab README with no sibling solution', () => {
+  const root = variantRoot()
+  writeFileSync(join(root, 'variant/ovh/labs/day-1/00-setup/README.md'), '# OVH twin\n')
+  const errors = auditVariantLabs(root)
+  assert.ok(errors.some((e) => /missing sibling README\.solution\.md/.test(e)),
+    `expected sibling-solution error, got: ${JSON.stringify(errors)}`)
+})
+
+test('auditVariantLabs passes when the sibling solution exists', () => {
+  const root = variantRoot()
+  const dir = join(root, 'variant/ovh/labs/day-1/00-setup')
+  writeFileSync(join(dir, 'README.md'), '# OVH twin\n')
+  writeFileSync(join(dir, 'README.solution.md'), '# Solution\n')
+  assert.deepEqual(auditVariantLabs(root), [])
+})
+
+test('auditVariantLabs passes a thin-delta twin with the explicit marker', () => {
+  const root = variantRoot()
+  writeFileSync(
+    join(root, 'variant/ovh/labs/day-1/00-setup/README.md'),
+    '# OVH twin\n\n<!-- variant-solution: base -->\nBase solution applies.\n',
+  )
+  assert.deepEqual(auditVariantLabs(root), [])
+})
+
+test('auditVariantLabs covers the OVH-native bootstrap lab', () => {
+  const root = mkdtempSync(join(tmpdir(), 'ot-variant-contract-'))
+  mkdirSync(join(root, 'variant/ovh/bootstrap'), { recursive: true })
+  writeFileSync(join(root, 'variant/ovh/bootstrap/README.md'), '# Bootstrap lab\n')
+  const errors = auditVariantLabs(root)
+  assert.ok(errors.some((e) => /variant\/ovh\/bootstrap\/README\.md: missing sibling README\.solution\.md/.test(e)),
+    `expected bootstrap sibling-solution error, got: ${JSON.stringify(errors)}`)
+})
+
+test('auditVariantLabs passes the bootstrap lab once its solution exists', () => {
+  const root = mkdtempSync(join(tmpdir(), 'ot-variant-contract-'))
+  mkdirSync(join(root, 'variant/ovh/bootstrap'), { recursive: true })
+  writeFileSync(join(root, 'variant/ovh/bootstrap/README.md'), '# Bootstrap lab\n')
+  writeFileSync(join(root, 'variant/ovh/bootstrap/README.solution.md'), '# Solution\n')
+  assert.deepEqual(auditVariantLabs(root), [])
+})
+
+test('auditVariantLabs ignores .terraform provider-cache READMEs', () => {
+  const root = variantRoot()
+  // A lived-in checkout carries vendored READMEs under variant/**/.terraform;
+  // they are not variant labs and must not red the sibling-solution rule.
+  mkdirSync(join(root, 'variant/ovh/labs/day-1/00-setup/.terraform/providers/vendor'), { recursive: true })
+  writeFileSync(
+    join(root, 'variant/ovh/labs/day-1/00-setup/.terraform/providers/vendor/README.md'),
+    '# vendored provider\n',
+  )
+  assert.deepEqual(auditVariantLabs(root), [])
+})
+
+test('auditVariantLabs reuses the workdir layer guard on variant READMEs', () => {
+  const root = variantRoot()
+  writeFileSync(
+    join(root, 'variant/ovh/labs/day-1/00-setup/README.md'),
+    '# OVH twin\n\n<!-- variant-solution: base -->\n```bash\ncd variant/ovh/nope\n```\n',
+  )
+  const errors = auditVariantLabs(root)
+  assert.ok(errors.some((e) => /cd into nonexistent directory: variant\/ovh\/nope/.test(e)),
+    `expected workdir hazard, got: ${JSON.stringify(errors)}`)
 })

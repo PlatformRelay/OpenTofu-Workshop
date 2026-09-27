@@ -113,6 +113,10 @@ jobs:
       # Taskfile ordering + verify-lock preconditions: parse the
       # dependency graph and execute each guard; go-task is not installed here.
       - run: pnpm test:taskfile-contract
+      # CI-wiring contract: parses ci.yml into a model and
+      # asserts the OVH variant's unit lane and go-vet matrix entry are wired,
+      # so the variant cannot silently lose its only CI coverage.
+      - run: pnpm test:ci-wiring
 
   lab-contract:
     name: Lab sibling-solution contract
@@ -245,6 +249,9 @@ jobs:
         dir:
           - labs/day-2/18-terratest-cost
           - labs/fixtures/terratest-smoke
+          # OVH variant Go twin: its module lives
+          # outside labs/, so the base `go vet` matrix would never compile it.
+          - variant/ovh/labs/day-2/18-terratest-cost
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -327,6 +334,26 @@ jobs:
             echo "::endgroup::"
           done
           bash scripts/verify.sh
+
+  # OVH variant track unit lane. The base verify-unit job cannot cover the
+  # variant: its discovery globs are labs|modules|examples, so variant/ovh/** is
+  # invisible to it. This job is the variant's own unit lane (fmt + validate +
+  # mock test over variant/ovh/**) plus its self-test. No Docker, no OVH access,
+  # no secrets. Real-OVH integration needs a funded project and CI secrets, an
+  # open maintainer decision, so it is deliberately NOT wired here.
+  verify-ovh-unit:
+    name: Verify OVH variant (fmt · validate · tofu test — mock/plan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      # PINNED (US-P-PINS): tofu_version must match versions.env — verify.sh §10 drift-checks.
+      - uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f # v1
+        with:
+          tofu_version: "1.10.3"
+      - name: OVH variant unit lane + self-test
+        run: |
+          bash variant/ovh/scripts/verify-selftest.sh
+          bash variant/ovh/scripts/verify.sh
 
   fixture-integrity:
     name: Fixture integrity (pre-commit must not rewrite the S13 fixture)

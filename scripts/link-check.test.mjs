@@ -254,6 +254,24 @@ describe('discoverDocs', () => {
     assert.deepEqual(docs, ['README.md', 'docs/alpha.md', 'labs/day-1/00-setup.md'])
   })
 
+  it('collects variant/**/*.md for the OVH track (link-check discovery extension)', () => {
+    const root = mkdtempSync(join(tmpdir(), 'ot-link-check-'))
+    writeDoc(root, 'README.md', '# Root\n')
+    writeDoc(root, 'variant/ovh/README.md', '# OVH track\n')
+    writeDoc(root, 'variant/ovh/setup/ovh-project.md', '# Setup\n')
+    const docs = discoverDocs({ repoRoot: root })
+    assert.deepEqual(docs, ['README.md', 'variant/ovh/README.md', 'variant/ovh/setup/ovh-project.md'])
+  })
+
+  it('reds on a broken link inside the variant tree', () => {
+    const root = mkdtempSync(join(tmpdir(), 'ot-link-check-'))
+    writeDoc(root, 'README.md', '# Root\n')
+    writeDoc(root, 'variant/ovh/README.md', '[gone](../nope.md)\n')
+    const { errors } = checkLinks({ repoRoot: root })
+    assert.equal(errors.length, 1)
+    assert.match(errors[0], /^variant\/ovh\/README\.md:1: missing internal target/)
+  })
+
   it('includes ROADMAP.md when it exists (US-O-ROADMAP)', () => {
     const root = mkdtempSync(join(tmpdir(), 'ot-link-check-'))
     writeDoc(root, 'README.md', '# Root\n')

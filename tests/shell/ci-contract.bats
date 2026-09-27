@@ -102,33 +102,10 @@ setup() {
   grep -qF 'cancel-in-progress: false' <<<"$block"
 }
 
-# US-E-GOVET (audit TEST-1): before this job existed, NO gate compiled the two
-# Terratest Go modules — lab-terratest-selftest.sh only asserts the
-# docker-absent fail-fast message — so a type error in bucket_test.go or
-# smoke_test.go could ship green. Comment-stripped for the same reason as
-# above: prose in ci.yml must not be able to certify the gate.
-
-@test "ci.yml go-vet job compiles both Terratest Go modules" {
-  local wf="$ROOT/.github/workflows/ci.yml"
-  local exec_lines
-  exec_lines="$(grep -v '^[[:space:]]*#' "$wf")"
-
-  # Both module dirs must sit in the vet matrix — losing an entry silently
-  # drops that module from the compile gate.
-  grep -qF 'labs/day-2/18-terratest-cost' <<<"$exec_lines"
-  grep -qF 'labs/fixtures/terratest-smoke' <<<"$exec_lines"
-
-  # The gate itself, run once per matrix dir.
-  grep -qF 'go vet ./...' <<<"$exec_lines"
-
-  # The toolchain is pinned by each module's own go.mod, NOT a ci.yml literal:
-  # verify.sh §10 then has no new version literal to drift-check, and the two
-  # modules declare different directives (cost: go 1.25.0, smoke: go 1.23) — a
-  # single ci.yml literal could not serve both. Those directives are no longer
-  # free-floating: §10 gates every labs/**/go.mod against versions.env
-  # GO_VERSION and bootstrap MIN_GO.
-  grep -qF 'go-version-file: ${{ matrix.dir }}/go.mod' <<<"$exec_lines"
-}
+# US-E-GOVET (audit TEST-1): the go-vet matrix (every
+# tracked Go module, discovered from the tree, including the OVH variant twin) and the
+# variant's verify-ovh-unit lane are asserted semantically by
+# scripts/ci-wiring.test.mjs, which parses ci.yml instead of grepping its text.
 
 # claims-check.mjs shipped UNWIRED: no workflow, task or package script ran it,
 # so the pointers it validates rotted twice while CI stayed green. Wiring it is
