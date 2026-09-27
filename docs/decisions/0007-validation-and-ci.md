@@ -28,8 +28,8 @@ Three CI/`task verify` lanes:
 
 Plus the deck lane: build all six decks — `slides.md` (superset),
 `slides-3day.md`, `slides-day-1.md`, `slides-day-2.md`, `slides-day-3.md`, and
-`slides-templates.md` — and lint the labs (`markdownlint`, scoped to `labs/**`
-— Slidev multi-frontmatter breaks linting the decks).
+`slides-templates.md` — and lint the participant Markdown (`markdownlint`; scope
+in `.markdownlint-cli2.jsonc` — Slidev multi-frontmatter breaks linting the decks).
 
 GitHub Actions: `ci.yml` (lint + build + verify), `pages.yml` (deploy the six
 decks to Pages), `release.yml` (export PDFs on a `v*` tag). Two manual prereqs:

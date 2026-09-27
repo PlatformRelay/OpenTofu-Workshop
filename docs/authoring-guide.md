@@ -54,6 +54,8 @@ with `task pages:build` / `task pages:preview` (needs
   and **never** embed a lab body — reference labs by path.
 - `labs/day-N/NN-topic.md` — standalone labs (see contract below).
 - `modules/` + `examples/` — the runnable OpenTofu (see the module DoD below).
+- `variant/ovh/` — the OVHcloud Public Cloud variant track, a self-contained lane
+  outside the base discovery globs; its own entry is `variant/ovh/README.md`.
 - `theme/` — the local Slidev theme: `layouts/`, `components/` (`IacIcon`,
   `KwCard`, `KwChip`, `CodeNote`, `CodeCallout`, `ArchBox`), `styles/theme.css`.
 - `components/` — animated Vue teaching diagrams (`step` prop bound to `$clicks`;
@@ -360,6 +362,6 @@ pnpm deck -- --list                              # discover day / section / rang
 pnpm deck -- --day 1                             # facilitator launcher (or task deck -- …)
 pnpm decks:generate && pnpm decks:check   # after manifest / section metadata edits
 pnpm build && pnpm build:3day && pnpm build:templates   # decks
-pnpm lint                                                # markdownlint (labs only)
+pnpm lint                                                # markdownlint (labs + variant/ovh docs)
 task verify                                              # tofu fmt/validate/test
 ```
