@@ -1,0 +1,47 @@
+# ovh-env.example — environment template for the OVH variant track.
+#
+# Copy this to a local file (e.g. .env.ovh), fill in your real values, and
+# load it with `set -a` so every name is EXPORTED (a plain `source` only sets
+# shell variables that tofu never sees). NEVER commit the filled-in file: the repo's dummy-cred pattern
+# applies — real credentials live only in your environment.
+#
+#   cp variant/ovh/setup/ovh-env.example .env.ovh
+#   set -a; . ./.env.ovh; set +a
+#
+# The twin roots' `aws` provider reads AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
+# from the environment when its own access_key/secret_key variables are null.
+# These are the S3 keys from the Manager's "Object Storage users" screen (see
+# setup/ovh-project.md).
+
+# --- Object Storage (S3 API) credentials — the twin roots -------------------
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+# An OVH S3 region code, e.g. gra, sbg, de, uk, waw, bhs.
+AWS_DEFAULT_REGION=gra
+
+# S3 checksum compatibility — TO BE CONFIRMED BY THE SMOKE RUN.
+# hashicorp/aws 5.x (AWS SDK for Go v2) adds CRC32 request checksums by
+# default. OVH's Object Storage FAQ recommends the older SDK behaviour, and
+# OVH's Multi-Object Delete expects Content-MD5, which can break force_destroy
+# on a versioned bucket. These two settings restore "only when the API requires
+# it". Unverified against live OVH; the smoke root's run decides.
+AWS_REQUEST_CHECKSUM_CALCULATION=when_required
+AWS_RESPONSE_CHECKSUM_VALIDATION=when_required
+
+# --- ovh provider credentials — the bootstrap root only ---------------------
+# An IAM service account with OAuth2 client credentials, scoped to your single
+# PCI project. See setup/ovh-project.md §5.
+OVH_ENDPOINT=ovh-eu
+OVH_CLIENT_ID=
+OVH_CLIENT_SECRET=
+OVH_CLOUD_PROJECT_SERVICE=
+# The bootstrap root's budget alert has no default recipient; set an address you
+# read, or its `tofu plan` fails on the missing variable.
+TF_VAR_alert_email=
+
+# --- Optional: override the provider variables explicitly -------------------
+# The twins expose TF_VAR_cloud_region / TF_VAR_s3_access_key / TF_VAR_s3_secret_key.
+# Leave them unset to fall back to the AWS_* variables above.
+#TF_VAR_cloud_region=gra
+#TF_VAR_s3_access_key=
+#TF_VAR_s3_secret_key=

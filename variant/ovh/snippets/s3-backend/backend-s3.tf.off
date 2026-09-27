@@ -1,0 +1,49 @@
+# OVH S3 backend — the OVH-track version of Lab 04's S3-backend stretch.
+#
+# Inert while the name ends in ".off" (OpenTofu only loads *.tf / *.tf.json /
+# *.tofu). Activate it in a COPY of Lab 04's workdir:
+#
+#   cp -r labs/day-1/04-state /tmp/ovh-state-lab && cd /tmp/ovh-state-lab
+#   mv backend.tf backend.tf.off
+#   cp <this file> backend-s3.tf          # drop the .off suffix
+#
+# Credentials come from the environment (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
+# / AWS_DEFAULT_REGION). OpenTofu >= 1.8 can evaluate variables and locals in a
+# backend block (early evaluation), but keep secrets out of it either way:
+# whatever the backend block resolves is recorded in .terraform/ and in plan
+# files. Never hardcode credentials here.
+#
+# Checksums (TO BE CONFIRMED BY THE SMOKE RUN): `skip_s3_checksum` below covers
+# the backend's own uploads. Also export AWS_REQUEST_CHECKSUM_CALCULATION=
+# when_required and AWS_RESPONSE_CHECKSUM_VALIDATION=when_required (see
+# variant/ovh/setup/ovh-project.md) so the SDK does not add CRC32 checksums that
+# OVH may reject.
+#
+# Endpoint note: use the UNIFIED endpoint `s3.<region>.io.cloud.ovh.net`, not the
+# legacy `s3.<region>.perf.cloud.ovh.net` some older OVH guides still cite.
+terraform {
+  backend "s3" {
+    bucket = "<your-state-bucket>" # a bucket you create in the Manager (unique to you)
+    key    = "day-1/04-state/terraform.tfstate"
+    region = "gra"
+
+    endpoints = {
+      s3 = "https://s3.gra.io.cloud.ovh.net"
+    }
+    use_path_style = true
+
+    # OVH is S3-compatible, not AWS: skip every AWS-only handshake and the
+    # region check (OVH region codes are not AWS-shaped).
+    skip_credentials_validation = true
+    skip_requesting_account_id  = true
+    skip_metadata_api_check     = true
+    skip_region_validation      = true
+    skip_s3_checksum            = true
+
+    # OpenTofu >= 1.10: native S3 locking via a sibling `.tflock` object.
+    # OVH documents conditional writes, but the lockfile flow against OVH
+    # remains unverified: the smoke root uses local state, so the real-OVH
+    # proof needs a separate run against an OVH state bucket.
+    use_lockfile = true
+  }
+}
