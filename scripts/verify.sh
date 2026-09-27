@@ -443,6 +443,12 @@ if have tofu; then
     # whole of the evidence, and dropping either half is how this became a
     # mystery in the first place.
     { printf '%s\n' "$TOFU_VER_OUT"; cat "$TOFU_VER_ERR"; } | sed 's/^/    /'
+    # Abort exactly as the missing-tofu branch does: an unusable probe means the
+    # ~50-directory sweep would only bury this error under init logs.
+    rm -f "$TOFU_VER_ERR"
+    heading "Summary"
+    bad "verify FAILED — the tofu version probe failed; aborting before the sweep."
+    exit 1
   elif min_version "${TOFU_VER#v}" "$TOFU_FLOOR"; then
     pass "tofu ${TOFU_VER} (>= $TOFU_FLOOR)"
   else
@@ -1087,7 +1093,7 @@ for spec in "${DAY_TOOL_CHECKS[@]}"; do
     version="$("$tool" "$version_arg" 2>/dev/null | head -n1 || true)"
   fi
   if [ -n "$version" ]; then
-    info "$tool available — $labs checks run when their content is authored"
+    info "$tool available — $labs tool-dependent checks are configured but NOT executed by this unit lane; no automated lane runs them"
   else
     warn "$tool unavailable — skipping tool-dependent checks for $labs"
   fi
@@ -1097,6 +1103,40 @@ done
 # 10. Toolchain pin drift (US-P-PINS)
 #    versions.env is canonical; listed consumers must mirror it exactly.
 # ---------------------------------------------------------------------------
+# every_value FILE STRIP KEY_ERE — print, one per line, every version value that
+# directly follows KEY_ERE (an optional '"' in between) in FILE. STRIP=hash drops
+# `#` comments first (YAML / shell): a pin quoted in a comment is not config.
+# Used where a consumer restates a pin/floor as key+value, so the gate can
+# require that EVERY occurrence carries the expected value — a fixed-string
+# grep only proves one does, and a second, drifted line stays green behind it.
+every_value() {
+  local file="$1" strip="$2" key="$3"
+  if [ "$strip" = hash ]; then
+    sed -E 's/(^|[[:space:]])#.*$//' "$file"
+  else
+    cat "$file"
+  fi | grep -oE -- "${key}\"?[0-9][0-9A-Za-z.+-]*" |
+    grep -oE '[0-9][0-9A-Za-z.+-]*$' | sed -E 's/[.]+$//'
+}
+
+# every_mismatch FILE STRIP KEY_ERE EXPECTED — succeed (print nothing) when
+# KEY_ERE occurs at least once and every value equals EXPECTED; otherwise print
+# a one-line reason and fail.
+every_mismatch() {
+  local file="$1" strip="$2" key="$3" expected="$4" values bad
+  values="$(every_value "$file" "$strip" "$key")"
+  if [ -z "$values" ]; then
+    echo "no occurrence"
+    return 1
+  fi
+  bad="$(printf '%s\n' "$values" | grep -vxF -- "$expected" | sort -u | tr '\n' ' ')"
+  if [ -n "$bad" ]; then
+    echo "found: ${bad% }"
+    return 1
+  fi
+  return 0
+}
+
 heading "Toolchain pin drift (versions.env)"
 PIN_FILE="$REPO_ROOT/versions.env"
 if [ ! -f "$PIN_FILE" ]; then
@@ -1115,6 +1155,16 @@ else
       pin_fail "pin drift: missing consumer file for $label: $file"
     elif ! grep -qF -- "$needle" "$file"; then
       pin_fail "pin drift: $label in ${file#"$REPO_ROOT"/} does not match versions.env (expected fragment: $needle)"
+    fi
+  }
+  # pin_every FILE KEY_ERE EXPECTED LABEL — key+value consumers (comments
+  # stripped): every value must equal the pin, and there must be at least one.
+  pin_every() {
+    local file="$1" key="$2" expected="$3" label="$4" why
+    if [ ! -f "$file" ]; then
+      pin_fail "pin drift: missing consumer file for $label: $file"
+    elif ! why="$(every_mismatch "$file" hash "$key" "$expected")"; then
+      pin_fail "pin drift: $label in ${file#"$REPO_ROOT"/} does not match versions.env (every value must be $expected; $why)"
     fi
   }
 
@@ -1149,10 +1199,21 @@ else
   pin_expect "$REPO_ROOT/setup/bootstrap.sh" \
     'TERRAMATE_VERSION' "bootstrap TERRAMATE_VERSION workshop pin"
   CI_YML="$REPO_ROOT/.github/workflows/ci.yml"
-  pin_expect "$CI_YML" \
-    "tofu_version: \"${TOFU_VERSION}\"" "TOFU_VERSION (ci.yml setup-opentofu)"
-  pin_expect "$CI_YML" \
-    "localstack/localstack:${LOCALSTACK_VERSION}" "LOCALSTACK_VERSION (ci.yml service)"
+  pin_every "$CI_YML" \
+    'tofu_version:[[:space:]]*' "$TOFU_VERSION" "TOFU_VERSION (ci.yml setup-opentofu)"
+  pin_every "$CI_YML" \
+    'localstack/localstack:' "$LOCALSTACK_VERSION" "LOCALSTACK_VERSION (ci.yml service)"
+  # Ungated literals: the k8s manifest and the day-3 fixture carry a
+  # hardcoded image / version that no env-var form can follow, so a versions.env
+  # bump must red here until they are updated, not rot silently.
+  pin_every "$REPO_ROOT/setup/localstack-k8s.yaml" \
+    'localstack/localstack:' "$LOCALSTACK_VERSION" "LOCALSTACK_VERSION (k8s manifest)"
+  DAY3_FIXTURE="$REPO_ROOT/labs/day-3/25-terramate-ci-cloud/.github/workflows/terramate-pr.yml"
+  # `[[:space:]]version:` so the terramate key does not also match tofu_version.
+  pin_every "$DAY3_FIXTURE" \
+    '[[:space:]]version:[[:space:]]*' "$TERRAMATE_VERSION" "TERRAMATE_VERSION (day-3 fixture)"
+  pin_every "$DAY3_FIXTURE" \
+    'tofu_version:[[:space:]]*' "$TOFU_VERSION" "TOFU_VERSION (day-3 fixture)"
 
   # Go toolchain ceiling (the F8 defect class). The needle inventory above only
   # proves consumers RESTATE ${GO_VERSION}; it never asked whether that version
@@ -1303,35 +1364,38 @@ floor_fail() {
   fail "$1"
   FLOOR_FAILURES=$((FLOOR_FAILURES + 1))
 }
+# floor_expect FILE STRIP KEY_ERE LABEL — every value following KEY_ERE must be
+# the floor, and there must be at least one (see every_value above: a second,
+# skewed restatement in the same file must red, not hide behind the first).
 floor_expect() {
-  local file="$1" needle="$2" label="$3"
+  local file="$1" strip="$2" key="$3" label="$4" why
   if [ ! -f "$file" ]; then
     floor_fail "floor skew: missing consumer file for $label: $file"
-  elif ! grep -qF -- "$needle" "$file"; then
-    floor_fail "floor skew: $label in ${file#"$REPO_ROOT"/} does not state the floor $TOFU_FLOOR (expected fragment: $needle)"
+  elif ! why="$(every_mismatch "$file" "$strip" "$key" "$TOFU_FLOOR")"; then
+    floor_fail "floor skew: $label in ${file#"$REPO_ROOT"/} does not state the floor $TOFU_FLOOR (every value after /$key/ must be $TOFU_FLOOR; $why)"
   fi
 }
 
-floor_expect "$REPO_ROOT/setup/bootstrap.sh" \
-  "MIN_TOFU=\"${TOFU_FLOOR}\"" "bootstrap MIN_TOFU"
-floor_expect "$REPO_ROOT/docs/setup.md" \
-  "OpenTofu ≥${TOFU_FLOOR}" "setup guide toolchain row"
-floor_expect "$REPO_ROOT/README.md" \
-  "OpenTofu ≥${TOFU_FLOOR}" "README toolchain row"
-floor_expect "$REPO_ROOT/docs/validation-matrix.md" \
-  "≥ **${TOFU_FLOOR}** (\`setup/bootstrap.sh\`)" "validation-matrix canonical pin row"
-floor_expect "$REPO_ROOT/pages/S00-welcome/index.md" \
-  "tofu ≥ ${TOFU_FLOOR}" "S00 required-toolchain card"
-floor_expect "$REPO_ROOT/pages/S19-testing-cicd/index.md" \
-  "OpenTofu ≥ ${TOFU_FLOOR} preflight" "S19 preflight bullet"
-floor_expect "$REPO_ROOT/docs/facilitator-runbook.md" \
-  "\`tofu version\` ≥${TOFU_FLOOR}" "runbook any-machine row"
-floor_expect "$REPO_ROOT/docs/rehearsal-checklist.md" \
-  "confirm \`tofu version\` ≥${TOFU_FLOOR}" "rehearsal fresh-machine step"
-floor_expect "$REPO_ROOT/docs/rehearsal-checklist.md" \
-  "OpenTofu ≥${TOFU_FLOOR} on" "rehearsal morning checklist"
-floor_expect "$REPO_ROOT/pages/S17-mocking/index.md" \
-  "workshop floor of <strong>${TOFU_FLOOR}</strong>" "S17 mocking floor panel"
+floor_expect "$REPO_ROOT/setup/bootstrap.sh" hash \
+  'MIN_TOFU=' "bootstrap MIN_TOFU"
+floor_expect "$REPO_ROOT/docs/setup.md" none \
+  'OpenTofu ≥' "setup guide toolchain row"
+floor_expect "$REPO_ROOT/README.md" none \
+  'OpenTofu ≥' "README toolchain row"
+floor_expect "$REPO_ROOT/docs/validation-matrix.md" none \
+  '[|] OpenTofu [|] ≥ [*][*]' "validation-matrix canonical pin row"
+floor_expect "$REPO_ROOT/pages/S00-welcome/index.md" none \
+  'heading="tofu ≥ ' "S00 required-toolchain card"
+floor_expect "$REPO_ROOT/pages/S19-testing-cicd/index.md" none \
+  'OpenTofu ≥ ' "S19 preflight bullet"
+floor_expect "$REPO_ROOT/docs/facilitator-runbook.md" none \
+  '`tofu version` ≥' "runbook any-machine row"
+floor_expect "$REPO_ROOT/docs/rehearsal-checklist.md" none \
+  'confirm `tofu version` ≥' "rehearsal fresh-machine step"
+floor_expect "$REPO_ROOT/docs/rehearsal-checklist.md" none \
+  'OpenTofu ≥' "rehearsal morning checklist"
+floor_expect "$REPO_ROOT/pages/S17-mocking/index.md" none \
+  'workshop floor of <strong>' "S17 mocking floor panel"
 
 # (b) ceiling scan: no artifact may require more than the floor. The floor is
 # padded to three components because min_version is a plain sort -V compare
