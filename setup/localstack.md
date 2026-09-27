@@ -41,7 +41,7 @@ downstream is identical** — the same provider config, the same `awslocal`
 commands, the same endpoint. The Docker-free integration gate is:
 
 ```sh
-task verify:integration:k8s   # unit lane + every examples/* integration tftest
+task verify:integration:k8s   # unit lane + every examples/* and labs/day-1|2/* integration tftest
 ```
 
 Cleanup when you're done for the day:
@@ -81,6 +81,13 @@ cp .env.example .env
 set -a; . ./.env; set +a
 aws --endpoint-url http://localhost:4566 s3 ls
 ```
+
+> **Warning:** `set -a; . ./.env; set +a` exports `AWS_ENDPOINT_URL` and
+> `AWS_ENDPOINT_URL_S3` into the whole shell, so any later real-AWS call in
+> the same shell is silently redirected to LocalStack. `unset
+> AWS_ENDPOINT_URL AWS_ENDPOINT_URL_S3` when you are done, or scope the
+> exports to one command:
+> `( set -a; . ./.env; set +a; aws --endpoint-url http://localhost:4566 s3 ls )`.
 
 ## Pointing OpenTofu at LocalStack
 

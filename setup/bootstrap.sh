@@ -151,13 +151,59 @@ info "gum:             $([ "$HAS_GUM" = 1 ] && echo present || echo "absent (pla
 info "Mode:            $([ "$INTERACTIVE" = 1 ] && echo interactive || echo "non-interactive (report only)")"
 echo
 
-# Required tools gate the workshop; optional ones are nice-to-have.
-REQUIRED="tofu docker pnpm node task"
+# Three readiness tiers:
+#   1. Required (tofu pnpm node task) — missing or too old: exit 1. A learner
+#      must reach a green `task setup` (and `pnpm install`) with only these.
+#   2. Day-1 LocalStack route — Labs 00 (Steps 3-4), 08 (Step 4) and 10, plus
+#      the optional LocalStack parts of 04 and 05, need LocalStack. Ready when
+#      the Docker daemon answers (`docker info`), or kubectl has a current
+#      context whose API answers (the Docker-free `task lab:up:k8s` route).
+#      Neither: a prominent warning naming those labs (rc 0, so `task setup`
+#      still installs deps); rc 3 under BOOTSTRAP_STRICT.
+#   3. Day-2/3 lab tools — advisory; rc 3 under BOOTSTRAP_STRICT.
+REQUIRED="tofu pnpm node task"
 OPTIONAL="gum awslocal aws"
 DAY_TOOLS="tflint trivy checkov conftest terramate"
 
-MISSING=""       # required tools that are absent
-VERSION_WARN=""  # tools present but below minimum
+MISSING=""        # required tools that are absent
+VERSION_WARN=""   # required tools present but below minimum
+DOCKER_MISSING="" # docker binary absent/unusable (feeds the install hints)
+
+LOCALSTACK_LABS="Lab 00 (Steps 3-4), Lab 08 (Step 4), Lab 10, and the optional LocalStack steps of Labs 04 and 05"
+
+# localstack_route — sets LS_ROUTE (docker | k8s | empty) and LS_DETAIL.
+# Probes the daemon, not the binary: `docker --version` succeeds with the
+# daemon down, which is exactly the machine that then stalls at Lab 00 Step 3.
+localstack_route() {
+  LS_ROUTE=""
+  LS_DETAIL=""
+  if have docker; then
+    if docker info >/dev/null 2>&1; then
+      LS_ROUTE="docker"
+      LS_DETAIL="Docker (daemon reachable)"
+      return 0
+    fi
+    LS_DETAIL="docker installed but daemon not reachable ('docker info' failed)"
+  else
+    LS_DETAIL="docker missing"
+  fi
+  if have kubectl; then
+    local ctx
+    ctx="$(kubectl config current-context 2>/dev/null || true)"
+    if [ -z "$ctx" ]; then
+      LS_DETAIL="$LS_DETAIL; kubectl has no current context"
+    elif kubectl --request-timeout=5s get --raw=/readyz >/dev/null 2>&1; then
+      LS_ROUTE="k8s"
+      LS_DETAIL="Kubernetes (context $ctx)"
+      return 0
+    else
+      LS_DETAIL="$LS_DETAIL; kube context $ctx does not answer (cluster down?)"
+    fi
+  else
+    LS_DETAIL="$LS_DETAIL; no kubectl for the Docker-free route"
+  fi
+  return 0
+}
 
 heading "Required tools"
 for t in $REQUIRED; do
@@ -184,6 +230,31 @@ for t in $REQUIRED; do
     MISSING="$MISSING $t"
   fi
 done
+echo
+
+heading "Day-1 LocalStack route (Labs 00, 08, 10)"
+if have docker; then
+  v=""
+  probe_status=0
+  v="$(tool_version docker)" || probe_status=$?
+  if [ "$probe_status" -eq 0 ] && [ -n "$v" ]; then
+    ok "$(printf '%-6s %s' docker "$v")"
+  else
+    warn "$(printf '%-6s unusable' docker)  (version probe failed)"
+    DOCKER_MISSING="docker"
+  fi
+else
+  warn "$(printf '%-6s missing' docker)   $(install_hint docker)"
+  DOCKER_MISSING="docker"
+fi
+localstack_route
+if [ -n "$LS_ROUTE" ]; then
+  ok "LocalStack route: $LS_DETAIL"
+else
+  warn "LocalStack route: none — $LS_DETAIL"
+  note "Start Docker ('docker info' must succeed), or use the Docker-free route:"
+  note "task lab:up:k8s (kind/podman + kubectl with a current context) — see setup/localstack.md."
+fi
 echo
 
 heading "Optional tools"
@@ -283,7 +354,14 @@ fi
 # ---------------------------------------------------------------------------
 # Offer to install missing required tools
 # ---------------------------------------------------------------------------
-ALL_MISSING="$MISSING$DAY_MISSING$GO_MISSING"
+# Normalise the lists into one space-separated set. Concatenating them directly
+# glued the last required tool to Docker (MISSING has a leading space but no
+# trailing one) and dropped its install hint; this keeps the section empty when
+# nothing is missing and every tool a separate word.
+ALL_MISSING=""
+for t in $MISSING $DOCKER_MISSING $DAY_MISSING $GO_MISSING; do
+  ALL_MISSING="$ALL_MISSING $t"
+done
 if [ -n "$ALL_MISSING" ]; then
   heading "Install commands for missing tools"
   for t in $ALL_MISSING; do
@@ -346,6 +424,9 @@ for t in $DAY_TOOLS; do
     DAY_STILL_MISSING="$DAY_STILL_MISSING $t"
   fi
 done
+# Re-probe the LocalStack route: an auto-installed Docker only counts once its
+# daemon answers.
+localstack_route
 GO_STILL_MISSING=""
 GO_STILL_WARN=""
 if [ "$WITH_GO" = 1 ]; then
@@ -366,18 +447,17 @@ if [ "$WITH_GO" = 1 ]; then
   fi
 fi
 
-if [ -z "$STILL_MISSING" ] && [ -z "$DAY_STILL_MISSING" ] && [ -z "$VERSION_WARN" ] \
-  && [ -z "$GO_STILL_MISSING" ] && [ -z "$GO_STILL_WARN" ]; then
-  ok "READY — all required tools present and meet minimum versions."
-  ok "Day-2/3 tools ready — tflint, Trivy, Checkov, Conftest, and Terramate."
-  if [ "$WITH_GO" = 1 ]; then
-    ok "Host Go ready — native Terratest lane available (task lab:terratest:host)."
-  fi
-  note "Next: 'task lab:up' to start LocalStack, then 'task lab' for the guided runner."
-  exit 0
-else
+# Required (Day-1) tools must be present and meet their floors; host Go is
+# required only for the opt-in lane. Docker and Day-2/3 tools are advisory.
+REQUIRED_OK=1
+[ -n "$STILL_MISSING" ] && REQUIRED_OK=0
+[ -n "$VERSION_WARN" ] && REQUIRED_OK=0
+if [ "$WITH_GO" = 1 ] && { [ -n "$GO_STILL_MISSING" ] || [ -n "$GO_STILL_WARN" ]; }; then
+  REQUIRED_OK=0
+fi
+
+if [ "$REQUIRED_OK" = 0 ]; then
   [ -n "$STILL_MISSING" ] && bad "Missing:$STILL_MISSING"
-  [ -n "$DAY_STILL_MISSING" ] && bad "Missing Day-2/3 tools:$DAY_STILL_MISSING"
   [ -n "$VERSION_WARN" ]  && bad "Below minimum version:$VERSION_WARN"
   [ -n "$GO_STILL_MISSING" ] && bad "Missing optional host Go:$GO_STILL_MISSING"
   [ -n "$GO_STILL_WARN" ] && bad "Below minimum Go version:$GO_STILL_WARN"
@@ -386,3 +466,47 @@ else
   # Non-zero so CI / task preconditions can gate on readiness.
   exit 1
 fi
+
+ok "READY — Day-1 required tools present and meet minimum versions (tofu, pnpm, node, task)."
+if [ "$WITH_GO" = 1 ]; then
+  ok "Host Go ready — native Terratest lane available (task lab:terratest:host)."
+fi
+
+# Tiers 2 and 3 do not fail by default: `task setup` must still reach
+# `pnpm install`, and the local-provider Day-1 labs run without LocalStack.
+ADVISORY=""
+[ -z "$LS_ROUTE" ] && ADVISORY=1
+[ -n "$DAY_STILL_MISSING" ] && ADVISORY=1
+
+if [ -n "$LS_ROUTE" ]; then
+  ok "LocalStack route ready: $LS_DETAIL."
+fi
+if [ -z "$ADVISORY" ]; then
+  ok "Day-2/3 tools ready — tflint, Trivy, Checkov, Conftest, and Terramate."
+  if [ "$LS_ROUTE" = k8s ]; then
+    note "Next: 'task lab:up:k8s' to start LocalStack, then 'task lab' for the guided runner."
+  else
+    note "Next: 'task lab:up' to start LocalStack, then 'task lab' for the guided runner."
+  fi
+  exit 0
+fi
+
+if [ -z "$LS_ROUTE" ]; then
+  echo
+  bad "LocalStack route NOT READY — $LS_DETAIL."
+  bad "Blocked until fixed: $LOCALSTACK_LABS."
+  info "Fix: start Docker ('docker info' must succeed), or run LocalStack in a"
+  info "working kube context with 'task lab:up:k8s' (setup/localstack.md)."
+  echo
+fi
+if [ -n "$DAY_STILL_MISSING" ]; then
+  warn "Day-2/3 tools missing:$DAY_STILL_MISSING — those labs stay unavailable until installed."
+fi
+note "Re-run 'task setup' (or 'task preflight') after fixing the items above."
+
+# BOOTSTRAP_STRICT=1 (`task preflight:strict`, the facilitator readiness check
+# in docs/facilitator-runbook.md) turns tiers 2 and 3 into a distinct rc 3.
+case "${BOOTSTRAP_STRICT:-0}" in
+  1|true|yes) exit 3 ;;
+esac
+exit 0
