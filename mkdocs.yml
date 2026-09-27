@@ -16,10 +16,12 @@ validation:
     absolute_links: ignore
     unrecognized_links: ignore
 
-# Keep agent/coordination and pin files out of the published site.
+# Keep agent/coordination and pin files out of the published site, and the
+# generated lab inventory (a build artifact for scripts, not a page).
 exclude_docs: |
   decisions/**
   requirements-docs.txt
+  _generated/**
 
 theme:
   name: material

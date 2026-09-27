@@ -32,7 +32,7 @@
       "validationState": "unrun",
       "estimatedDurationMin": 20,
       "automationTier": "mock-only",
-      "cleanupCommand": "cd labs/day-1/01-iac-fork"
+      "cleanupCommand": "tofu destroy -auto-approve"
     },
     {
       "id": "day-1/02-hcl-blocks",
@@ -47,7 +47,7 @@
       "validationState": "unrun",
       "estimatedDurationMin": 35,
       "automationTier": "mock-only",
-      "cleanupCommand": "cd labs/day-1/02-hcl-blocks"
+      "cleanupCommand": "rm -f broken.tf mine.tf"
     },
     {
       "id": "day-1/03-core-workflow",
@@ -62,7 +62,7 @@
       "validationState": "unrun",
       "estimatedDurationMin": 20,
       "automationTier": "mock-only",
-      "cleanupCommand": "cd labs/day-1/03-core-workflow"
+      "cleanupCommand": "rm -f broken.tf hidden.tf"
     },
     {
       "id": "day-1/06-variables",
@@ -77,7 +77,7 @@
       "validationState": "unrun",
       "estimatedDurationMin": 30,
       "automationTier": "mock-only",
-      "cleanupCommand": "cd labs/day-1/06-variables"
+      "cleanupCommand": "tofu destroy -auto-approve"
     },
     {
       "id": "day-1/15-conditions-checks",
@@ -92,7 +92,7 @@
       "validationState": "unrun",
       "estimatedDurationMin": 30,
       "automationTier": "mock-only",
-      "cleanupCommand": "cd labs/day-1/15-conditions-checks"
+      "cleanupCommand": "tofu destroy -auto-approve"
     },
     {
       "id": "day-1/04-state",
@@ -107,7 +107,7 @@
       "validationState": "unrun",
       "estimatedDurationMin": 40,
       "automationTier": "mixed",
-      "cleanupCommand": "cd labs/day-1/04-state"
+      "cleanupCommand": "tofu -chdir=adopt destroy -auto-approve || true"
     },
     {
       "id": "day-1/05-state-encryption",
@@ -122,7 +122,7 @@
       "validationState": "unrun",
       "estimatedDurationMin": 25,
       "automationTier": "mixed",
-      "cleanupCommand": "cd labs/day-1/05-state-encryption"
+      "cleanupCommand": "tofu destroy -auto-approve || true"
     },
     {
       "id": "day-1/07-modules",
@@ -137,7 +137,7 @@
       "validationState": "unrun",
       "estimatedDurationMin": 35,
       "automationTier": "mock-only",
-      "cleanupCommand": "cd labs/day-1/07-modules"
+      "cleanupCommand": "git checkout -- modules/service-manifest/main.tf"
     },
     {
       "id": "day-1/08-naming-labels",
@@ -152,7 +152,7 @@
       "validationState": "unrun",
       "estimatedDurationMin": 30,
       "automationTier": "mixed",
-      "cleanupCommand": "export TF_VAR_state_passphrase='a-long-demo-passphrase-1234'"
+      "cleanupCommand": "tofu -chdir=examples/naming-labels-demo destroy -auto-approve"
     },
     {
       "id": "day-1/09-best-practices",
@@ -167,7 +167,7 @@
       "validationState": "unrun",
       "estimatedDurationMin": 60,
       "automationTier": "mock-only",
-      "cleanupCommand": "cd \"$(git rev-parse --show-toplevel)\""
+      "cleanupCommand": "tofu -chdir=labs/day-1/09-best-practices destroy -auto-approve"
     },
     {
       "id": "day-1/10-differentiators",
@@ -212,7 +212,7 @@
       "validationState": "unit-tested",
       "estimatedDurationMin": 20,
       "automationTier": "mock-only",
-      "cleanupCommand": "cd ../../.."
+      "cleanupCommand": null
     },
     {
       "id": "day-2/13-static-analysis",
@@ -238,11 +238,11 @@
       "day": 2,
       "environment": "`mock ✓ (no docker)`",
       "tools": "**Trivy**, **Checkov**, **Conftest**",
-      "pinned": "scanner CLIs unpinned on laptop",
+      "pinned": "Lab 14 pins Trivy 0.72.0, Checkov 3.3.0, Conftest 0.68.2",
       "validationState": "unrun",
       "estimatedDurationMin": 35,
       "automationTier": "mock-only",
-      "cleanupCommand": "cd ../../../../"
+      "cleanupCommand": "git restore -- labs/day-2/14-security-scanners/messy/main.tf"
     },
     {
       "id": "day-2/16-tofu-test",
@@ -302,7 +302,7 @@
       "validationState": "unrun",
       "estimatedDurationMin": 30,
       "automationTier": "mock-only",
-      "cleanupCommand": "git restore -- \\"
+      "cleanupCommand": "git restore -- labs/day-2/19-testing-cicd/.github/workflows/pipeline.yml labs/day-2/19-testing-cicd/fixture/main.tf"
     },
     {
       "id": "day-3/20-why-terramate",
@@ -317,7 +317,7 @@
       "validationState": "unrun",
       "estimatedDurationMin": 25,
       "automationTier": "mock-only",
-      "cleanupCommand": "cd \"$OLDPWD\" 2>/dev/null || true"
+      "cleanupCommand": "rm -rf \"${demo:-}\""
     },
     {
       "id": "day-3/21-stacks",
@@ -332,7 +332,7 @@
       "validationState": "unrun",
       "estimatedDurationMin": 30,
       "automationTier": "mixed",
-      "cleanupCommand": "cd \"$OLDPWD\" 2>/dev/null || true"
+      "cleanupCommand": "rm -rf \"${demo:-}\""
     },
     {
       "id": "day-3/22-codegen",
@@ -347,7 +347,7 @@
       "validationState": "unrun",
       "estimatedDurationMin": 30,
       "automationTier": "mock-only",
-      "cleanupCommand": "cd \"$OLDPWD\" 2>/dev/null || true"
+      "cleanupCommand": "rm -rf \"${demo:-}\""
     },
     {
       "id": "day-3/23-orchestration",
@@ -362,7 +362,7 @@
       "validationState": "unrun",
       "estimatedDurationMin": 30,
       "automationTier": "mock-only",
-      "cleanupCommand": "cd \"$OLDPWD\" 2>/dev/null || true"
+      "cleanupCommand": "rm -rf \"${demo:-}\""
     },
     {
       "id": "day-3/24-change-detection",
@@ -377,7 +377,7 @@
       "validationState": "unrun",
       "estimatedDurationMin": 25,
       "automationTier": "mock-only",
-      "cleanupCommand": "cd \"$OLDPWD\" 2>/dev/null || true"
+      "cleanupCommand": "rm -rf \"${demo:-}\""
     },
     {
       "id": "day-3/25-terramate-ci-cloud",
@@ -392,7 +392,7 @@
       "validationState": "unrun",
       "estimatedDurationMin": 25,
       "automationTier": "mock-only",
-      "cleanupCommand": "cd \"${repo_root:?set repo_root in Step 1}\""
+      "cleanupCommand": "rm -rf \"${demo:-}\" \"${shallow:-}\""
     },
     {
       "id": "day-3/26-capstone",

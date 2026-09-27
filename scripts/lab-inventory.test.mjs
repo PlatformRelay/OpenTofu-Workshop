@@ -13,6 +13,7 @@ import {
   classifyAutomationTier,
   findMissingMatrixLabs,
   parseMatrixRows,
+  readCleanupCommand,
   renderInventory,
 } from './lab-inventory.mjs';
 import { CONTRACTED_LABS } from './lab-contract.mjs';
@@ -176,4 +177,38 @@ test('renderInventory is stable JSON and real repo covers every contracted lab',
 
   const committed = JSON.parse(readFileSync(join(REPO_ROOT, INVENTORY_PATH), 'utf8'));
   assert.deepEqual(committed, JSON.parse(rendered));
+});
+
+test('readCleanupCommand skips navigation and env setup for the real command', () => {
+  const lab = (body) => `# Lab\n\n## Cleanup / panic reset\n\n\`\`\`bash\n${body}\`\`\`\n\n## Stretch\n\n\`\`\`bash\ntofu apply\n\`\`\`\n`;
+  // export before the destroy (Lab 08 recorded the export)
+  assert.equal(
+    readCleanupCommand(lab("export TF_VAR_state_passphrase='x'\ntofu -chdir=examples/demo destroy -auto-approve\n")),
+    'tofu -chdir=examples/demo destroy -auto-approve',
+  );
+  // cd first (Labs 01-07 recorded the cd), inline comment dropped
+  assert.equal(
+    readCleanupCommand(lab('cd labs/day-1/01-iac-fork\ntofu destroy -auto-approve   # tear down\n')),
+    'tofu destroy -auto-approve',
+  );
+  assert.equal(
+    readCleanupCommand(lab('cd "$(git rev-parse --show-toplevel)"\ncd ../../..\ncd "$OLDPWD" 2>/dev/null || true\nrm -rf "${demo:-}"\n')),
+    'rm -rf "${demo:-}"',
+  );
+  // a continuation line is one command (Lab 19 recorded "git restore -- \\")
+  assert.equal(
+    readCleanupCommand(lab('git restore -- \\\n  a/pipeline.yml \\\n  b/main.tf\ngit status --short\n')),
+    'git restore -- a/pipeline.yml b/main.tf',
+  );
+  // navigation / env / inspection only -> no cleanup command, and never the Stretch fence
+  assert.equal(readCleanupCommand(lab('cd ../../..\nexport X=1\ngit status --short\n')), null);
+  assert.equal(readCleanupCommand('# Lab\n\n## Cleanup\n\nNothing to clean.\n\n## Stretch\n\n```bash\ntofu apply\n```\n'), null);
+});
+
+test('committed inventory records no navigation or env line as a cleanup command', () => {
+  const committed = JSON.parse(readFileSync(join(REPO_ROOT, INVENTORY_PATH), 'utf8'));
+  for (const lab of committed.labs) {
+    if (lab.cleanupCommand == null) continue;
+    assert.doesNotMatch(lab.cleanupCommand, /^(cd|export|pushd|popd|unset)\b|\\$/, `${lab.id}: ${lab.cleanupCommand}`);
+  }
 });
