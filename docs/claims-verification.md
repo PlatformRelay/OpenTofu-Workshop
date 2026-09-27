@@ -480,7 +480,7 @@ that scoping is the lesson. Its first version checked only the column then named
 `Current` — today's **Now reads** — so the defect simply relocated: escapes in
 its neighbour and in the left-alone table kept publishing literally, and one of them collapsed a table cell to
 **empty**, silently deleting the instruction that stops a later lane hand-editing
-`infra/lab-inventory.json`. A guard scoped to where the bug was last seen is not
+`docs/_generated/lab-inventory.json`. A guard scoped to where the bug was last seen is not
 a guard.
 
 ### Acceptance test: read the render, not the source
@@ -522,7 +522,7 @@ allowance is a place for the next defect to hide.
 An empty `<td>` is the worse symptom: it means a row collapsed entirely and its
 guidance is gone from the published page even though the source still reads
 correctly — which is how the instruction against hand-editing
-`infra/lab-inventory.json` briefly vanished.
+`docs/_generated/lab-inventory.json` briefly vanished.
 
 **What gates this, precisely.** `mkdocs build --strict` **is** CI-gated: the
 `pages-contract` job in `.github/workflows/ci.yml` runs it unconditionally on
@@ -571,7 +571,7 @@ not render as intended in CommonMark, and confirmed L5's quote spans lines
 | L19 | `pages/S01-iac/index.md` | 352 | `- Governed by the **Linux Foundation**; a **CNCF Sandbox** project since 2025-04-23 (neutral, community)` | was `- Governed by the **Linux Foundation** (neutral, community)`. | B6 |
 | L20 | `README.md` | 70 | ``OpenTofu ≥1.9, Node.js ≥20, pnpm, Task, Docker`` | the toolchain cell of the **Decks and Day 1** row read ``OpenTofu ≥1.8, …`` — **arguably the single highest-value row here, ahead of L17.** `labs/day-1/10-differentiators/` IS a Day-1 lab and requires `>= 1.9.0`, so that line was false by this document's own evidence, and it sits in the repo's front door where a learner reads it before opening any deck. | E2 |
 | L21 | `docs/setup.md` | 33 | ``OpenTofu ≥1.9, Node.js ≥20, pnpm, Task, Docker`` | the same table row mirrored into the setup guide; read ≥1.8. | E2 |
-| L22 | `docs/validation-matrix.md` | 78 | ``OpenTofu ≥1.9; `:4566` `` (the toolchain cell of the `day-1/10-differentiators` row) | read ``OpenTofu ≥1.8; `:4566` ``, contradicting the lab it indexes — `labs/day-1/10-differentiators.md:31` says ``tofu`` ≥ 1.9. `infra/lab-inventory.json` was regenerated in the same change with `node scripts/lab-inventory.mjs --write`; see the L22 trap below. | E2 |
+| L22 | `docs/validation-matrix.md` | 78 | ``OpenTofu ≥1.9; `:4566` `` (the toolchain cell of the `day-1/10-differentiators` row) | read ``OpenTofu ≥1.8; `:4566` ``, contradicting the lab it indexes — `labs/day-1/10-differentiators.md:31` says ``tofu`` ≥ 1.9. `docs/_generated/lab-inventory.json` was regenerated in the same change with `node scripts/lab-inventory.mjs --write`; see the L22 trap below. | E2 |
 | L23 | `docs/facilitator-runbook.md` | 15 | `` `tofu version` ≥1.9; `` | read `` `tofu version` ≥1.8 `` — a facilitator who checked 1.8 would not have discovered the gap until Lab 10 failed in the room. | E2 |
 | L24 | `docs/rehearsal-checklist.md` | 29 | ``confirm `tofu version` ≥1.9.`` | read ``confirm `tofu version` ≥1.8.`` | E2 |
 | L25 | `docs/rehearsal-checklist.md` | 42 | ``- [ ] OpenTofu ≥1.9 on `PATH` (`task setup`).`` | read ``- [ ] OpenTofu ≥1.8 on `PATH` (`task setup`).`` | E2 |
@@ -585,14 +585,14 @@ not render as intended in CommonMark, and confirmed L5's quote spans lines
 ### The L22 trap — regenerate the inventory
 
 `docs/validation-matrix.md` is the human source of truth for
-`infra/lab-inventory.json`, and the JSON mirrors the toolchain column verbatim
+`docs/_generated/lab-inventory.json`, and the JSON mirrors the toolchain column verbatim
 (the `pinned` field for `day-1/10-differentiators` reads `OpenTofu ≥1.8; :4566`). Editing
 the matrix without regenerating reds `pnpm test:inventory`.
 
 **Reproduced, not reasoned about.** Applying L22 alone: `pnpm test:inventory`
 fails with a `deepStrictEqual` diff, exit 1. Running
 `node scripts/lab-inventory.mjs --write` and re-running:
-`infra/lab-inventory.json: OK (matches docs/validation-matrix.md)`. Phase 2 did
+`docs/_generated/lab-inventory.json: OK (matches docs/validation-matrix.md)`. Phase 2 did
 exactly that: L22 and `node scripts/lab-inventory.mjs --write` in one change,
 and the JSON was never hand-edited.
 
@@ -649,11 +649,11 @@ oversight.
 | `labs/day-3/28-ecosystem-tooling.md:98` ("any `tofu ≥ 1.9` (the workshop floor) works here") | Was deliberately kept at "≥ 1.8" — the sentence was scoped to a lab that genuinely ran on 1.8. **Superseded 2026-08-31 (US-D-VERSION-FLOOR):** Lab 28's workdir pin now states the unified floor `>= 1.9`, so the sentence moved with it (a claim of 1.8 sufficiency would contradict the lab's own `required_version`). |
 | The per-lab prerequisite lines (`tofu` ≥ N) in ~18 labs across Days 1–3 | Each stated the floor for *its own* lab and each was correct — non-uniform on purpose, and the reason the aggregate defect stayed invisible. **Superseded 2026-08-31 (US-D-VERSION-FLOOR):** the plain boilerplate prerequisite lines now state the unified floor ≥ 1.9 (matching the workdir pins raised in the same change). The lines that TEACH a feature floor keep teaching it — Lab 07's ≥ 1.6, Lab 09's ≥ 1.7 `removed`-block discussion (with its explicit "optional `-exclude` beat needs ≥ 1.9" note), Lab 10's ≥ 1.9 — and Lab 19's line was frozen under an in-flight lane at the time. |
 | `docs/validation-matrix.md:50` ("macOS / Linux + OpenTofu ≥1.9") | Was left at ≥1.8 because it reported the gate's actual threshold, with the instruction "correct it in that change" when the threshold rose. **Superseded 2026-08-31 (US-D-VERSION-FLOOR):** the threshold rose to 1.9 and this row moved in the same change, as instructed. |
-| `docs/validation-matrix.md:67` (`day-1/00-setup` row, "OpenTofu ≥1.9") | Was correct at ≥1.8 for a `local_file` exercise. **Superseded 2026-08-31 (US-D-VERSION-FLOOR):** Lab 00's `versions.tf` pin now states the unified floor `>= 1.9`, so its matrix row (and the generated `infra/lab-inventory.json` mirror) moved with it. |
+| `docs/validation-matrix.md:67` (`day-1/00-setup` row, "OpenTofu ≥1.9") | Was correct at ≥1.8 for a `local_file` exercise. **Superseded 2026-08-31 (US-D-VERSION-FLOOR):** Lab 00's `versions.tf` pin now states the unified floor `>= 1.9`, so its matrix row (and the generated `docs/_generated/lab-inventory.json` mirror) moved with it. |
 | `labs/day-1/11-taco-landscape.md:37` ("HCP Terraform … Sentinel + OPA") | Same disposition as `pages/S11:231,239` — a statement about what HCP Terraform offers, not about where Sentinel exists. Accurate. A `Sentinel` grep will hit it; do not "fix" it. |
 | `labs/day-2/14-security-scanners.md:327` and `.solution.md:217, 295` ("replaces the old `tfsec` habit via `trivy config`") | Same disposition as `pages/S14:221` — describes migrating off a habit rather than declaring the tool dead. Accurate; these are the only tfsec mentions outside the deck. |
 | `examples/naming-labels-demo/README.md:20` and `examples/capstone/README.md:26` ("OpenTofu **1.8+** (for `mock_provider` in tests)") | Found only once the sweep boundary stopped enumerating paths — `examples/**` was outside the previous revision's list. **Correct as written**: each is scoped to its own example's test suite, and `mock_provider` genuinely arrived in 1.8 (C2). Neither claims anything about the labs. |
-| `infra/lab-inventory.json:181` — the `pinned` field, now reading ``OpenTofu ≥1.9; `:4566` `` | Generated mirror of `docs/validation-matrix.md:78`. **Not** a separate correction — it is the other half of the L22 trap and moved when the matrix did, via `node scripts/lab-inventory.mjs --write`. Listed so nobody hand-edits the JSON. (`:16` is Lab 00's row and is correct.) |
+| `docs/_generated/lab-inventory.json:181` — the `pinned` field, now reading ``OpenTofu ≥1.9; `:4566` `` | Generated mirror of `docs/validation-matrix.md:78`. **Not** a separate correction — it is the other half of the L22 trap and moved when the matrix did, via `node scripts/lab-inventory.mjs --write`. Listed so nobody hand-edits the JSON. (`:16` is Lab 00's row and is correct.) |
 | `pages/S01-iac/index.md:731`; `pages/S07-modules/index.md:209, 223` | Present-tense "Linux-Foundation-governed", same proposition as L19/L30/L31 — but these are **compressed recap and aside phrasings** where the licence contrast, not the governance body, is the point. Adding "CNCF Sandbox" to each would say the same thing five times for no added truth; L19 (the governance comparison) and L30/L31 (the lab's governance sentence) are where a reader looks it up. Recorded because **S07 appears in no Where cell**, so a phase-2 grep after applying L19 will hit three results with no guidance — this row is that guidance. |
 | `docs/validation-matrix.md:58` (`OpenTofu` row, `≥ **1.9** (setup/bootstrap.sh)` under "Canonical toolchain pins") | Same disposition as `:50` — it reported what `setup/bootstrap.sh` actually enforced. **Superseded 2026-08-31 (US-D-VERSION-FLOOR):** `MIN_TOFU` rose to 1.9 and this row moved in the same change; `verify.sh` §11 now needle-checks this exact cell so it cannot lag the enforcer again. Still worth noting **why it was nearly missed twice**: the bold markers inside the number defeat a naive `≥ *1\.8` grep. |
 | `slides-templates.md:229` (`- Policy: **Sentinel** (proprietary) + OPA`, under `leftHeading: HCP Terraform`) | Same disposition as `pages/S11:131` — a feature list for HCP Terraform, not a claim about where Sentinel can run. Accurate. Recorded because this file sits in a tree the completeness assertion above names as swept, so its absence would read as an oversight rather than a decision. |

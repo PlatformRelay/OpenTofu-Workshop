@@ -24,7 +24,7 @@ sections you keep.
   on a fresh machine — see [LocalStack troubleshooting](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/setup/localstack.md).
 - **Validation & rehearsal** — per-lab environment/tool claims and honest
   validation states live in [`docs/validation-matrix.md`](./validation-matrix.md)
-  (machine view: `infra/lab-inventory.json`). No lab is marked fully rehearsed
+  (machine view: `docs/_generated/lab-inventory.json`). No lab is marked fully rehearsed
   (`localstack-smoke`) yet; use [`docs/rehearsal-checklist.md`](./rehearsal-checklist.md)
   and [`docs/timing-results-template.md`](./timing-results-template.md) before claiming timings.
 

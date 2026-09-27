@@ -102,7 +102,7 @@ with `task pages:build` / `task pages:preview` (needs
   install), `lab.sh` + `docker-compose.yml` glue, LocalStack notes
   (`localstack.md`, `localstack-k8s.yaml`), and the Terratest container image
   (`setup/terratest/Dockerfile`).
-- `infra/lab-inventory.json` — generated lab-inventory snapshot;
+- `docs/_generated/lab-inventory.json` — generated lab-inventory snapshot;
   `node scripts/lab-inventory.mjs --check` fails on drift, `--write` refreshes.
 - `quiz/` — portable participant question bank (`questions.json` +
   `questions.schema.json`; `pnpm quiz:validate`, `pnpm test:quiz`).

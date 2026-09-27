@@ -4,11 +4,12 @@
  *
  * Canonical source of truth: the Markdown matrix (human-edited). This module
  * parses it, enriches rows from lab frontmatter / Cleanup sections, and writes
- * infra/lab-inventory.json. CI runs `--check` to catch drift and missing rows.
+ * docs/_generated/lab-inventory.json. `--check` (run by scripts/verify-selftest.sh,
+ * so by CI verify-unit and `task verify`) catches drift and missing rows.
  *
  * Usage:
  *   node scripts/lab-inventory.mjs              # print JSON
- *   node scripts/lab-inventory.mjs --write       # regenerate infra/lab-inventory.json
+ *   node scripts/lab-inventory.mjs --write       # regenerate docs/_generated/lab-inventory.json
  *   node scripts/lab-inventory.mjs --check       # exit 1 if JSON drifted or a lab lacks a row
  */
 
@@ -19,7 +20,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { CONTRACTED_LABS } from './lab-contract.mjs';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-export const INVENTORY_PATH = 'infra/lab-inventory.json';
+export const INVENTORY_PATH = 'docs/_generated/lab-inventory.json';
 export const MATRIX_PATH = 'docs/validation-matrix.md';
 
 export const AUTOMATION_TIERS = Object.freeze([
@@ -88,17 +89,31 @@ function readEstimatedDurationMin(labMarkdown) {
   return match ? Number(match[1]) : null;
 }
 
-function readCleanupCommand(labMarkdown) {
+// Lines that set up for the cleanup rather than perform it: navigation, shell
+// environment, and read-only inspection. Recording them as "the" cleanup
+// command (Lab 08's `export TF_VAR_...`, Labs 01-07's `cd labs/...`) made the
+// field useless.
+const NON_CLEANUP_LINE = /^(?:cd|pushd|popd|export|unset|set|source|\.|git status|git diff|ls|cat|echo)(?:\s|$)|^[A-Za-z_][A-Za-z0-9_]*=\S*$/;
+
+// The first real cleanup command in the lab's `## Cleanup` section: shell
+// fences only up to the next `## ` heading, continuation lines joined, inline
+// `# comments` dropped, set-up lines skipped. null when there is none.
+export function readCleanupCommand(labMarkdown) {
   const idx = labMarkdown.search(/^## Cleanup\b/m);
   if (idx < 0) return null;
   const rest = labMarkdown.slice(idx);
-  const fence = rest.match(/```(?:bash|sh)?\n([\s\S]*?)```/);
-  if (!fence) return null;
-  const lines = fence[1]
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line && !line.startsWith('#'));
-  return lines[0] ?? null;
+  const next = rest.slice(1).search(/^## /m);
+  const section = next < 0 ? rest : rest.slice(0, next + 1);
+  for (const fence of section.matchAll(/```(?:bash|sh)?\n([\s\S]*?)```/g)) {
+    const joined = fence[1].replace(/\s*\\\n\s*/g, ' ');
+    for (const raw of joined.split('\n')) {
+      const line = raw.replace(/\s+#\s.*$/, '').trim();
+      if (!line || line.startsWith('#') || line.startsWith('$ ')) continue;
+      if (NON_CLEANUP_LINE.test(line)) continue;
+      return line;
+    }
+  }
+  return null;
 }
 
 function dayFromPath(labPath) {

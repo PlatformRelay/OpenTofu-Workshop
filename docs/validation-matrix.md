@@ -4,7 +4,7 @@ A single, tracked table mapping **every** contracted participant lab
 (`labs/day-{1,2,3}/NN-*.md` from `scripts/lab-contract.mjs`) to the environment(s) it
 supports, the laptop/cluster tools it needs, the reproducibility-critical pins it
 references, and its **honest current validation state**. It is the **human source of
-truth** for lab validation metadata; [`infra/lab-inventory.json`](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/infra/lab-inventory.json)
+truth** for lab validation metadata; [`docs/_generated/lab-inventory.json`](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/docs/_generated/lab-inventory.json)
 is the generated machine-readable view (regenerate with
 `node scripts/lab-inventory.mjs --write`, CI `--check` rejects drift). This matrix also
 doubles as rehearsal tracking for the manual clean-environment rehearsal (**US-P-VALDOCS**).
@@ -57,6 +57,7 @@ Host support is a separate claim from lab validation.
 | --- | --- |
 | OpenTofu | ≥ **1.9** (`setup/bootstrap.sh`) |
 | LocalStack | `:4566` health at `/_localstack/health` (`Taskfile.yaml`) |
+| AWS provider (LocalStack roots) | `>= 5.0, < 6.0` — provider v6 waiters hang against LocalStack community 4.9.2 |
 | Terramate | Spoilers pinned ~**0.17.x** (facilitator runbook) |
 | Day-2 scanners | TFLint, Trivy, Checkov, Conftest on `PATH` when teaching S13–S14 |
 
@@ -79,7 +80,7 @@ Host support is a separate claim from lab validation.
 | [`day-1/11-taco-landscape.md`](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-1/11-taco-landscape.md) | S11 The TACO landscape | `paper ✓` | None (pen / notes) | n/a | `unrun` |
 | [`day-2/12-testing-pyramid.md`](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-2/12-testing-pyramid.md) | S12 Why test IaC + testing pyramid | `mock ✓ (no docker)` | None | in-lab `main.tftest.hcl` | `unit-tested` |
 | [`day-2/13-static-analysis.md`](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-2/13-static-analysis.md) | S13 Static analysis & formatting | `mock ✓ (no docker)` | **TFLint** on `PATH` | intentional messy fixture (S13) | `unrun` |
-| [`day-2/14-security-scanners.md`](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-2/14-security-scanners.md) | S14 Security & policy scanners | `mock ✓ (no docker)` | **Trivy**, **Checkov**, **Conftest** | scanner CLIs unpinned on laptop | `unrun` |
+| [`day-2/14-security-scanners.md`](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-2/14-security-scanners.md) | S14 Security & policy scanners | `mock ✓ (no docker)` | **Trivy**, **Checkov**, **Conftest** | Lab 14 pins Trivy 0.72.0, Checkov 3.3.0, Conftest 0.68.2 | `unrun` |
 | [`day-2/16-tofu-test.md`](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-2/16-tofu-test.md) | S16 Native testing — `tofu test` | `localstack ✓` · `plan ✓` | Docker for integration suite | integration `*.tftest.hcl` deferred to verify-integration | `unrun` |
 | [`day-2/17-mocking.md`](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-2/17-mocking.md) | S17 Mocking providers | `mock ✓ (no docker)` | None | `tests/unit.tftest.hcl` | `unit-tested` |
 | [`day-2/18-terratest-cost.md`](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/labs/day-2/18-terratest-cost.md) | S18 Integration, e2e & cost | `localstack ✓` · `mock ✓` | Docker; optional **Go** for Terratest lane | Terratest container in `setup/terratest/` | `unrun` |

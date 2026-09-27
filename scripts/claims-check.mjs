@@ -288,7 +288,7 @@ const POINTER =
  * Blank out ``double-backtick`` spans, which quote literal document text rather
  * than pointers. Without this the LocalStack port in ``OpenTofu >=1.9; `:4566` ``
  * reads as a bare continuation and resolves against whatever pointer preceded it
- * on the line -- on doc line 656 that is `infra/lab-inventory.json`, so the gate
+ * on the line -- on doc line 656 that is `docs/_generated/lab-inventory.json`, so the gate
  * would report a confident, entirely fictional past-EOF failure.
  * Replaced with spaces so nothing else on the line shifts.
  */
