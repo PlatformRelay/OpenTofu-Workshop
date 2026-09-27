@@ -7,6 +7,10 @@
 | **Estimated time** | 35 min |
 | **Pinned versions** | Trivy **0.72.0** · Checkov **3.3.0** · Conftest **0.68.2** |
 
+> **OVH track.** The scanners analyse HCL statically, so the AWS-shaped fixture
+> is kept and the skill transfers unchanged — see the
+> [OVH variant entry](../../variant/ovh/README.md).
+
 ## Objective
 
 Run Trivy and Checkov against the same intentionally-misconfigured module, diff

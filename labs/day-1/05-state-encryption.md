@@ -6,6 +6,10 @@
 | **Environment** | `localstack ✓` · `mock ✓` · `real-aws (optional)` — Steps 0–5 need neither Docker nor cloud (`random` provider only); optional Step 6 uses LocalStack's KMS |
 | **Estimated time** | 25 min core path · +10 min optional Step 6 (KMS) |
 
+> **OVH track.** The core path is provider-agnostic and runs unchanged on OVH;
+> Step 6 (LocalStack KMS) is skipped in the OVH track in v1. See the
+> [OVH variant entry](../../variant/ovh/README.md).
+
 ## Objective
 
 Take the project you have been growing all day — now with **plaintext** local

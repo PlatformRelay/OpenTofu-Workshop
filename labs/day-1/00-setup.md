@@ -6,6 +6,11 @@
 | **Environment** | `localstack ✓` · `local ✓ (no docker)` |
 | **Estimated time** | 20 min |
 
+> **OVH track.** No Docker, or would you rather run this on real Object
+> Storage? This lab has an OVH twin at
+> [`variant/ovh/labs/day-1/00-setup/`](../../variant/ovh/labs/day-1/00-setup/README.md)
+> — see the [OVH variant entry](../../variant/ovh/README.md).
+
 ## Objective
 
 Verify the toolchain, run a first `tofu apply` against the local provider, then

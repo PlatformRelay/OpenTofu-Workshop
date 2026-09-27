@@ -6,6 +6,11 @@
 | **Environment** | `localstack ✓` · `mock ✓` — Steps 1–4 need neither Docker nor cloud; Steps 5–6 use LocalStack |
 | **Estimated time** | 60 min (consume track, Steps 1–6) · Part B build variant: **+40 min, stretch / homework — not in the timed budget** |
 
+> **OVH track.** This capstone has an OVH twin at
+> [`variant/ovh/examples/capstone-ovh/`](../../variant/ovh/examples/capstone-ovh/README.md)
+> — the table/queue become bucket versioning + lifecycle. See the
+> [OVH variant entry](../../variant/ovh/README.md).
+
 ## Objective
 
 Drive the shipped **US-X-CAP** artifact

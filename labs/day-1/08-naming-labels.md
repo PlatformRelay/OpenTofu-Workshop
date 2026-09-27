@@ -6,6 +6,11 @@
 | **Environment** | `localstack ✓` · `mock ✓` · `real-aws (optional)` — Steps 1–3 need neither Docker nor cloud; Step 4 uses LocalStack |
 | **Estimated time** | 30 min |
 
+> **OVH track.** Steps 1–3 are provider-agnostic. Step 4's apply has an OVH twin
+> at
+> [`variant/ovh/examples/naming-labels-ovh/`](../../variant/ovh/examples/naming-labels-ovh/README.md)
+> — see the [OVH variant entry](../../variant/ovh/README.md).
+
 ## Objective
 
 Consume the flagship `modules/naming` + `modules/labels` through the
