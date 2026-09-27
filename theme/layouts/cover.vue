@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const props = defineProps<{
-  /** Small mono line under the title block, e.g. "3 days · 50% hands-on". */
+  /** Small mono line under the title block, e.g. "3 days · ~42% hands-on". */
   meta?: string
   /** Optional workshop logo shown above the title, e.g. "/branding/logo-512.png". */
   logo?: string

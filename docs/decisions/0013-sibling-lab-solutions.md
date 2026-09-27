@@ -14,7 +14,7 @@ files still carry inline `<details>` spoilers for every step — workable for au
 but heavy for learners who only need answers after a good-faith attempt, and awkward
 for facilitators who want a single spoiler destination.
 
-The OpenTofu workshop ships **27 contracted labs** across Day 1–3 (see
+The OpenTofu workshop ships **29 contracted labs** across Day 1–3 (see
 `scripts/lab-contract.mjs`). CI should fail when a contracted lab lacks its sibling
 solution, matching the Kubernetes workshop's enforced pattern without reintroducing a
 per-lab `solutions/` folder tree.

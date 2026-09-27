@@ -1,7 +1,8 @@
 # Syllabus — OpenTofu Practitioner Workshop
 
-A hands-on, vendor-neutral OpenTofu workshop. Roughly **50% presentation, 50%
-practice**. Labs run against LocalStack or `mock_provider` — no cloud account.
+A hands-on, vendor-neutral OpenTofu workshop. Roughly **41% is hands-on** in
+the canonical cut (≈42% across the full section library). Labs run against
+LocalStack or `mock_provider` — no cloud account.
 
 This page is the public section map. Facilitators should also read the
 [facilitator runbook](facilitator-runbook.md). Architectural decisions live in

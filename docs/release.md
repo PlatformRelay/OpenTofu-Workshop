@@ -9,6 +9,10 @@ Ordinary pushes never release. Only a `v*` tag triggers
 | --- | --- |
 | `opentofu-workshop-full-<tag>.pdf` | Superset (`slides.md`) |
 | `opentofu-workshop-3day-<tag>.pdf` | Three-day cut (`slides-3day.md`) |
+| `opentofu-workshop-day-1-<tag>.pdf` | Day-1 cut (`slides-day-1.md`) |
+| `opentofu-workshop-day-2-<tag>.pdf` | Day-2 cut (`slides-day-2.md`) |
+| `opentofu-workshop-day-3-<tag>.pdf` | Day-3 cut (`slides-day-3.md`) |
+| `opentofu-workshop-site-<tag>.zip` | Static HTML decks (relative asset paths) |
 
 ## How to cut
 
@@ -21,7 +25,9 @@ git push origin v1.2.0   # → Release workflow exports PDFs
 
 ## GitHub Pages (docs + decks)
 
-Every push to `main` (and manual `workflow_dispatch`) runs
+Every push to `main` that touches the site inputs (the workflow's `paths:`
+filter — docs, pages, decks, theme, scripts; `workflow_dispatch` forces a
+rebuild past the filter) runs
 [`.github/workflows/pages.yml`](https://github.com/PlatformRelay/OpenTofu-Workshop/blob/main/.github/workflows/pages.yml):
 MkDocs Material at `/`, hash-routed Slidev under `/deck/`. Locally:
 

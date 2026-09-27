@@ -37,7 +37,7 @@ it under the [0BSD License](https://github.com/PlatformRelay/OpenTofu-Workshop/b
 | --- | --- |
 | **Free** | No paywall, no account, no telemetry. Clone it and go. |
 | **Teach-ready** | Decks + labs + a [facilitator runbook](facilitator-runbook.md) so you can deliver IaC to colleagues. |
-| **Hands-on** | Roughly half the time is labs — LocalStack or `mock_provider`, **no cloud bill**. |
+| **Hands-on** | Roughly 41% of the time is labs — LocalStack or `mock_provider`, **no cloud bill**. |
 | **Flexible delivery** | Solo learning, a custom cut from the superset, or the canonical three-day path. |
 | **Many formats** | Live Slidev in the browser, local Node.js preview, and downloadable PDFs. |
 | **Yours to adapt** | Restyle the theme, reorder sections, fork or sell freely under 0BSD. |

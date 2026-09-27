@@ -4,10 +4,12 @@ A blank template for recording **measured** timings during a rehearsal or beta r
 this file (e.g. to `timing-results-2026-08-15.md`), fill the **MEASURED** columns as you
 run, and keep it as the record for that run.
 
-> **Measured ≠ planned.** The `PLANNED` columns are copied from the
-> [syllabus](./syllabus.md#section-timings-planning-estimates) — they are **unrehearsed
-> planning estimates**, not facts. The `MEASURED` columns start **empty** and hold **only
-> observed stopwatch numbers**. **Never** copy a planned value into a measured column.
+> **Measured ≠ planned.** The `PLANNED` columns are copied from the section
+> manifest, `scripts/deck-manifest.mjs` (the SSoT the
+> [syllabus](./syllabus.md#section-timings-planning-estimates) also derives
+> from) — they are **unrehearsed planning estimates**, not facts. The `MEASURED`
+> columns start **empty** and hold **only observed stopwatch numbers**. **Never**
+> copy a planned value into a measured column.
 
 ## Run metadata
 
@@ -29,7 +31,7 @@ Fill this in per run:
 
 ## Legend
 
-- **PLANNED** — from the syllabus; do not edit these.
+- **PLANNED** — from `scripts/deck-manifest.mjs`; do not edit these.
 - **MEASURED** — observed stopwatch minutes. Empty = not measured.
 - **Δ** — measured minus planned; blank until measured.
 - **`—`** — not applicable (S11 paper-only has no `tofu` lab timing split).
@@ -75,6 +77,8 @@ Fill this in per run:
 | S24 | Change detection & filtering | 25 | 25 | | | | | |
 | S25 | Terramate in CI + Cloud | 25 | 25 | | | | | |
 | S26 | Capstone & wrap-up | 60 | 60 | | | | | |
+| S27 | Terragrunt vs Terramate | 20 | 20 | | — | | — | Paper exercise — lab column n/a. |
+| S28 | Ecosystem tooling | 20 | 20 | | | | | |
 
 ## Day totals (measured vs planned)
 

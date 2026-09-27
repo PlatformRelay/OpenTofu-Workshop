@@ -15,7 +15,7 @@ multi-module project — with no cloud bill.
 Say: Open with energy — welcome the room and set the arc. Over three days we go
 from "what is a resource" to a tested, encrypted, orchestrated multi-module
 project, and we do it all locally with no cloud bill. Reassure anyone new to IaC
-that the ramp is gentle and roughly half the time is hands-on. (~2 min)
+that the ramp is gentle and roughly 41% of the time is hands-on. (~2 min)
 Then: "Here's the red line that ties all three days together" — into what you'll
 be able to build.
 -->
@@ -43,7 +43,7 @@ be able to build.
 
 <div v-click class="mt-6 kw-muted text-sm">
 
-Every block ends with a hands-on lab — roughly half the workshop is your hands
+Every block ends with a hands-on lab — roughly 41% of the workshop is your hands
 on the keyboard. Labs use local providers, mocks, or **LocalStack**, never a
 required cloud account.
 
@@ -55,7 +55,7 @@ Part 1 you write it (HCL, state, modules) and it culminates in a tested naming a
 labelling module with encrypted state. Part 2 you learn to trust it (static
 analysis, policy scanners, native tofu test, mocking — the IaC testing pyramid).
 Part 3 you grow it with Terramate — stacks, codegen, orchestration. Land the click
-reveal: every block ends in a lab, ~50% hands-on, using local providers, mocks,
+reveal: every block ends in a lab, ~41% hands-on, using local providers, mocks,
 or LocalStack rather than a required cloud account. (~3 min)
 Then: "Before we write a line of it, two ground rules about what we're teaching."
 -->
@@ -309,7 +309,7 @@ story: 'You have a working, cloud-free OpenTofu lab. Now we learn what the code 
 next: 'Next: Infrastructure as Code — and why OpenTofu exists'
 ---
 
-- The workshop's red line: **author → test → scale**, ~50% hands-on.
+- The workshop's red line: **author → test → scale**, ~41% hands-on.
 - We use **OpenTofu** (`tofu`); HCL is shared with Terraform.
 - Labs run on **LocalStack** + `mock_provider` — no cloud account, no bill.
 - `task setup` / `task lab:up` / `task verify` are the only commands you memorise.

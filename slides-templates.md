@@ -72,7 +72,7 @@ kicker: 'Layout: agenda'
 - **State** 🗺️ — the map of what you built <em>· 30 min</em>
 - **State encryption** 🔒 — OpenTofu's client-side headline <em>· 30 min</em>
 - **Naming & labelling module** — the flagship, tested <em>· 45 min</em>
-- **Labs after every block** 🧪 — LocalStack, no cloud bill <em>· ~50%</em>
+- **Labs after every block** 🧪 — LocalStack, no cloud bill <em>· ~41%</em>
 
 ---
 layout: section-cover

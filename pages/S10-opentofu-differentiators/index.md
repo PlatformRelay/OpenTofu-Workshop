@@ -419,7 +419,7 @@ Then: regroup for the recap.
 layout: recap
 heading: OpenTofu differentiators — recap
 story: 'OpenTofu has diverged from Terraform on features — here are the ones you reach for.'
-next: 'Next: Best practices — structure, lifecycle & refactoring'
+next: 'Next: The TACO landscape'
 ---
 
 - OpenTofu is drop-in **compatible** with Terraform HCL *and* has **diverged on
