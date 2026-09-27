@@ -14,9 +14,10 @@ run "localstack_apply" {
   command = apply
 
   variables {
-    use_localstack = true
-    project        = "crmapp"
-    environment    = "dev"
+    use_localstack   = true
+    project          = "crmapp"
+    environment      = "dev"
+    state_passphrase = "integration-test-passphrase"
   }
 
   # After apply the random suffix is resolved: assert the FULL naming pattern.

@@ -255,10 +255,13 @@ plain `tofu`; `task verify` must stay green with Terramate absent.
 
 ## Step 2 — Break → fix: short passphrase
 
-The encryption key provider requires a passphrase ≥ 16 characters. Feed it a
-short one and plan:
+The encryption key provider requires a passphrase ≥ 16 characters. Export the
+workshop passphrase first — this root has no committed default, so every `tofu`
+command here needs it — then override it with a short one on the command line
+and plan:
 
 ```bash
+export TF_VAR_state_passphrase='a-long-demo-passphrase-1234'
 tofu -chdir=examples/capstone init -backend=false -no-color
 tofu -chdir=examples/capstone plan -var 'state_passphrase=short' -no-color
 ```
@@ -282,7 +285,8 @@ value is supplied as a root variable — both insist on ≥ 16 characters.)
 
 </details>
 
-**Fix:** export a workshop-length passphrase and confirm the unit lane plans:
+**Fix:** drop the short `-var` so the exported workshop-length passphrase
+applies (re-export it in a new shell) and confirm the unit lane plans:
 
 ```bash
 export TF_VAR_state_passphrase='a-long-demo-passphrase-1234'

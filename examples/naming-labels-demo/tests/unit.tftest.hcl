@@ -21,9 +21,10 @@ run "unit_plan_with_mock" {
   providers = { aws = aws.mock }
 
   variables {
-    use_localstack = true
-    project        = "crmapp"
-    environment    = "dev"
+    use_localstack   = true
+    project          = "crmapp"
+    environment      = "dev"
+    state_passphrase = "unit-test-passphrase-ok"
   }
 
   assert {

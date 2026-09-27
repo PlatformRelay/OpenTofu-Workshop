@@ -20,6 +20,8 @@ S08 tie-in).
 - `tofu` ≥ 1.9 (`task setup` installs it). Check: `tofu version`.
 - Docker (Step 4 only) for LocalStack. Check: `docker version`.
 - `jq` for inspecting tags (optional; used in a spoiler).
+- Run every command **from the repository root**; each `tofu` call reaches the
+  demo with `-chdir=examples/naming-labels-demo`.
 
 ## Files used
 
@@ -40,8 +42,7 @@ Open the two modules and the demo root and answer: **how does a bad name get
 stopped before it reaches a provider?**
 
 ```bash
-cd examples/naming-labels-demo
-sed -n '1,40p' ../../modules/naming/outputs.tf
+sed -n '1,40p' modules/naming/outputs.tf
 ```
 
 **Task:** Name the two mechanisms that guard the composed name.
@@ -64,6 +65,7 @@ The demo root's unit test uses an **aliased** `mock_provider "aws"`, so it plans
 anywhere — including CI with no Docker:
 
 ```bash
+export TF_VAR_state_passphrase='a-long-demo-passphrase-1234'   # S05: >= 16 chars
 tofu -chdir=examples/naming-labels-demo init -backend=false
 tofu -chdir=examples/naming-labels-demo test -filter=tests/unit.tftest.hcl
 ```
@@ -97,10 +99,13 @@ resolved.
 
 ## Step 3 — Break a naming validation, then fix it
 
-The demo root passes `project` straight into `module.naming`. Feed it a project
-slug that is too short and plan:
+The demo root passes `project` straight into `module.naming`. It also encrypts
+its state, so the passphrase you exported in Step 2 must still be set (S05) —
+there is no committed default; the block repeats the export for a new shell.
+Feed it a project slug that is too short and plan:
 
 ```bash
+export TF_VAR_state_passphrase='a-long-demo-passphrase-1234'   # S05: >= 16 chars
 tofu -chdir=examples/naming-labels-demo plan -var 'project=ab'
 ```
 

@@ -18,9 +18,8 @@ variable "state_passphrase" {
   description = "Passphrase for PBKDF2 state encryption. MUST be >= 16 chars. Set via TF_VAR_state_passphrase."
   type        = string
   sensitive   = true
-  # A default is provided ONLY so the example plans out of the box in a workshop;
-  # in real use, supply it via env and never commit it.
-  default = "demo-state-passphrase-change-me"
+  # No default: supply it out-of-band via TF_VAR_state_passphrase (the tftests
+  # set their own value). Never commit a real secret.
 
   validation {
     condition     = length(var.state_passphrase) >= 16
