@@ -604,6 +604,42 @@ async function checkMiseLock(root, errors) {
   })
 }
 
+// Pre-commit hook repos are remote code run on every contributor's machine, so
+// they get the same rule as Actions: an immutable 40-hex commit SHA plus a
+// human-readable version comment. `local` and `meta` repos have no rev.
+async function checkPreCommitPins(root, errors) {
+  let contents
+  try {
+    contents = await readFile(path.join(root, '.pre-commit-config.yaml'), 'utf8')
+  } catch (error) {
+    if (error.code === 'ENOENT') return
+    throw error
+  }
+  const lines = contents.split(/\r?\n/)
+  let config
+  try {
+    config = parseYaml(contents)
+  } catch (error) {
+    errors.push(`.pre-commit-config.yaml: not valid YAML: ${error.message}`)
+    return
+  }
+  for (const entry of config?.repos ?? []) {
+    const repo = String(entry?.repo ?? '')
+    if (repo === 'local' || repo === 'meta') continue
+    const rev = entry?.rev == null ? '' : String(entry.rev)
+    const index = lines.findIndex((line) => new RegExp(`^\\s*rev:\\s*['"]?${escapeRegex(rev)}\\b`).test(line))
+    const location = `.pre-commit-config.yaml:${index >= 0 ? index + 1 : '?'}`
+    if (!ACTION_SHA.test(rev)) {
+      errors.push(`${location}: pre-commit repo ${repo} must pin rev to an immutable 40-character commit SHA`)
+      continue
+    }
+    const comment = index >= 0 ? lines[index].match(/#\s*(\S+)/)?.[1] : undefined
+    if (!comment || !VERSION_COMMENT.test(comment)) {
+      errors.push(`${location}: pinned pre-commit rev for ${repo} requires a version comment such as "# v8.21.2"`)
+    }
+  }
+}
+
 export async function checkSupplyChainPolicy(root = process.cwd(), options = {}) {
   const today = options.today ?? new Date().toISOString().slice(0, 10)
   const errors = []
@@ -619,6 +655,7 @@ export async function checkSupplyChainPolicy(root = process.cwd(), options = {})
   }
   await checkRemoteInputs(root, exceptionById, errors)
   await checkMiseLock(root, errors)
+  await checkPreCommitPins(root, errors)
   return { errors }
 }
 

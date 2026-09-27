@@ -36,8 +36,9 @@ minimum_pre_commit_version: "3.5.0"
 #
 # Nothing is lost by widening it. pre-commit's `exclude:` and scripts/verify.sh
 # are INDEPENDENT scans: verify.sh walks git-tracked `.tf` itself and skips
-# only S13_MESSY_FIXTURE (verify.sh:211), so a future `messy/adjacent.tf` stays
-# gated THERE — that is what scripts/verify-selftest.sh:958,969 assert, against
+# only the one file named by S13_MESSY_FIXTURE in its fmt gate, so a future
+# `messy/adjacent.tf` stays gated THERE — that is what the two "adjacent S13
+# file is not allowlisted" cases in scripts/verify-selftest.sh assert, against
 # verify.sh, not against this file. Widening here cannot un-gate it.
 #
 # The directory path is a prefix of S13_MESSY_FIXTURE in scripts/verify.sh — if
@@ -58,7 +59,7 @@ minimum_pre_commit_version: "3.5.0"
 repos:
   # --- OpenTofu / Terraform hooks -------------------------------------------
   - repo: https://github.com/antonbabenko/pre-commit-terraform
-    rev: v1.99.0
+    rev: 521ada54e82bdee23c6a1f42a83cd22898f1efd4 # v1.99.0
     hooks:
       - id: terraform_fmt
         name: tofu fmt
@@ -97,14 +98,14 @@ repos:
 
   # --- Secrets scanning ------------------------------------------------------
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.21.2
+    rev: 43fae355e6fe4d99d2a7b240a224b85e2903aeb4 # v8.21.2
     hooks:
       - id: gitleaks
         name: gitleaks (secret scan)
 
   # --- Generic hygiene -------------------------------------------------------
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: cef0300fd0fc4d2a87a85fa2093c6b283ea36f4b # v5.0.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
