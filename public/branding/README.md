@@ -6,11 +6,12 @@ branches (favicon+social, repo/workshop logo, Kollect-style social cards) and **
 
 | File | Wired where |
 | --- | --- |
-| `favicon-32.png` | Primary favicon — `favicon:` headmatter of all three root decks |
+| `favicon-32.png` | Primary favicon — `favicon:` headmatter of all six root decks |
 | `favicon.ico`, `favicon-180.png` | Legacy `.ico` + apple-touch icon links — root `index.html` (merged into every deck's `<head>`) |
 | `logo-512.png` | Cover-slide logo mark — `logo:` frontmatter on each root deck's cover (`theme/layouts/cover.vue`) |
-| `og-image.png` | `og:image` / `twitter:image` — `seoMeta:` headmatter of all three root decks |
+| `og-image.png` | `og:image` / `twitter:image` — `seoMeta:` headmatter of all six root decks |
 | `logo.png`, `workshop-logo.png`, `social-preview.png` | Staged spares (hi-res logo, README/social alternates) — kept for future use |
 
 Root-absolute `/branding/…` paths are resolved against each deck's build base (`/`, `/3day/`,
-`/templates/`, and the Pages sub-path) by Slidev / the theme's `resolveAsset` helper.
+`/day-1/`, `/day-2/`, `/day-3/`, `/templates/`, and the Pages sub-path) by Slidev / the theme's
+`resolveAsset` helper.

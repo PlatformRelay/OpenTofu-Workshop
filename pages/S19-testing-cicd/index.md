@@ -50,15 +50,15 @@ Then: Show where those lanes live in this repository.
 layout: code-walkthrough
 ---
 
-<span class="kw-kicker">taught artifact · `.github/workflows/ci.yml`</span>
+<span class="kw-kicker">taught artifact · `.github/workflows/ci.yml` · representative excerpt — the real workflow defines 14 jobs</span>
 
-# Four jobs, one shared gate
+# Four representative jobs, one shared gate
 
 ```yaml {none|3|4|5|6}
-# Excerpt from this repository's real CI
+# Excerpt from this repository's real CI (4 of 14 jobs)
 jobs:
   lint:                 # markdownlint on labs
-  build:                # pnpm build · build:3day · build:templates
+  build:                # pnpm build · build:day1-3 · build:3day · build:templates
   verify-unit:          # scripts/verify.sh (fmt · validate · tofu test)
   verify-integration:   # tofu test -filter=… against LocalStack :4566
 ```
@@ -66,7 +66,7 @@ jobs:
 ::notes::
 
 <CodeNote at="1" label="Docs">Broken labs fail review before OpenTofu runs.</CodeNote>
-<CodeNote at="2" label="Decks">All three root decks must build.</CodeNote>
+<CodeNote at="2" label="Decks">All six decks must build — superset, three day cuts, 3-day cut, templates.</CodeNote>
 <CodeNote at="3" label="Unit">The same gate developers run as <code>task verify</code>.</CodeNote>
 <CodeNote at="4" label="Integration">Service container — not a laptop-only promise.</CodeNote>
 

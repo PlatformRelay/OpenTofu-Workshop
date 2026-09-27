@@ -158,13 +158,13 @@ seoMeta:
   ogTitle: OpenTofu Practitioner Workshop
   ogDescription: >-
     Open source, vendor-neutral OpenTofu workshop — Infrastructure as Code done
-    right: write it, test it, scale it. 3 days, 50% hands-on, LocalStack labs.
+    right: write it, test it, scale it. 3 days, ~42% hands-on, LocalStack labs.
   ogImage: https://platformrelay.github.io/OpenTofu-Workshop/branding/og-image.png
   ogUrl: https://platformrelay.github.io/OpenTofu-Workshop/
   twitterCard: summary_large_image
   twitterImage: https://platformrelay.github.io/OpenTofu-Workshop/branding/og-image.png
 layout: cover
-meta: 3 days · 50% hands-on · OpenTofu-first · LocalStack labs
+meta: 3 days · ~42% hands-on · OpenTofu-first · LocalStack labs
 logo: /branding/logo-512.png
 ---`
 
@@ -179,7 +179,7 @@ seoMeta:
   ogTitle: OpenTofu Practitioner Workshop — 3-day cut
   ogDescription: >-
     The canonical 3-day delivery cut of the open source, vendor-neutral OpenTofu
-    workshop — core and recommended sections, 50% hands-on.
+    workshop — core and recommended sections, ~41% hands-on.
   ogImage: https://platformrelay.github.io/OpenTofu-Workshop/branding/og-image.png
   ogUrl: https://platformrelay.github.io/OpenTofu-Workshop/3day/
   twitterCard: summary_large_image

@@ -29,8 +29,8 @@ header convention that makes it visible and machine-checkable.
 | `optional` | Enrichment / stretch. | **Hidden** (`hide: true`). |
 
 The invariant is **`hidden ⟺ optional`**: a section is hidden in `slides-3day.md` **iff** its tier
-is `optional`. Per D1-A, S05 and S14 are `core` everywhere; S11, S18, S25 are `optional` (hence
-the 3-day hide-list).
+is `optional`. Per D1-A, S05 and S14 are `core` everywhere; S11, S18, S25, S27 and S28 are
+`optional` (hence the 3-day hide-list).
 
 **2. Tier lives in two agreeing places, and only those.**
 

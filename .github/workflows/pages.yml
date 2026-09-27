@@ -4,6 +4,9 @@ name: Deploy to GitHub Pages
 #   <pages-url>/                 → MkDocs landing (Material)
 #   <pages-url>/deck/            → full Slidev superset (hash router)
 #   <pages-url>/deck/3day/       → canonical 3-day cut
+#   <pages-url>/deck/day-1/      → Day-1 canonical slice
+#   <pages-url>/deck/day-2/      → Day-2 canonical slice
+#   <pages-url>/deck/day-3/      → Day-3 canonical slice
 #   <pages-url>/deck/templates/  → design-system gallery
 # Legacy /3day/ and /templates/ URLs redirect into /deck/…
 #
