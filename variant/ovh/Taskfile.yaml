@@ -1,0 +1,81 @@
+# variant/ovh/Taskfile.yaml — the OVH variant track's task namespace.
+#
+# Included by the root Taskfile as `ovh:`, so every task here is reachable as
+# `task ovh:<name>`. `dir: "{{.ROOT_DIR}}"` keeps every command running from the
+# repo root regardless of which directory the task was invoked from, so the
+# `variant/ovh/...` paths below are stable.
+#
+# init/plan/apply/destroy REQUIRE DIR: there is no safe default (the repo root
+# holds no root module, and guessing a lab would apply the wrong thing).
+version: "3"
+
+silent: true
+
+tasks:
+  verify:
+    desc: "OVH variant: fmt + validate + mock test over variant/ovh/** (unit lane)"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - bash variant/ovh/scripts/verify.sh
+    preconditions:
+      - sh: command -v tofu
+        msg: "tofu is required. Install: brew install opentofu"
+
+  verify:selftest:
+    desc: "OVH variant: self-test for variant/ovh/scripts/verify.sh and teardown.sh"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - bash variant/ovh/scripts/verify-selftest.sh
+
+  init:
+    desc: "OVH variant: tofu init in DIR (e.g. DIR=variant/ovh/labs/day-1/00-setup)"
+    dir: "{{.ROOT_DIR}}"
+    requires:
+      vars: [DIR]
+    cmds:
+      - tofu -chdir="{{.DIR}}" init
+    preconditions:
+      - sh: command -v tofu
+        msg: "tofu is required. Install: brew install opentofu"
+
+  plan:
+    desc: "OVH variant: tofu plan in DIR (e.g. DIR=variant/ovh/labs/day-1/00-setup)"
+    dir: "{{.ROOT_DIR}}"
+    requires:
+      vars: [DIR]
+    cmds:
+      - tofu -chdir="{{.DIR}}" plan
+    preconditions:
+      - sh: command -v tofu
+        msg: "tofu is required. Install: brew install opentofu"
+
+  apply:
+    desc: "OVH variant: tofu apply in DIR (e.g. DIR=variant/ovh/labs/day-1/00-setup)"
+    dir: "{{.ROOT_DIR}}"
+    requires:
+      vars: [DIR]
+    cmds:
+      - tofu -chdir="{{.DIR}}" apply
+    preconditions:
+      - sh: command -v tofu
+        msg: "tofu is required. Install: brew install opentofu"
+
+  destroy:
+    desc: "OVH variant: tofu destroy in DIR (e.g. DIR=variant/ovh/labs/day-1/00-setup)"
+    dir: "{{.ROOT_DIR}}"
+    requires:
+      vars: [DIR]
+    cmds:
+      - tofu -chdir="{{.DIR}}" destroy
+    preconditions:
+      - sh: command -v tofu
+        msg: "tofu is required. Install: brew install opentofu"
+
+  teardown:
+    desc: "OVH variant: destroy every variant root that holds local state (dependency order)"
+    dir: "{{.ROOT_DIR}}"
+    cmds:
+      - bash variant/ovh/scripts/teardown.sh {{.CLI_ARGS}}
+    preconditions:
+      - sh: command -v tofu
+        msg: "tofu is required. Install: brew install opentofu"
