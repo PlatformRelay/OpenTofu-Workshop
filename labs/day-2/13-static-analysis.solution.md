@@ -218,9 +218,11 @@ perl -pi -e 's/default     = "payments"/default     = ["payments"]/' "$tmp_dir/m
 
 <details><summary>Solution / expected observation</summary>
 
-The remote hooks support both Terraform and OpenTofu. This repository exports
-`PCT_TFPATH="$(command -v tofu)"` so the hooks invoke the workshop's OpenTofu
-binary. Pre-commit provides earlier feedback; CI remains the shared gate.
+The remote hooks support both Terraform and OpenTofu. The hooks honour
+`PCT_TFPATH`, so you export `PCT_TFPATH="$(command -v tofu)"` to make them
+invoke the workshop's OpenTofu binary (`.pre-commit-config.yaml` documents the
+variable; CI sets it for you). Pre-commit provides earlier feedback; CI
+remains the shared gate.
 
 </details>
 

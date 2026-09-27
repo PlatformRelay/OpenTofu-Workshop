@@ -307,7 +307,13 @@ the classic, pre-1.9 style of validation.
 
 `sensitive` masks a value everywhere it would print. To read it you must ask
 explicitly. First re-run Step 1's plain apply so state is back to the `staging`
-baseline, then:
+baseline:
+
+```bash
+tofu apply -auto-approve
+```
+
+then:
 
 ```bash
 tofu output              # full output: api_token stays masked
@@ -315,6 +321,25 @@ tofu output -raw api_token   # explicit unmask
 ```
 
 **Task:** Show that the full output masks the token but `-raw` reveals it.
+
+<details><summary>Solution / expected output</summary>
+
+```console
+$ tofu output
+api_token = <sensitive>
+effective_environment = "staging"
+manifest_path = "./out/checkout.env"
+
+$ tofu output -raw api_token
+dev-placeholder-token
+```
+
+`tofu output` (and every plan/apply summary) masks a `sensitive` value as
+`<sensitive>`. `tofu output -raw NAME` is the deliberate opt-out — you unmask only
+when you mean to. Remember: masking is **display-only**; the token is still
+plaintext in state (that's what S05's state encryption is for).
+
+</details>
 
 ## Expected observations
 
@@ -367,25 +392,6 @@ panic reset leaves the tracked files exactly as CI verified them.
 carries this `service` module forward and layers native assertions onto it — a
 `precondition` and an output precondition at plan, a `postcondition` that breaks on
 apply, and a non-blocking `check` block.
-
-<details><summary>Solution / expected output</summary>
-
-```console
-$ tofu output
-api_token = <sensitive>
-effective_environment = "staging"
-manifest_path = "./out/checkout.env"
-
-$ tofu output -raw api_token
-dev-placeholder-token
-```
-
-`tofu output` (and every plan/apply summary) masks a `sensitive` value as
-`<sensitive>`. `tofu output -raw NAME` is the deliberate opt-out — you unmask only
-when you mean to. Remember: masking is **display-only**; the token is still
-plaintext in state (that's what S05's state encryption is for).
-
-</details>
 
 ---
 

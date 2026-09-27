@@ -57,14 +57,20 @@ grep -nE '^  [a-z].*:|^    name:|scripts/verify|localstack:' .github/workflows/c
 grep -nE 'fmt -check|UNIT LANE|integration' scripts/verify.sh | head -n 20
 ```
 
-**Task:** Name the four CI jobs and say which script the unit job runs.
+**Task:** List the CI jobs and say which script the unit job runs. (The grep
+above prints the workflow's job keys plus five non-job keys — `push:`,
+`pull_request:`, `group:`, `cancel-in-progress:`, `contents:`. There are 14
+jobs, not four.)
 
 <details><summary>Solution / expected observation</summary>
 
-The workflow defines `lint`, `build`, `verify-unit`, and
-`verify-integration`. The unit job runs `bash scripts/verify.sh` (after a
-bootstrap self-test). That script enforces `tofu fmt -check`, validates
-`modules/` and `examples/`, runs plan/mock `tofu test`, and checks slide↔lab drift.
+The workflow defines 14 jobs: `supply-chain`, `secret-scan`, `lint`,
+`lab-contract`, `link-check`, `pages-contract`, `audit`, `build`, `shell`,
+`go-vet`, `verify-unit`, `fixture-integrity`, `verify-integration`,
+`showcase-gif`. The
+unit job (`verify-unit`) runs `bash scripts/verify.sh` (after a bootstrap
+self-test). That script enforces `tofu fmt -check`, validates `modules/` and
+`examples/`, runs plan/mock `tofu test`, and checks slide↔lab drift.
 Integration tests that match `*integration*.tftest.hcl` are deferred to the
 LocalStack job.
 

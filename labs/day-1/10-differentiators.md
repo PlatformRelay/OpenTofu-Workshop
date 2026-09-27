@@ -598,7 +598,8 @@ then contrast the older imperative CLI and the config generator.
 Work in the **sibling workdir** so Part A's state stays untouched:
 
 ```bash
-cd labs/day-1/10-differentiators/import   # from the repo root
+cd ../../..                                # back to the repo root (from Step 0's workdir)
+cd labs/day-1/10-differentiators/import
 ```
 
 (LocalStack must still be up from Step 0 — `task lab:up` if you tore it down.)

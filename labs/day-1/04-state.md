@@ -83,8 +83,9 @@ plaintext-in-state beat.
 ## Prerequisites
 
 - `tofu` ≥ 1.9 (`task setup` installs it). Check: `tofu version`.
-- `jq` and `grep` on `PATH` (both ship with macOS/Linux) — used to read the raw
-  state JSON.
+- `grep` on `PATH`, and `jq` (optional but used in a spoiler) to read the raw
+  state JSON. Stock macOS does **not** ship `jq` — install it (`brew install
+  jq`) or use the `grep`-only form given in the spoiler.
 - Network access the first time (`tofu init` downloads the `random` + `local`
   providers, and in Step 8 `hashicorp/aws`). No Docker, no cloud, no AWS in
   Steps 0–7. **Step 8** needs Docker for LocalStack (`task lab:up`); the
