@@ -1,0 +1,11 @@
+# Learner-generated artifacts from running this twin in place — never committed.
+# The variant TRACKS its .terraform.lock.hcl (provider pins), so unlike the base
+# labs' per-dir ignore this one does NOT ignore the lock file.
+.terraform/
+terraform.tfstate
+terraform.tfstate.*
+*.tfstate
+*.tfstate.*
+hello.txt
+crash.log
+crash.*.log
