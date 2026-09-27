@@ -32,9 +32,14 @@ tasks:
       - task --list
 
   preflight:
-    desc: Check that required CLI tools are installed
+    desc: Check the toolchain (required tools fail; LocalStack route + Day-2/3 tools warn)
     cmds:
       - bash setup/bootstrap.sh
+
+  preflight:strict:
+    desc: "Readiness check for the facilitator/demo machine: rc 3 unless the LocalStack route and every Day-2/3 tool are ready"
+    cmds:
+      - BOOTSTRAP_STRICT=1 bash setup/bootstrap.sh
 
   # -------------------------------------------------------------------------
   # Deck (Slidev) — delegate to the pnpm scripts already in package.json
@@ -49,12 +54,26 @@ tasks:
 
   setup:
     desc: "Deck: install toolchain & deps (setup/bootstrap.sh + pnpm install)"
+    # go-task cannot run a precondition between two cmds, and a pnpm
+    # precondition here would run BEFORE bootstrap — the tool that installs
+    # pnpm. Split so bootstrap always runs first, then deps.
+    deps: [setup:preflight, setup:pnpm]
+
+  setup:preflight:
+    desc: "Toolchain check/install (setup/bootstrap.sh); needs no pnpm — bootstrap installs it"
+    # Reached twice (setup and setup:pnpm both depend on it); run once.
+    run: once
     cmds:
-      - bash setup/bootstrap.sh
+      # STRICT pinned off: its rc 3 would skip `pnpm install`. The strict
+      # readiness verdict is `task preflight:strict`. Set on the command line
+      # because an exported OS variable overrides a task-level `env:`.
+      - BOOTSTRAP_STRICT=0 bash setup/bootstrap.sh
+
+  setup:pnpm:
+    desc: "Deck dependencies (pnpm install)"
+    deps: [setup:preflight]
+    cmds:
       - pnpm install
-    preconditions:
-      - sh: command -v pnpm
-        msg: "pnpm is required. Install: corepack enable && corepack prepare pnpm@latest --activate"
 
   dev:
     desc: "Deck: serve the superset deck with live reload"
@@ -187,7 +206,7 @@ tasks:
         msg: "pnpm is required (run 'task setup')."
 
   lab:contract:
-    desc: "Labs: sibling-solution contract (27 contracted labs)"
+    desc: "Labs: sibling-solution contract (29 contracted labs)"
     cmds:
       - pnpm run lab:contract
     preconditions:
@@ -229,12 +248,38 @@ tasks:
   lab:up:k8s:
     desc: "Lab env (k8s): run LocalStack in the current kube context (e.g. kind on podman) and port-forward :4566"
     cmds:
+      - |
+        # Guard: never apply a cluster-scoped manifest to whatever kube context
+        # happens to be active. Print it and require an explicit yes; non-interactive
+        # (CI) is treated as "no" — pass ALLOW_KUBE_CONTEXT to confirm unattended.
+        source setup/lib.sh
+        ctx="$(kubectl config current-context 2>/dev/null || true)"
+        echo "kube context: ${ctx:-<none>}"
+        if [ -n "$ctx" ] && [ "${ALLOW_KUBE_CONTEXT:-}" = "$ctx" ]; then
+          echo "ALLOW_KUBE_CONTEXT matches — proceeding."
+        else
+          confirm "Apply the LocalStack manifest to context '${ctx}'?" \
+            || { echo "Aborted. Set ALLOW_KUBE_CONTEXT='$ctx' to confirm non-interactively." >&2; exit 1; }
+        fi
       - kubectl apply -f setup/localstack-k8s.yaml
       - kubectl -n opentofu-workshop rollout status deploy/localstack --timeout=180s
       - |
-        # Restart any stale port-forward, then background a fresh one.
-        pkill -f "port-forward svc/localstack 4566:4566" 2>/dev/null || true
+        # Restart only OUR previous port-forward (tracked by PID), then
+        # background a fresh one. A foreign `kubectl port-forward` survives.
+        # go-task runs `cmds:` in mvdan/sh, where `$!` is a job spec rather
+        # than a PID and `kill` is an unsupported builtin, so this block must
+        # run under a real bash for the PID file to be usable.
+        bash -c '
+        if [ -f .port-forward.pid ]; then
+          pid="$(cat .port-forward.pid)"
+          # Kill only OUR forward: a recycled PID could now be an unrelated process.
+          if ps -p "$pid" -o command= 2>/dev/null | grep -F "port-forward svc/localstack" >/dev/null; then
+            kill "$pid" 2>/dev/null || true
+          fi
+          rm -f .port-forward.pid
+        fi
         kubectl -n opentofu-workshop port-forward svc/localstack 4566:4566 >/dev/null 2>&1 &
+        echo $! > .port-forward.pid
         echo "Waiting for LocalStack to answer at {{.LOCALSTACK_HEALTH}} ..."
         for i in $(seq 1 60); do
           if curl -fsS "{{.LOCALSTACK_HEALTH}}" >/dev/null 2>&1; then
@@ -245,6 +290,7 @@ tasks:
         done
         echo "ERROR: LocalStack did not become healthy. Check: kubectl -n opentofu-workshop logs deploy/localstack" >&2
         exit 1
+        '
     preconditions:
       - sh: command -v kubectl
         msg: "kubectl is required. Install: brew install kubectl (cluster: e.g. kind with KIND_EXPERIMENTAL_PROVIDER=podman)."
@@ -252,7 +298,19 @@ tasks:
   lab:down:k8s:
     desc: "Lab env (k8s): stop the port-forward and delete the LocalStack deployment"
     cmds:
-      - pkill -f "port-forward svc/localstack 4566:4566" 2>/dev/null || true
+      - |
+        # Kill only the port-forward WE started (PID file), never a foreign one.
+        # mvdan/sh (go-task's shell) has no `kill` builtin, so use a real bash.
+        bash -c '
+        if [ -f .port-forward.pid ]; then
+          pid="$(cat .port-forward.pid)"
+          # Kill only OUR forward: a recycled PID could now be an unrelated process.
+          if ps -p "$pid" -o command= 2>/dev/null | grep -F "port-forward svc/localstack" >/dev/null; then
+            kill "$pid" 2>/dev/null || true
+          fi
+          rm -f .port-forward.pid
+        fi
+        '
       - kubectl delete -f setup/localstack-k8s.yaml --ignore-not-found
     preconditions:
       - sh: command -v kubectl
@@ -268,6 +326,8 @@ tasks:
     cmds:
       - tofu -chdir="{{.DIR}}" init
     preconditions:
+      - sh: test ! -d .verify.lock
+        msg: "scripts/verify.sh is running in this checkout ({{.ROOT_DIR}}/.verify.lock present) — refusing: this would race its tofu caches; wait for it to finish. Stale? If 'ps -p $(cat {{.ROOT_DIR}}/.verify.lock/pid)' lists no process, the run died: rm -rf {{.ROOT_DIR}}/.verify.lock"
       - sh: command -v tofu
         msg: "tofu is required. Install: brew install opentofu"
 
@@ -278,6 +338,8 @@ tasks:
     cmds:
       - tofu -chdir="{{.DIR}}" plan
     preconditions:
+      - sh: test ! -d .verify.lock
+        msg: "scripts/verify.sh is running in this checkout ({{.ROOT_DIR}}/.verify.lock present) — refusing: this would race its tofu caches; wait for it to finish. Stale? If 'ps -p $(cat {{.ROOT_DIR}}/.verify.lock/pid)' lists no process, the run died: rm -rf {{.ROOT_DIR}}/.verify.lock"
       - sh: command -v tofu
         msg: "tofu is required. Install: brew install opentofu"
 
@@ -288,11 +350,13 @@ tasks:
     cmds:
       - tofu -chdir="{{.DIR}}" apply
     preconditions:
+      - sh: test ! -d .verify.lock
+        msg: "scripts/verify.sh is running in this checkout ({{.ROOT_DIR}}/.verify.lock present) — refusing: this would race its tofu caches; wait for it to finish. Stale? If 'ps -p $(cat {{.ROOT_DIR}}/.verify.lock/pid)' lists no process, the run died: rm -rf {{.ROOT_DIR}}/.verify.lock"
       - sh: command -v tofu
         msg: "tofu is required. Install: brew install opentofu"
 
   lab:test:
-    desc: "Lab: validate every modules/*, examples/* and labs/day-1|2|3 workdir; 'tofu test' where suites exist"
+    desc: "Lab: run the full scripts/verify.sh unit lane (fmt · validate · plan/mock 'tofu test' across modules/*, examples/* and labs/day-1|2|3 workdirs)"
     cmds:
       - bash scripts/verify.sh
     preconditions:
@@ -332,6 +396,8 @@ tasks:
       - tofu -chdir="{{.DIR}}" init -backend=false -input=false
       - tofu -chdir="{{.DIR}}" validate
     preconditions:
+      - sh: test ! -d .verify.lock
+        msg: "scripts/verify.sh is running in this checkout ({{.ROOT_DIR}}/.verify.lock present) — refusing: this would race its tofu caches; wait for it to finish. Stale? If 'ps -p $(cat {{.ROOT_DIR}}/.verify.lock/pid)' lists no process, the run died: rm -rf {{.ROOT_DIR}}/.verify.lock"
       - sh: command -v tofu
         msg: "tofu is required. Install: brew install opentofu"
 
@@ -467,16 +533,12 @@ tasks:
         msg: "kubectl is required for the k8s integration lane."
 
   verify:integration:tests:
-    desc: "Run examples/* and labs/day-2/*/tests/integration*.tftest.hcl against LocalStack on :4566 (started via lab:up or lab:up:k8s)"
+    desc: "Run examples/* and labs/day-1|2/*/tests/integration*.tftest.hcl against LocalStack on :4566 (started via lab:up or lab:up:k8s)"
     internal: true
     cmds:
       - |
-        # Mirrors the CI verify-integration job (.github/workflows/ci.yml).
+        # Same loop as the CI verify-integration job: scripts/integration-tests.sh
+        # (scratch copy per root, plain `tofu init`, every file must pass >= 1 test).
         export AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test
         export AWS_DEFAULT_REGION=us-east-1 AWS_ENDPOINT_URL={{.LOCALSTACK_URL}}
-        for d in examples/* labs/day-2/*; do
-          [ -d "$d" ] || continue
-          ls "$d"/tests/integration*.tftest.hcl >/dev/null 2>&1 || continue
-          echo "== $d (integration) =="
-          ( cd "$d" && tofu init -input=false && tofu test -filter=tests/integration.tftest.hcl ) || exit 1
-        done
+        bash scripts/integration-tests.sh

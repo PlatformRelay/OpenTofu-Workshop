@@ -60,6 +60,9 @@ references/
 # verify.sh concurrency-guard lock + stale sidecars; root-anchored, trailing * load-bearing (ADR 0016).
 /.verify.lock*
 
+# lab:up:k8s port-forward PID (so lab:down:k8s kills only our own forward, never a foreign one).
+/.port-forward.pid
+
 # OpenTofu working artifacts
 .terraform/
 *.tfstate

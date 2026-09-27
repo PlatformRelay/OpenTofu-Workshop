@@ -14,7 +14,7 @@ through **S26** are shipped; optional sections stay skippable via cut-order /
 
 | Day | Serve | Preflight |
 | --- | --- | --- |
-| Any | `task setup` then `task dev:3day` | `tofu version` ≥1.9; Docker (or k8s path) for LocalStack labs |
+| Any | `task setup` then `task dev:3day` | `tofu version` ≥1.9; LocalStack route ready — Docker daemon up (`docker info`), or a kube context for `task lab:up:k8s`. Evening before: `task preflight:strict` |
 | 1–2 LocalStack labs | `task lab:up` before the first `localstack ✓` step | Health: <http://localhost:4566/_localstack/health> |
 | 2 scanners | TFLint, Trivy, Checkov, Conftest on `PATH` | `task setup` optional Day-2 tools |
 | 3 Terramate | Terramate on `PATH` (spoilers pinned ~0.17.x) | No Docker required for S20–S25 path |
@@ -397,7 +397,18 @@ share of the day. **3-day cut** = compress / skip from the fit plan or `hide:` i
 
 ## Facilitator checklist (each morning)
 
-1. `task setup` — required tools green; Day-2/3 optionals as needed.
+0. **The evening before each day** (Day 2 especially — the scanner and
+   Terramate labs start then), on the demo machine: `task preflight:strict`.
+   It must succeed. A failure (bootstrap's exit 3) means the LocalStack route
+   or a Day-2/3 tool is not ready, and the report names which; fix it tonight,
+   not in front of the room.
+   (`task setup` never runs strict, so it still installs deps on a machine
+   that is not fully ready.)
+1. `task setup` — Day-1 required tools green. The **LocalStack route** line
+   must read ready (Docker daemon reachable, or a kube context for
+   `task lab:up:k8s`) before Lab 00 Step 3, Lab 08 Step 4 and Lab 10; a
+   learner whose report says `LocalStack route NOT READY` fixes that during
+   Lab 00's local steps. Day-2/3 tools show as an advisory.
 2. `task lab:up` once if any LocalStack lab is on today’s cut; confirm health URL.
 3. Open `task dev:3day` presenter mode; skim today’s cut-order markers.
 4. Know the panic-reset path cold before the first emulator lab.
