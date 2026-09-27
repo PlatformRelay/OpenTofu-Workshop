@@ -18,7 +18,8 @@ infrastructure grows in practice:
 3. **Scale** — use Terramate stacks, generation, orchestration, and change
    detection across a monorepo.
 
-Roughly **50% is hands-on**.
+Roughly **41% is hands-on** in the canonical cut (≈42% across the full
+section library; Day 1 is ≈32%) — per `scripts/deck-manifest.mjs`.
 
 **Preview it now:** docs and decks are live on GitHub Pages.
 
@@ -62,16 +63,29 @@ For the standard learner route:
 ### Prerequisites by workshop day
 
 Run `task setup` before the workshop. It prints every detected version and
-returns non-zero with install guidance and affected labs when something is
-missing. It is safe to rerun and never installs without confirmation.
+returns non-zero only when a required tool is missing or below its minimum.
+Day 1 also needs a **LocalStack route** for Labs 00, 08 and 10: a running
+Docker daemon (`docker info` must succeed — an installed but stopped Docker is
+not enough) or a kube context for `task lab:up:k8s`. Without one, setup still
+finishes but prints `LocalStack route NOT READY` and names the blocked labs.
+Day-2/3 tools are an advisory with the labs they affect. It is safe to rerun
+and never installs without confirmation. `task preflight:strict` fails
+(bootstrap exit 3) on any LocalStack-route or Day-2/3 gap — the facilitator's
+readiness check.
 
 | Scope | Tools |
 | --- | --- |
-| Decks and Day 1 | OpenTofu ≥1.9, Node.js ≥20, pnpm, Task, Docker |
+| Decks and Day 1 (required) | OpenTofu ≥1.9, Node.js ≥20, pnpm, Task |
+| Day 1 LocalStack labs (00, 08, 10) | Docker with the daemon running — or the Docker-free route: `task lab:up:k8s` |
 | Day 2 static analysis | TFLint |
 | Day 2 security and policy | Trivy, Checkov, Conftest |
 | Day 3 scale labs | Terramate |
-| Optional Terratest (S18) | Docker (container lane) — or host Go ≥1.22 |
+| Optional Terratest (S18) | Docker (container lane) — or host Go ≥1.25 |
+
+Two AWS provider majors are in play. Roots applied against LocalStack pin
+`aws >= 5.0, < 6.0`, because provider v6's waiters hang against LocalStack
+community 4.9.2 — keep that version block when you copy a provider config
+forward. The unit/plan lane is provider-version agnostic.
 
 `gum`, `awslocal`, and the AWS CLI improve the local experience but are
 optional. Go is **not** installed by default. Terratest is **container-first**

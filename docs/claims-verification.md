@@ -153,11 +153,11 @@ Both engines' changelogs were read independently.
 | # | Claim | Where | Verdict | Evidence (primary source, checked 2026-08-25) |
 | --- | --- | --- | --- | --- |
 | E1 | `required_version = ">= 1.8"` | `labs/day-1/00-setup/versions.tf:2` (and ~20 peer files) | VERIFIED as a floor | Correct minimum for the `mock_provider`/`override_*` content (C2/C3). Note the plan's §5 cites `labs/day-1/00-setup/hello.tf:2`; the `terraform` block actually lives in `labs/day-1/00-setup/versions.tf:2` — `hello.tf` holds only the `local_file` resource. **A gap this row does not cover, recorded here because nothing else does:** grepping `required_version` across every tracked `labs/day-1/06-variables*` file returns **nothing** — Lab 06 declares no engine guard at all, in any of its five tracked files, while `labs/day-1/10-differentiators/providers.tf:12` carries ``required_version = ">= 1.9.0"``. Both labs need 1.9 (E2), so the two failures a 1.8 learner meets are not equivalent: Lab 10 stops with a clean engine-version diagnostic, while Lab 06 fails deep in HCL with ``Invalid reference in variable validation`` and no hint the engine is the cause. **That asymmetry is what makes Lab 06 the worse of the two**, and it argues for adding a `required_version = ">= 1.9.0"` to Lab 06's fixture alongside the prose corrections — a code change, so it is filed in the out-of-scope section rather than the correction list. **Superseded 2026-08-31 (US-D-VERSION-FLOOR):** the swept pins now read `>= 1.9` and Lab 06's `main.tf` carries the guard — see the resolution note in the out-of-scope section. |
-| E2 | ">= 1.8" is a *sufficient* floor for the workshop | **Repo-wide.** The exception set is `labs/day-1/06-variables.md:63` **and** `labs/day-1/10-differentiators.md:31` — **two** Day-1 labs need ≥ 1.9, not one. Deck: `pages/S00-welcome/index.md:218`, `pages/S17-mocking/index.md:55`, `pages/S28-ecosystem-tooling/index.md:88, 99`. Prose: `README.md:70`, `docs/setup.md:33`, `docs/validation-matrix.md:58, 78`, `docs/facilitator-runbook.md:15`, `docs/rehearsal-checklist.md:29, 42`, `labs/day-3/28-ecosystem-tooling.solution.md:35-36`. Tooling: `setup/bootstrap.sh:25` and `scripts/verify.sh:433` (both `1.8`) | INCONSISTENT | **Two** Day-1 labs need ≥ 1.9, and an exhaustive sweep of every per-lab floor confirms it is exactly two. (a) `labs/day-1/10-differentiators.md:31` — "`tofu` ≥ 1.9 — provider `for_each` and `-exclude` are 1.9 features", with `required_version = ">= 1.9.0"` at `:60`. (b) `labs/day-1/06-variables.md:63` — "`tofu` ≥ 1.9 … Cross-variable validation needs 1.9+", which A5 already predicted: OpenTofu `CHANGELOG.md` @ `v1.9.0` reads "References to vars, data, etc. are now usable in variable validation". **Lab 06 is the worse failure of the two**, because `grep required_version labs/day-1/06-variables*` is empty — it declares no engine guard at all. A learner on 1.8 meets Lab 10 with a clean version diagnostic but meets Lab 06 with a raw `Invalid reference in variable validation` and no hint the engine is too old. Lab 06 is also on the Day-1 `mock ✓ (no docker)` path — the most-reached path in the workshop. So "any `tofu ≥ 1.8` runs the labs" is false twice over. **Superseded 2026-08-31 (US-D-VERSION-FLOOR):** the floor is unified at 1.9 end to end (docs, bootstrap, verify preflight, lab pins) and `verify.sh` §11 gates the cluster; this row's Where inventory describes the pre-unification tree. |
-| E3 | `aws = "~> 6.0"` | `labs/day-1/00-setup/versions.tf:7` | VERIFIED | `repos/hashicorp/terraform-provider-aws/releases/latest` → `v6.61.0` (`2026-08-19`). `~> 6.0` resolves inside the current major. |
+| E2 | ">= 1.8" is a *sufficient* floor for the workshop | **Repo-wide.** The exception set is `labs/day-1/06-variables.md:63` **and** `labs/day-1/10-differentiators.md:31` — **two** Day-1 labs need ≥ 1.9, not one. Deck: `pages/S00-welcome/index.md:218`, `pages/S17-mocking/index.md:55`, `pages/S28-ecosystem-tooling/index.md:88, 99`. Prose: `README.md:78`, `docs/setup.md:33`, `docs/validation-matrix.md:58, 78`, `docs/facilitator-runbook.md:15`, `docs/rehearsal-checklist.md:29, 42`, `labs/day-3/28-ecosystem-tooling.solution.md:35-36`. Tooling: `setup/bootstrap.sh:25` and `scripts/verify.sh:433` (both `1.8`) | INCONSISTENT | **Two** Day-1 labs need ≥ 1.9, and an exhaustive sweep of every per-lab floor confirms it is exactly two. (a) `labs/day-1/10-differentiators.md:31` — "`tofu` ≥ 1.9 — provider `for_each` and `-exclude` are 1.9 features", with `required_version = ">= 1.9.0"` at `:60`. (b) `labs/day-1/06-variables.md:63` — "`tofu` ≥ 1.9 … Cross-variable validation needs 1.9+", which A5 already predicted: OpenTofu `CHANGELOG.md` @ `v1.9.0` reads "References to vars, data, etc. are now usable in variable validation". **Lab 06 is the worse failure of the two**, because `grep required_version labs/day-1/06-variables*` is empty — it declares no engine guard at all. A learner on 1.8 meets Lab 10 with a clean version diagnostic but meets Lab 06 with a raw `Invalid reference in variable validation` and no hint the engine is too old. Lab 06 is also on the Day-1 `mock ✓ (no docker)` path — the most-reached path in the workshop. So "any `tofu ≥ 1.8` runs the labs" is false twice over. **Superseded 2026-08-31 (US-D-VERSION-FLOOR):** the floor is unified at 1.9 end to end (docs, bootstrap, verify preflight, lab pins) and `verify.sh` §11 gates the cluster; this row's Where inventory describes the pre-unification tree. |
+| E3 | `aws = ">= 5.0, < 6.0"` | `labs/day-1/00-setup/versions.tf:7` | VERIFIED as the LocalStack-compat pin | `repos/hashicorp/terraform-provider-aws/releases/latest` → `v6.61.0` (`2026-08-19`), but Lab 00's bucket is applied against LocalStack community 4.9.2, whose waiters hang under provider v6. **Updated 2026-09-26:** the pin moved from `~> 6.0` to the workshop's `>= 5.0, < 6.0` rule so the first lab's S3 apply never runs the untested v6 path; the four sibling LocalStack roots already carried it. The split is now documented for learners in `README.md` and `docs/validation-matrix.md`. |
 | E4 | `local = "~> 2.5"` | `labs/day-1/00-setup/versions.tf:11` | VERIFIED | `repos/hashicorp/terraform-provider-local/releases/latest` → `v2.9.0` (`2026-05-13`). `~> 2.5` (≥2.5, <3.0) is satisfiable and current. |
 | E5 | `random = "~> 3.7"` | `labs/day-1/00-setup/versions.tf:15` | VERIFIED | `repos/hashicorp/terraform-provider-random/releases/latest` → `v3.9.0` (`2026-05-13`). `~> 3.7` (≥3.7, <4.0) is satisfiable and current. |
-| E6 | The S14 slide fixture pins `aws = "~> 5.0"` | `pages/S14-security-scanners/index.md:242` | INCONSISTENT | One major behind E3. The AWS provider's current major is 6.x, and `labs/day-1/00-setup/versions.tf:7` pins `~> 6.0` an hour earlier in the same workshop. **The repo is not uniformly 6.0, though, and that is deliberate:** `labs/day-1/10-differentiators.md:87` pins `">= 5.0, < 6.0"` with the reason in a comment — "provider v6's waiters are incompatible with LocalStack community (last release 4.9.2). v5 applies clean against :4566." That pin is correct and must not be swept up by any bump (nor by a gate — see §K). S14 is different: its fixture is scan-only, never applied against LocalStack, so no waiter behaviour is in play and the bump is safe — proven, not assumed, at F12. |
+| E6 | The S14 slide fixture pins `aws = "~> 5.0"` | `pages/S14-security-scanners/index.md:242` | INCONSISTENT | One major behind E3. The AWS provider's current major is 6.x, and `labs/day-1/00-setup/versions.tf:7` pinned `~> 6.0` an hour earlier in the same workshop (now `>= 5.0, < 6.0` — see the note at the end of this row). **The repo is not uniformly 6.0, though, and that is deliberate:** `labs/day-1/10-differentiators.md:87` pins `">= 5.0, < 6.0"` with the reason in a comment — "provider v6's waiters are incompatible with LocalStack community (last release 4.9.2). v5 applies clean against :4566." That pin is correct and must not be swept up by any bump (nor by a gate — see §K). S14 is different: its fixture is scan-only, never applied against LocalStack, so no waiter behaviour is in play and the bump is safe — proven, not assumed, at F12. **Updated 2026-09-26:** Lab 00 now pins `>= 5.0, < 6.0` too (E3), so the "one major behind" framing no longer holds for the applied roots; S14's `~> 6.0` remains scan-only and safe. The L12 bump below is what moved the S14 fixture to `~> 6.0`. |
 | E7 | *(gate check, not a deck claim)* Is the S14 slide's HCL block drift-checked against its fixture? | `pages/S14-.../index.md:235-289` vs `labs/day-2/14-security-scanners/messy/main.tf` | **NOT GATED** | `scripts/verify.sh` §6 only arms on a `<!-- source: PATH -->` comment "IMMEDIATELY followed by an opening ```hcl fence"; an "unannotated block → ignored (only counted/warned)". The fence at `pages/S14-.../index.md:235` has **no such marker** — line 234 is blank and 233 is a heading — so §6 does not read this pair at all. The two are byte-identical today — verified, not assumed: `sed -n '236,288p'` of the slide `diff`s clean against the 53-line fixture, and §6's fence regex explicitly tolerates the magic-move metadata this fence carries in its `{...}` highlight spec. So **adding the one-line marker arms the existing gate for free and passes on the first run.** Note the asymmetry that makes this worth doing: the *lab* copy of the same fixture (`labs/day-2/14-security-scanners.md:60`, marker at `:52`) **is** armed, so a fixture edit that skips the lab reds §6 immediately, while the same edit skipping the *slide* is silent. Two of the three copies are guarded and the learner-facing one is not. Recommended alongside L12. |
 
 ## F. Scanner and policy-tool status (plan §5 #6, #7 — "Two load-bearing facts")
@@ -242,20 +242,21 @@ not a general fact-checker.**
 ### First, a gate that does not do what its output says
 
 `scripts/verify.sh` §9 ("Day-2/3 optional tool lanes") prints, on every green
-run:
+run, an honest status per optional tool:
 
 ```text
-· trivy available — S14 security scanning checks run when their content is authored
-· checkov available — S14 security scanning checks run when their content is authored
-· conftest available — S14 policy checks checks run when their content is authored
+· trivy available — S14 security scanning tool-dependent checks are configured but NOT executed by this unit lane; no automated lane runs them
+· checkov available — S14 security scanning tool-dependent checks are configured but NOT executed by this unit lane; no automated lane runs them
+· conftest available — S14 policy checks tool-dependent checks are configured but NOT executed by this unit lane; no automated lane runs them
 ```
 
 Reading §9's body, the loop runs `trivy --version`, `checkov --version`,
 `conftest --version` and emits `info` on non-empty output. **That is the whole
-check.** No S14 content is scanned, no pinned version is compared against the
-lab's documented pin (`labs/day-2/14-security-scanners.md:8`), and the promised
-"checks run when their content is authored" never materialise — the content *is*
-authored.
+check.** No S14 content is scanned and no pinned version is compared against the
+lab's documented pin (`labs/day-2/14-security-scanners.md:8`). The wording used
+to claim the checks "run when their content is authored", which never
+materialised — the content *is* authored; it was corrected (2026-09-26) so the
+line no longer reads as scanner coverage it does not provide.
 
 To be precise about what §9 costs: it does **not** inflate the 139-check total.
 Only `pass()` increments the counter (`scripts/verify.sh:83`), and §9 emits
@@ -288,7 +289,8 @@ this pass's own findings, strictly as specified above:
   correct fix (L1) is a *clarifying clause*, not making the strings agree — so a
   strict equality gate would nag at prose that is defensible as written.
 - **E6 — NOT caught, and worth dwelling on.** `pages/S14:242` pins `aws ~> 5.0`
-  against Day 1's `~> 6.0`, but `aws` is not in `versions.env`, so the check as
+  against Day 1's `~> 6.0` (since 2026-09-26 Day 1 pins `>= 5.0, < 6.0` — see
+  E3/E6), but `aws` is not in `versions.env`, so the check as
   scoped never sees it. The tempting fix — extend check 1 to *all* provider
   constraints — must be resisted: `labs/day-1/10-differentiators.md:87`
   deliberately pins `">= 5.0, < 6.0"` with the reason in a comment ("provider
@@ -529,10 +531,13 @@ correctly — which is how the instruction against hand-editing
 every PR and every push to `main`. It is **not** part of `task verify`. But
 `--strict` catches nav and link drift, **not this defect class** — the HTML it
 produced for `:418` was perfectly valid, merely wrong — so a green
-`pages-contract` is no evidence here. Both the inventory script and
-`scripts/claims-check.mjs` are standalone: in no gate, no `package.json` script,
-not in `verify.sh`, not in CI. They are hand-run, and saying so is part of the
-honesty this document is for.
+`pages-contract` is no evidence here. **Updated 2026-09-27:**
+`scripts/claims-check.mjs` is now gated — `pnpm test:claims` in the CI `lint`
+job and `node scripts/claims-check.mjs` in `task verify`. The inventory check
+(`node scripts/lab-inventory.mjs --check` plus its unit tests) runs inside
+`scripts/verify-selftest.sh`, which both the CI `verify-unit` job and
+`task verify` run. Neither checker catches the rendering defect above, and
+saying so is part of the honesty this document is for.
 
 Phase 2 ran it before editing and again after. Every line number in the table
 below was **re-derived by grepping the applied text**, not by doing arithmetic
@@ -569,8 +574,8 @@ not render as intended in CommonMark, and confirmed L5's quote spans lines
 | L17 | `pages/S00-welcome/index.md` | 218 | `<KwCard heading="tofu ≥ 1.9" icon="🧊">` (indented 2 spaces) | was `<KwCard heading="tofu ≥ 1.8" icon="🧊">` — **the highest-value row in this table.** It is the "# Required toolchain" card a learner reads before installing anything; at 1.8 they satisfied it and still hard-failed Lab 10. Raising the advertised floor is simpler and safer than annotating an exception on a setup card. | E2 |
 | L18 | `pages/S17-mocking/index.md` | 55-56 | `blocks; <code>mock_provider</code> needs OpenTofu <strong>1.8+</strong>, comfortably` / `under the workshop floor of <strong>1.9</strong>.` **Reworded 2026-08-31 (US-O-LINKS404 fold-in):** the floor is 1.9 by recorded decision (US-D-VERSION-FLOOR), not because Labs 06 and 10 raise it, so the stale causality was dropped; the spans track the current text. | was `blocks; the workshop’s floor remains OpenTofu <strong>1.8+</strong>.` (curly apostrophe). **Deviation from the wording phase 1 proposed, and deliberate:** that wording quoted `mock_provider` as a Markdown code span, but this text sits inside a `<div class="mt-4 kw-panel p-3 text-sm">` HTML block, where markdown-it — the renderer Slidev uses, checked by running it rather than assumed — leaves backticks literal. Every neighbouring panel in `pages/**` uses `<code>`/`<strong>` for exactly that reason, so the applied text does too. | C5, E2 |
 | L19 | `pages/S01-iac/index.md` | 352 | `- Governed by the **Linux Foundation**; a **CNCF Sandbox** project since 2025-04-23 (neutral, community)` | was `- Governed by the **Linux Foundation** (neutral, community)`. | B6 |
-| L20 | `README.md` | 70 | ``OpenTofu ≥1.9, Node.js ≥20, pnpm, Task, Docker`` | the toolchain cell of the **Decks and Day 1** row read ``OpenTofu ≥1.8, …`` — **arguably the single highest-value row here, ahead of L17.** `labs/day-1/10-differentiators/` IS a Day-1 lab and requires `>= 1.9.0`, so that line was false by this document's own evidence, and it sits in the repo's front door where a learner reads it before opening any deck. | E2 |
-| L21 | `docs/setup.md` | 33 | ``OpenTofu ≥1.9, Node.js ≥20, pnpm, Task, Docker`` | the same table row mirrored into the setup guide; read ≥1.8. | E2 |
+| L20 | `README.md` | 78 | ``OpenTofu ≥1.9, Node.js ≥20, pnpm, Task`` | the toolchain cell of the **Decks and Day 1** row read ``OpenTofu ≥1.8, …`` — **arguably the single highest-value row here, ahead of L17.** `labs/day-1/10-differentiators/` IS a Day-1 lab and requires `>= 1.9.0`, so that line was false by this document's own evidence, and it sits in the repo's front door where a learner reads it before opening any deck. **Moved 2026-09-26:** the row now reads `(required)` and Docker left the required cell for the Day-1 LocalStack row below (a running Docker daemon, or the `task lab:up:k8s` route), which `setup/bootstrap.sh` reports as its own readiness tier. | E2 |
+| L21 | `docs/setup.md` | 46 | ``OpenTofu ≥1.9, Node.js ≥20, pnpm, Task`` | the same table row mirrored into the setup guide; read ≥1.8. **Moved 2026-09-26:** Docker left the required cell for the Day-1 LocalStack row below. | E2 |
 | L22 | `docs/validation-matrix.md` | 78 | ``OpenTofu ≥1.9; `:4566` `` (the toolchain cell of the `day-1/10-differentiators` row) | read ``OpenTofu ≥1.8; `:4566` ``, contradicting the lab it indexes — `labs/day-1/10-differentiators.md:31` says ``tofu`` ≥ 1.9. `docs/_generated/lab-inventory.json` was regenerated in the same change with `node scripts/lab-inventory.mjs --write`; see the L22 trap below. | E2 |
 | L23 | `docs/facilitator-runbook.md` | 15 | `` `tofu version` ≥1.9; `` | read `` `tofu version` ≥1.8 `` — a facilitator who checked 1.8 would not have discovered the gap until Lab 10 failed in the room. | E2 |
 | L24 | `docs/rehearsal-checklist.md` | 29 | ``confirm `tofu version` ≥1.9.`` | read ``confirm `tofu version` ≥1.8.`` | E2 |
@@ -583,6 +588,11 @@ not render as intended in CommonMark, and confirmed L5's quote spans lines
 | L31 | `labs/day-1/01-iac-fork.solution.md` | 252-253 | ``So OpenTofu stays **MPL 2.0** (truly open source, Linux-Foundation-governed,`` / ``CNCF Sandbox since 2025-04-23) and keeps HCL compatibility`` | solution mirror of L30, identical before and after. | B6 |
 
 ### The L22 trap — regenerate the inventory
+
+> **Relocation note (issue #20).** The generated inventory lived under `infra/`
+> until it moved to `docs/_generated/`; historical entries below name the new
+> path so no pointer rots. `infra/` held no infrastructure — only this generated
+> file — and the move was a pure path change.
 
 `docs/validation-matrix.md` is the human source of truth for
 `docs/_generated/lab-inventory.json`, and the JSON mirrors the toolchain column verbatim
@@ -761,10 +771,12 @@ Not prose corrections — recorded so they are not lost.
   verbatim but carries no `<!-- source: … -->` marker, so `verify.sh` §6 silently
   skips it (E7). Adding the one-line marker arms an already-built gate at zero cost
   and passes today. This is the cheapest gate improvement this pass found.
-- `scripts/verify.sh` §9 emits three `info` lines claiming "S14 security scanning
-  checks run when their content is authored" while running only `--version`. The
-  content is authored and no check runs (see §K). Either implement check 3 or
-  reword the output so a green run does not read as coverage it does not provide.
+- `scripts/verify.sh` §9 emits three `info` lines. They used to claim "S14 security
+  scanning checks run when their content is authored" while running only
+  `--version`; the content is authored and no check runs (see §K). **Fixed
+  (2026-09-26):** the output now states the tool-dependent checks are configured but
+  not executed by the unit lane, so a green run no longer reads as coverage it
+  does not provide.
 - The Trivy / Checkov / Conftest versions are pinned only in lab prose
   (`labs/day-2/14-security-scanners.md:8`) and nowhere else (D5). If check 1 in
   §K is built, promoting these three into `versions.env` would bring them under

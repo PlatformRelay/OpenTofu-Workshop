@@ -15,8 +15,21 @@ task setup
 
 That runs `setup/bootstrap.sh` (detects tools, prints versions, guides installs)
 and `pnpm install` for the decks. It is safe to rerun and never installs without
-confirmation. Missing tools return non-zero with install guidance and which labs
-are affected.
+confirmation. The report has three tiers:
+
+1. **Required** — OpenTofu, Node, pnpm, Task. Missing or below the floor: exit 1.
+2. **Day-1 LocalStack route** — Labs 00 (Steps 3–4), 08 (Step 4) and 10, plus
+   the optional LocalStack steps of Labs 04 and 05, need LocalStack. Ready when
+   the Docker daemon answers (`docker info`; an installed but stopped Docker
+   does not count) or when `kubectl` has a current context whose API answers
+   (the Docker-free `task lab:up:k8s` route). Neither: setup still finishes
+   (exit 0, so `pnpm install` runs) but prints `LocalStack route NOT READY`
+   and names the blocked labs. Fix it before Lab 00 Step 3.
+3. **Day-2/3 tools** — an advisory naming the labs they affect.
+
+`task preflight:strict` (`BOOTSTRAP_STRICT=1 bash setup/bootstrap.sh`) turns
+tiers 2 and 3 into a failure (exit code 3); the facilitator runs it the evening
+before each day. `task setup` never runs strict.
 
 No Task? The bootstrap script alone is enough for the CLI tools:
 
@@ -30,11 +43,12 @@ pnpm install --frozen-lockfile
 
 | Scope | Tools |
 | --- | --- |
-| Decks and Day 1 | OpenTofu ≥1.9, Node.js ≥20, pnpm, Task, Docker |
+| Decks and Day 1 (required) | OpenTofu ≥1.9, Node.js ≥20, pnpm, Task |
+| Day 1 LocalStack labs (00, 08, 10) | Docker with the daemon running — or the Docker-free route: `task lab:up:k8s` |
 | Day 2 static analysis | TFLint |
 | Day 2 security and policy | Trivy, Checkov, Conftest |
 | Day 3 scale labs | Terramate |
-| Optional Terratest (S18) | Docker (container lane) — or host Go ≥1.22 |
+| Optional Terratest (S18) | Docker (container lane) — or host Go ≥1.25 |
 
 ### One floor, one pin, honest spoilers
 
