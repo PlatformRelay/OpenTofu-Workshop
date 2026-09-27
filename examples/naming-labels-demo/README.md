@@ -8,6 +8,11 @@ there is no real cloud cost and no real credentials.
 It also demonstrates **OpenTofu native state encryption** (PBKDF2 + AES-GCM),
 the S05 ↔ S08 tie-in.
 
+> **Warning:** `use_localstack` defaults to `true`. Flipping it to `false` with
+> real AWS credentials configured makes this teaching root create **real,
+> billable** S3/DynamoDB resources in your account. Use the LocalStack path
+> unless you mean to spend money.
+
 ## What it shows
 
 - `module.naming` produces `s3-crmapp-d-web-<hex>` and

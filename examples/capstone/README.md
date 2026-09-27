@@ -5,6 +5,11 @@ The **settled colony**: a small LocalStack multi-module root that ties Day 1
 Day 3 Terramate orchestration is a **stretch** — the base path is plain
 OpenTofu and stays green when Terramate is absent.
 
+> **Warning:** `use_localstack` defaults to `true`. Flipping it to `false` with
+> real AWS credentials configured makes this teaching root create **real,
+> billable** S3/DynamoDB/SQS resources in your account. Use the LocalStack path
+> unless you mean to spend money.
+
 Consumes the shared workshop modules:
 
 - [`modules/naming`](../../modules/naming)
