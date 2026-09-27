@@ -6,6 +6,10 @@
 | **Environment** | `mock ✓ (no docker)` |
 | **Estimated time** | 30 minutes |
 
+> **OVH track.** `mock_provider` is provider-agnostic: the same mechanics work
+> for `mock_provider "ovh"` in the variant's bootstrap lab. See the
+> [OVH variant entry](../../variant/ovh/README.md).
+
 ## Objective
 
 Convert an apply-style S3 contract into a mocked plan test that needs **zero

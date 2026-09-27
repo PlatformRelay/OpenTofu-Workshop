@@ -6,6 +6,11 @@
 | **Environment** | `mock ✓ (no docker)` (+ optional `localstack ✓` apply) |
 | **Estimated time** | 30 min |
 
+> **OVH track.** The optional LocalStack apply has no OVH twin in v1 — the OVH
+> track's cloud beats are the S3-shaped labs (00-setup, 10-differentiators, 16,
+> 18) and the capstone examples. See the
+> [OVH variant entry](../../variant/ovh/README.md).
+
 ## Objective
 
 Turn the flat S20 leaf directories into **tagged Terramate stacks**, prove

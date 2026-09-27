@@ -6,6 +6,11 @@
 | **Environment** | `localstack ✓` — needs Docker for LocalStack on `:4566`; no real AWS, no cost |
 | **Estimated time** | 55 min |
 
+> **OVH track.** This lab has an OVH twin at
+> [`variant/ovh/labs/day-1/10-differentiators/`](../../variant/ovh/labs/day-1/10-differentiators/README.md)
+> — same provider `for_each` and `import` lessons on OVH regions. See the
+> [OVH variant entry](../../variant/ovh/README.md).
+
 ## Objective
 
 Two OpenTofu-first features you cannot express in Terraform, then the

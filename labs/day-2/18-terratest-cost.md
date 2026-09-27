@@ -6,6 +6,11 @@
 | **Environment** | localstack ✓ · mock ✓ |
 | **Estimated time** | 30 minutes |
 
+> **OVH track.** This lab has an OVH twin at
+> [`variant/ovh/labs/day-2/18-terratest-cost/`](../../variant/ovh/labs/day-2/18-terratest-cost/README.md)
+> — the Go test reads S3 credentials from the environment and asserts the
+> naming pattern. See the [OVH variant entry](../../variant/ovh/README.md).
+
 ## Objective
 
 Run the provided Terratest suite against pinned LocalStack through the

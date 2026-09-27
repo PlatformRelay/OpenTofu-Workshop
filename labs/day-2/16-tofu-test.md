@@ -6,6 +6,11 @@
 | **Environment** | localstack ✓ · plan ✓ · real-aws (optional) ✗ |
 | **Estimated time** | 35 minutes |
 
+> **OVH track.** This lab has an OVH twin at
+> [`variant/ovh/labs/day-2/16-tofu-test/`](../../variant/ovh/labs/day-2/16-tofu-test/README.md)
+> — same naming-module lesson on OVH Object Storage. See the
+> [OVH variant entry](../../variant/ovh/README.md).
+
 ## Objective
 
 Run the existing naming module's plan tests, including its expected-failure

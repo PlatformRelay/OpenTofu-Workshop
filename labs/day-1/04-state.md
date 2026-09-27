@@ -6,6 +6,10 @@
 | **Environment** | `mock ✓ (no docker)` — Steps 0–7: no cloud, no Docker; `random` + `local` providers only. `localstack ✓` **Step 8 and the Stretch** — the adopt/reference step and the optional S3-backend stretch need Docker/LocalStack on `:4566` and the `hashicorp/aws` provider |
 | **Estimated time** | 40 min — 25 for Steps 0–7, ~15 for Step 8 on LocalStack (+ ~15 min optional S3-backend stretch) |
 
+> **OVH track.** The optional S3-backend stretch has an OVH version at
+> [`variant/ovh/snippets/s3-backend/`](../../variant/ovh/snippets/s3-backend/README.md)
+> — see the [OVH variant entry](../../variant/ovh/README.md).
+
 ## Objective
 
 See **what state actually is** and why it matters — then see why it's dangerous.
