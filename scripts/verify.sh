@@ -1254,29 +1254,51 @@ else
   # no index but modules on disk; nothing tracked while modules demonstrably
   # exist; and a scan that reached fewer modules than the index lists.
   GOMOD_LIST=""
+  GOMOD_VARIANT_LIST=""
   GOMOD_HAVE_INDEX=0
   GOMOD_ANY=0
   # `:(glob)` magic is load-bearing. Without it git uses non-pathname wildmatch,
   # where `**` degenerates to `*` and cannot match ZERO path segments — so a
   # module at labs/go.mod is silently not listed while labs/a/b/go.mod is.
+  #
+  # VARIANT MODULES. The variant's Go twin
+  # lives at variant/ovh/labs/day-2/18-terratest-cost/go.mod — outside labs/ by
+  # the variant's own isolation design. It is scanned against the SAME
+  # GO_VERSION/MIN_GO ceiling here rather than counted as an escape: the ceiling
+  # must cover every tracked module, and moving the module under labs/ would
+  # drag it into the base §3/§4 sweep and defeat the isolation. The cross-check
+  # below therefore allows modules under labs/ OR variant/ and fails only on a
+  # module under neither.
   if have git && [ -e "$REPO_ROOT/.git" ] \
      && GOMOD_LIST="$(git -C "$REPO_ROOT" ls-files ':(glob)labs/**/go.mod' 2>/dev/null)"; then
     GOMOD_HAVE_INDEX=1
+    GOMOD_VARIANT_LIST="$(git -C "$REPO_ROOT" ls-files ':(glob)variant/**/go.mod' 2>/dev/null)"
     # Every tracked go.mod ANYWHERE, so a renamed labs/ cannot look like "no
     # modules exist". The disk count below cannot see that case: it searches
     # labs/, which is the very path that stopped existing.
     GOMOD_ANY="$(git -C "$REPO_ROOT" ls-files ':(glob)**/go.mod' 'go.mod' 2>/dev/null | grep -c . || true)"
   fi
   GOMOD_FS_COUNT="$(find "$REPO_ROOT/labs" -name go.mod -not -path '*/.terraform/*' 2>/dev/null | wc -l | tr -d ' ')"
+  # Guarded by an `if`: a missing variant/ makes `find` exit 1, and under
+  # `set -o pipefail` that propagates through the substitution and kills the
+  # gate mid-section. The variant dir is absent on a base-only checkout and in
+  # the self-test sandbox, so this is the normal case, not an edge one.
+  GOMOD_VARIANT_FS_COUNT=0
+  if [ -d "$REPO_ROOT/variant" ]; then
+    GOMOD_VARIANT_FS_COUNT="$(find "$REPO_ROOT/variant" -name go.mod -not -path '*/.terraform/*' 2>/dev/null | wc -l | tr -d ' ')"
+  fi
+  GOMOD_COMBINED_FS_COUNT=$(( ${GOMOD_FS_COUNT:-0} + ${GOMOD_VARIANT_FS_COUNT:-0} ))
   if [ "$GOMOD_HAVE_INDEX" -eq 0 ]; then
     # No index to ask. Say so rather than reporting a ceiling nobody checked.
-    if [ "${GOMOD_FS_COUNT:-0}" -gt 0 ]; then
-      pin_fail "pin drift: $GOMOD_FS_COUNT labs/**/go.mod on disk but no git index to confirm which are tracked — refusing to green the Go ceiling on a set it cannot determine"
+    if [ "$GOMOD_COMBINED_FS_COUNT" -gt 0 ]; then
+      pin_fail "pin drift: $GOMOD_COMBINED_FS_COUNT labs|variant/**/go.mod on disk but no git index to confirm which are tracked — refusing to green the Go ceiling on a set it cannot determine"
     else
-      info "  no git index and no labs/**/go.mod present — Go ceiling not applicable here"
+      info "  no git index and no labs|variant/**/go.mod present — Go ceiling not applicable here"
     fi
   fi
   GOMOD_EXPECTED="$(printf '%s' "$GOMOD_LIST" | grep -c . || true)"
+  GOMOD_VARIANT_EXPECTED="$(printf '%s' "$GOMOD_VARIANT_LIST" | grep -c . || true)"
+  GOMOD_COMBINED_EXPECTED=$((GOMOD_EXPECTED + GOMOD_VARIANT_EXPECTED))
   GOMOD_SCANNED=0
   while IFS= read -r rel; do
     [ -n "$rel" ] || continue
@@ -1305,34 +1327,35 @@ else
     if [ -n "$GO_MIN_HOST" ] && ! min_version "$GO_MIN_HOST_CMP" "$go_req_cmp"; then
       pin_fail "pin drift: $rel declares go $go_req, above bootstrap MIN_GO=$GO_MIN_HOST — a host that passes bootstrap would still fail task lab:terratest:host"
     fi
-  done < <(printf '%s\n' "$GOMOD_LIST" | sort)
+  done < <(printf '%s\n%s\n' "$GOMOD_LIST" "$GOMOD_VARIANT_LIST" | grep -v '^$' | sort)
 
   # Every tracked module must have been reached. A directive nobody could parse
   # already failed above; this catches the set itself coming up short.
-  if [ "$GOMOD_HAVE_INDEX" -eq 1 ] && [ "$GOMOD_SCANNED" -ne "$GOMOD_EXPECTED" ]; then
-    pin_fail "pin drift: scanned $GOMOD_SCANNED of $GOMOD_EXPECTED tracked labs/**/go.mod — refusing to green the Go ceiling on an incomplete scan"
+  if [ "$GOMOD_HAVE_INDEX" -eq 1 ] && [ "$GOMOD_SCANNED" -ne "$GOMOD_COMBINED_EXPECTED" ]; then
+    pin_fail "pin drift: scanned $GOMOD_SCANNED of $GOMOD_COMBINED_EXPECTED tracked labs|variant/**/go.mod — refusing to green the Go ceiling on an incomplete scan"
   fi
-  # Tracked nothing, but modules demonstrably exist — on disk under labs/, or
-  # tracked anywhere at all. The pathspec stopped matching: labs/ was renamed,
-  # or a module moved out from under it. Green here would say "no drift" when
-  # it means "nothing was looked at". Both counts are needed: a renamed labs/
-  # zeroes the disk count too, and only the repo-wide tracked count survives it.
-  if [ "$GOMOD_HAVE_INDEX" -eq 1 ] && [ "$GOMOD_EXPECTED" -eq 0 ] \
-     && { [ "${GOMOD_FS_COUNT:-0}" -gt 0 ] || [ "${GOMOD_ANY:-0}" -gt 0 ]; }; then
-    pin_fail "pin drift: no TRACKED labs/**/go.mod matched, yet ${GOMOD_FS_COUNT} on disk under labs/ and ${GOMOD_ANY} tracked repo-wide — the Go ceiling is scanning nothing"
+  # Tracked nothing, but modules demonstrably exist — on disk under labs/ or
+  # variant/, or tracked anywhere at all. The pathspec stopped matching: labs/
+  # was renamed, or a module moved out from under it. Green here would say "no
+  # drift" when it means "nothing was looked at". Both counts are needed: a
+  # renamed labs/ zeroes the disk count too, and only the repo-wide tracked
+  # count survives it.
+  if [ "$GOMOD_HAVE_INDEX" -eq 1 ] && [ "$GOMOD_COMBINED_EXPECTED" -eq 0 ] \
+     && { [ "${GOMOD_COMBINED_FS_COUNT:-0}" -gt 0 ] || [ "${GOMOD_ANY:-0}" -gt 0 ]; }; then
+    pin_fail "pin drift: no TRACKED labs|variant/**/go.mod matched, yet ${GOMOD_COMBINED_FS_COUNT} on disk and ${GOMOD_ANY} tracked repo-wide — the Go ceiling is scanning nothing"
   fi
-  # A tracked go.mod OUTSIDE labs/ is never legitimate in this repo (decided
-  # 2026-09-07): the ceiling scans labs/** only, so a module anywhere else is
-  # unpinned by construction — its `go` directive can outrun GO_VERSION and
-  # nothing here would notice. The guard above catches a WHOLE migration, where
-  # the tracked set drops to zero. This catches a PARTIAL one: leave one module
-  # under labs/ and the set stays non-empty, so that guard never fires while a
-  # second module sits outside the ceiling entirely. Deliberately unconditional
-  # on the count rather than folded into the zero case above — that asymmetry
-  # was the hole.
-  if [ "$GOMOD_HAVE_INDEX" -eq 1 ] && [ "$GOMOD_EXPECTED" -gt 0 ] \
-     && [ "${GOMOD_ANY:-0}" -ne "$GOMOD_EXPECTED" ]; then
-    pin_fail "pin drift: ${GOMOD_ANY} go.mod tracked repo-wide but only ${GOMOD_EXPECTED} under labs/ — a Go module outside labs/ escapes the Go ceiling"
+  # A tracked go.mod OUTSIDE labs/ AND variant/ is never legitimate in this repo
+  # (decided 2026-09-07; variant/ added 2026-09-27): the ceiling scans labs/**
+  # and variant/** only, so a module anywhere else is unpinned by construction —
+  # its `go` directive can outrun GO_VERSION and nothing here would notice. The
+  # guard above catches a WHOLE migration, where the tracked set drops to zero.
+  # This catches a PARTIAL one: leave one module under labs/ and the set stays
+  # non-empty, so that guard never fires while a second module sits outside the
+  # ceiling entirely. Deliberately unconditional on the count rather than folded
+  # into the zero case above — that asymmetry was the hole.
+  if [ "$GOMOD_HAVE_INDEX" -eq 1 ] && [ "$GOMOD_COMBINED_EXPECTED" -gt 0 ] \
+     && [ "${GOMOD_ANY:-0}" -ne "$GOMOD_COMBINED_EXPECTED" ]; then
+    pin_fail "pin drift: ${GOMOD_ANY} go.mod tracked repo-wide but only ${GOMOD_COMBINED_EXPECTED} under labs|variant/ — a Go module outside them escapes the Go ceiling"
   fi
 
   if [ "$PIN_FAILURES" -eq 0 ]; then
