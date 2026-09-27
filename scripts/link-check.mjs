@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Deterministic, offline link checker for workshop docs and labs.
 //
-// Validates across README.md, docs/**/*.md, and labs/**/*.md:
+// Validates across README.md, docs/**/*.md, labs/**/*.md, and
+// variant/**/*.md (the OVH track):
 //   1. No unresolved `<pages-url>` (or similar `<…>`-style URL) placeholder remains.
 //   2. Every internal (relative) link target file exists on disk.
 //   3. Every in-document `#anchor` resolves to a heading in the target file,
@@ -88,7 +89,12 @@ export function discoverDocs({ repoRoot = REPO_ROOT } = {}) {
   // US-O-ROADMAP: the public roadmap is a root doc too — its links must
   // resolve just like the README's. Guarded so fixture repos without one pass.
   if (existsSync(resolve(repoRoot, 'ROADMAP.md'))) docs.push('ROADMAP.md');
-  for (const dir of ['docs', 'labs']) {
+  // `variant/` carries the OVH track's Markdown (variant/ovh/**). It is outside
+  // the base discovery globs for the Terraform gates, but its docs are
+  // participant-facing, so their links must resolve exactly like the labs'. The
+  // directory is absent on a base-only checkout, where collectMarkdown is a
+  // no-op, so this extension changes nothing for the base tree.
+  for (const dir of ['docs', 'labs', 'variant']) {
     collectMarkdown(dir, docs, repoRoot);
   }
   return [...new Set(docs)].sort();

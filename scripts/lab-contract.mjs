@@ -219,6 +219,8 @@ function resolveRepoRelative(cwd, target) {
 // and (b) `rm` of a `.terraform.lock.hcl` that is git-tracked at the resolved
 // path. Targets containing variables/globs/tilde are unresolvable statically
 // and make the cd context unknown rather than guessed.
+const TOPLEVEL_CD = /^cd\s+"\$\(git rev-parse --show-toplevel\)(\/[^"$`*~]*)?"$/;
+
 export function workdirHazards(markdown, repoRoot = REPO_ROOT) {
   const errors = [];
   let fenceLanguage = null;
@@ -239,6 +241,19 @@ export function workdirHazards(markdown, repoRoot = REPO_ROOT) {
     if (!command || command.startsWith('#')) return;
     for (const segment of command.split(/&&|\|\||;/)) {
       const parts = segment.trim().split(/\s+/);
+      // `cd "$(git rev-parse --show-toplevel)/<path>"` is anchored at the repo
+      // root wherever the learner stands, so resolve it from the root instead
+      // of treating it as an unresolvable variable cd.
+      const toplevel = segment.trim().match(TOPLEVEL_CD);
+      if (toplevel) {
+        const target = (toplevel[1] ?? '').replace(/^\/+/, '');
+        const next = resolveRepoRelative('', target || '.');
+        if (next !== '' && !existsSync(resolve(repoRoot, next))) {
+          errors.push(`line ${index + 1}: cd into nonexistent directory: ${next}`);
+        }
+        cwd = next;
+        continue;
+      }
       if (parts[0] === 'cd') {
         const target = stripShellQuotes(parts[1] ?? '');
         if (!target || /[$~*]/.test(target) || target.startsWith('/') || target === '-') {
@@ -274,6 +289,54 @@ function unsafeCommands(markdown) {
       errors.push(`line ${lineNumber}: host-wide destructive command`);
     }
   });
+  return errors;
+}
+
+// OVH-variant pass. The variant's participant labs are twin READMEs under
+// variant/ovh/labs/** AND the OVH-native bootstrap lab at
+// variant/ovh/bootstrap/. They are outside the base discovery scope, so the
+// base contract never sees them. This pass enforces the same sibling-solution
+// contract for them: every variant lab README must ship a sibling
+// README.solution.md, UNLESS it is a thin-delta twin that explicitly defers to
+// the base solution with a `<!-- variant-solution: base -->` marker. The
+// bootstrap lab is a NEW taught lab with no base solution to fall back on, so
+// it can never carry the marker. It also reuses the layer guard so a variant
+// README's `cd`/`rm` blocks are checked like a lab's. Absent on a base-only
+// checkout → no-op.
+export function auditVariantLabs(repoRoot = REPO_ROOT) {
+  const errors = [];
+  const roots = ['variant/ovh/labs', 'variant/ovh/bootstrap']
+    .map((p) => resolve(repoRoot, p))
+    .filter((p) => existsSync(p));
+  if (roots.length === 0) return errors;
+
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      // Never descend into dot-directories: a lived-in checkout carries
+      // variant/**/.terraform provider caches full of vendored READMEs that are
+      // not variant labs (RELSE-2 in link-check; the same hazard here).
+      if (entry.isDirectory() && entry.name.startsWith('.')) continue;
+      const abs = resolve(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(abs);
+        continue;
+      }
+      if (entry.name !== 'README.md') continue;
+      const readme = abs;
+      const rel = relative(repoRoot, readme);
+      const markdown = readFileSync(readme, 'utf8');
+      const hasSolution = existsSync(resolve(dir, 'README.solution.md'));
+      const thinDelta = /<!--\s*variant-solution:\s*base\s*-->/.test(markdown);
+      if (!hasSolution && !thinDelta) {
+        errors.push(
+          `${rel}: missing sibling README.solution.md (or an explicit ` +
+            `<!-- variant-solution: base --> marker for a thin-delta twin)`,
+        );
+      }
+      errors.push(...workdirHazards(markdown, repoRoot).map((e) => `${rel}: ${e}`));
+    }
+  };
+  for (const root of roots) walk(root);
   return errors;
 }
 
@@ -426,7 +489,7 @@ if (invokedAsScript) {
 
   const errors = docOnly
     ? auditContractDocumentation()
-    : [...auditLabs(labPaths), ...auditContractDocumentation()];
+    : [...auditLabs(labPaths), ...auditVariantLabs(), ...auditContractDocumentation()];
 
   if (errors.length > 0) {
     console.error(`lab-contract: FAILED with ${errors.length} problem(s):`);

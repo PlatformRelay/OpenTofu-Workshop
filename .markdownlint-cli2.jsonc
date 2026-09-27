@@ -1,15 +1,19 @@
 {
   // markdownlint-cli2 config for the workshop.
   //
-  // SCOPE: only the standalone labs are linted. The Slidev deck sources
-  // (`slides*.md` and `pages/**/*.md`) use Slidev's multi-frontmatter syntax —
-  // every slide is separated by a `---` fence and may carry its own YAML
-  // headmatter. markdownlint only understands the FIRST frontmatter block, so it
-  // mis-reads every slide separator as a thematic break / setext heading and
-  // floods the report with false positives. There is no rule toggle that fixes
-  // this, so the deck sources are excluded by scoping the globs to `labs/`.
-  // The labs are plain, standalone CommonMark where linting earns real value.
-  "globs": ["labs/**/*.md"],
+  // SCOPE: only standalone participant Markdown is linted — the labs and the
+  // OVH variant track's docs. The Slidev deck sources (`slides*.md` and
+  // `pages/**/*.md`) use Slidev's multi-frontmatter syntax — every slide is
+  // separated by a `---` fence and may carry its own YAML headmatter.
+  // markdownlint only understands the FIRST frontmatter block, so it mis-reads
+  // every slide separator as a thematic break / setext heading and floods the
+  // report with false positives. There is no rule toggle that fixes this, so
+  // the deck sources are excluded by scoping the globs away from them. The labs
+  // are plain, standalone CommonMark where linting earns real value. The OVH
+  // track's docs (variant/ovh/**) are participant-facing CommonMark too, so they
+  // join the same lint plane. That directory is absent on a base-only checkout,
+  // where the glob matches nothing.
+  "globs": ["labs/**/*.md", "variant/ovh/**/*.md"],
   // Provider/plugin trees under labs (tofu init, npm) ship their own CHANGELOG/
   // README markdown; do not scan those as workshop content.
   "ignores": ["**/.terraform/**", "**/node_modules/**"],
