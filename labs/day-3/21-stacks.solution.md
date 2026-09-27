@@ -47,7 +47,7 @@ cd "$demo"
 rm -f stacks/network/stack.tm.hcl stacks/app/stack.tm.hcl
 git init -q
 git add -A
-git commit -qm 'flat leaves — pre-stacks'
+git -c user.email=learner@example.invalid -c user.name=Learner commit -qm 'flat leaves — pre-stacks'
 terramate list; echo "list exit: $?"
 ```
 

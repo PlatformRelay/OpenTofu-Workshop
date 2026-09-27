@@ -269,7 +269,8 @@ tofu plan
 ### Part B — work in `labs/day-1/10-differentiators/import/`
 
 ```bash
-cd labs/day-1/10-differentiators/import   # from the repo root
+cd ../../..                                # back to the repo root (from Step 0's workdir)
+cd labs/day-1/10-differentiators/import
 ```
 
 LocalStack must be up (`task lab:up`). Every `awslocal` command below also runs
@@ -560,7 +561,12 @@ aws_s3_bucket.media
 
 ## Cleanup / panic reset
 
+Both parts, in one pass, from the **repo root**. Part B leaves you in the
+`import/` workdir (4 deep), so the first line returns there from wherever you
+are.
+
 ```bash
+cd "$(git rev-parse --show-toplevel)"   # Part B leaves you in import/ (4 deep)
 # Part A — restore canonical providers BEFORE destroy (Step 4 shrink breaks provider instances)
 git checkout -- labs/day-1/10-differentiators
 tofu -chdir=labs/day-1/10-differentiators destroy -auto-approve          # needs LocalStack up
@@ -763,7 +769,7 @@ Re-enter `labs/day-1/10-differentiators/` (Part A) or `labs/day-1/10-differentia
 Example verification from the workdir:
 
 ```bash
-cd labs/day-1/10-differentiators
+cd "$(git rev-parse --show-toplevel)/labs/day-1/10-differentiators"
 tofu plan
 ```
 
@@ -771,6 +777,7 @@ tofu plan
 and write the scratch `fleet.tf` (gitignored) exactly as follows:
 
 ```bash
+cd "$(git rev-parse --show-toplevel)"      # from wherever you are
 cd labs/day-1/10-differentiators/import
 awslocal s3 mb s3://workshop-adopted-alpha
 awslocal s3 mb s3://workshop-adopted-beta

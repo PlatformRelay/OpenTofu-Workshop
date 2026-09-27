@@ -457,7 +457,13 @@ the classic, pre-1.9 style of validation.
 
 `sensitive` masks a value everywhere it would print. To read it you must ask
 explicitly. First re-run Step 1's plain apply so state is back to the `staging`
-baseline, then:
+baseline:
+
+```bash
+tofu apply -auto-approve
+```
+
+then:
 
 ```bash
 tofu output              # full output: api_token stays masked
