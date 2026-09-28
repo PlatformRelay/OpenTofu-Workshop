@@ -187,16 +187,12 @@ reads the other's array.
 
 ### Current exceptions
 
-Two `image-size` advisories (GHSA-w3rx-r6r6-pgpr, GHSA-5p2g-fcmc-qvqq) are
-excepted because they are **unpatchable**, not merely unpatched: the advisories'
-`>=2.0.3` floor is not published on the registry (latest is 2.0.2, and the
-resolved 1.2.1 is the last 1.x release), and `pptxgenjs` still requires
-`image-size@^1.2.1`, so no override reaches a fixed version without breaking that
-major range. The only paths are `@slidev/cli > pptxgenjs > image-size` and
-`@slidev/cli > @slidev/client > pptxgenjs > image-size`, and **nothing in this
-repository invokes `slidev export --format pptx`** — no package.json script, no
-Taskfile target, no workflow. Delete both entries the moment a patched
-`image-size` publishes.
+None. The two `image-size` advisories (GHSA-w3rx-r6r6-pgpr, GHSA-5p2g-fcmc-qvqq)
+were excepted while no patched release existed; 2.0.3 is now published and a
+`"image-size@>=1.0.0 <2.0.0": 2.0.4` override in `pnpm-workspace.yaml` moves the
+`pptxgenjs` dependency onto it. `pptxgenjs@4.0.1` still declares `^1.2.1`, but its
+dist never requires `image-size`, so the range is inert. Drop the override when
+`pptxgenjs` moves on.
 
 ## Residual scope
 
