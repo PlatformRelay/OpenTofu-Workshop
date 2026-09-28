@@ -42,9 +42,15 @@ overrides:
   # GHSA-7p8r-x3mc-p8w7 / GHSA-v2hh-gcrm-f6hx (backslash authority, fixed in
   # 3.1.5) plus GHSA-jqff-g426-hqxp / GHSA-f65p-4m7j-42xc / GHSA-fph4-wmhf-6fwf /
   # GHSA-5jgf-p345-68v8 (host confusion + SSRF via percent-decoding, IPv6 and
-  # IDN normalisation, fixed in 3.1.6). This pin is what Dependabot cannot move
+  # IDN normalisation, fixed in 3.1.6) plus GHSA-qw65-cvwx-89v3 / GHSA-58mr-gqgx-xq4g
+  # (fixed in 3.1.7; 3.1.8 is the current patch). This pin is what Dependabot cannot move
   # ("security_update_not_possible"), so bump it here when the next advisory lands.
-  "fast-uri@>=3.0.0 <4.0.0": 3.1.6
+  "fast-uri@>=3.0.0 <4.0.0": 3.1.8
+  # GHSA-w3rx-r6r6-pgpr / GHSA-5p2g-fcmc-qvqq: image-size parser DoS loops, fixed
+  # in 2.0.3. pptxgenjs (via @slidev/cli) still declares ^1.2.1, but its dist never
+  # requires image-size (only commented-out code mentions it), so the range is
+  # inert and only an override can move it. Drop this when pptxgenjs moves on.
+  "image-size@>=1.0.0 <2.0.0": 2.0.4
   # GHSA-mwp4-54f8-5fhr: Address4 leading-zero octet decode mismatch.
   ip-address: 10.3.1
   # GHSA-c83g-rgw3-j3cx / GHSA-73wf-gq98-2v4g: unbounded cache growth and a

@@ -447,11 +447,7 @@ test('loadExceptions reads the real repository registry', async () => {
   const exceptions = await loadExceptions(path.join(root, 'supply-chain', 'exceptions.json'))
 
   assert.ok(Array.isArray(exceptions))
-  assert.equal(exceptions.length, 2)
-  assert.deepEqual(
-    exceptions.map((entry) => entry.id).sort(),
-    ['GHSA-5p2g-fcmc-qvqq', 'GHSA-w3rx-r6r6-pgpr'],
-  )
+  assert.deepEqual(exceptions, [])
 })
 
 test('loadExceptions fails closed on a missing registry file', async () => {
@@ -510,16 +506,16 @@ test('the checked-in exception registry is valid and unexpired today', async () 
   assert.deepEqual(result.errors, [])
 })
 
-test('the checked-in registry actually clears the live image-size advisories', async () => {
+test('the checked-in registry no longer shields the patched image-size advisories', async () => {
   const exceptions = await loadExceptions(path.join(root, 'supply-chain', 'exceptions.json'))
   const audit = await fixture('high-findings.json')
   const today = new Date().toISOString().slice(0, 10)
 
   const result = evaluateAudit({ audit, exceptions, today })
 
-  // nanoid is patched, not excepted, so it must still block against the
-  // pre-patch fixture — proving the registry shields only what it names.
+  // image-size 2.0.3+ is published and pinned by override, so an entry for it
+  // would be a stale shield. Against the pre-patch fixture every finding blocks.
   assert.equal(result.ok, false)
-  assert.deepEqual(result.blocking.map((entry) => entry.id), ['GHSA-2v37-7h3g-55p8'])
-  assert.equal(result.excepted.length, 2)
+  assert.equal(result.excepted.length, 0)
+  assert.ok(result.blocking.some((entry) => entry.id === 'GHSA-w3rx-r6r6-pgpr'))
 })

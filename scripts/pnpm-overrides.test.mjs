@@ -57,7 +57,7 @@ test('brace-expansion, fast-uri, and ip-address pin patched floors without unbou
 
   assert.match(workspace, /"brace-expansion@>=2\.0\.0 <3\.0\.0": 2\.1\.4/)
   assert.match(workspace, /"brace-expansion@>=5\.0\.0 <6\.0\.0": 5\.0\.9/)
-  assert.match(workspace, /"fast-uri@>=3\.0\.0 <4\.0\.0": 3\.1\.6/)
+  assert.match(workspace, /"fast-uri@>=3\.0\.0 <4\.0\.0": 3\.1\.8/)
   assert.match(workspace, /^ {2}ip-address: 10\.3\.1$/m)
   assert.doesNotMatch(workspace, /(^|\s)brace-expansion:/m)
   assert.doesNotMatch(workspace, /(^|\s)fast-uri:/m)
@@ -91,4 +91,14 @@ test('pnpm-lock.yaml carries exactly the overrides pnpm-workspace.yaml declares'
   const lock = parse(await readFile(path.join(root, 'pnpm-lock.yaml'), 'utf8'))
 
   assert.deepEqual(lock.overrides, workspace.overrides)
+})
+
+test('image-size override pins the patched floor for the 1.x range pptxgenjs declares', async () => {
+  const workspace = await workspaceYaml()
+  const lock = await readFile(path.join(root, 'pnpm-lock.yaml'), 'utf8')
+
+  assert.match(workspace, /"image-size@>=1\.0\.0 <2\.0\.0": 2\.0\.4/)
+  assert.doesNotMatch(workspace, /(^|\s)image-size:/m)
+  assert.match(lock, /^ {2}image-size@2\.0\.4:/m)
+  assert.doesNotMatch(lock, /^ {2}image-size@1\./m)
 })
