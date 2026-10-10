@@ -4,9 +4,9 @@
     {
       "id": "GHSA-vfj7-8cjw-p6xm",
       "module": "braces",
-      "reason": "No patched braces release exists: the advisory's >=3.0.4 floor is not published (registry latest is 3.0.3, the last 3.x), so no override can reach a fixed version. Reached only at dev/build time via chokidar (Slidev) and micromatch (markdownlint-cli2), which expand glob patterns taken from repository config, never attacker-supplied input. Remove this entry the moment a patched braces publishes.",
+      "reason": "No patched braces release exists: the advisory lists no patched version and npm latest is 3.0.3 (the last 3.x), so no override can reach a fixed version. Reached only at dev/build time via chokidar (Slidev) and micromatch (markdownlint-cli2), which expand glob patterns taken from repository config, never attacker-supplied input. Remove this entry the moment a patched braces publishes.",
       "owner": "@PlatformRelay",
-      "expires": "2026-11-09"
+      "expires": "2027-01-08"
     }
   ]
 }
