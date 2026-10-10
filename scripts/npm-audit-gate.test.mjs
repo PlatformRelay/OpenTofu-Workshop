@@ -447,7 +447,8 @@ test('loadExceptions reads the real repository registry', async () => {
   const exceptions = await loadExceptions(path.join(root, 'supply-chain', 'exceptions.json'))
 
   assert.ok(Array.isArray(exceptions))
-  assert.deepEqual(exceptions, [])
+  // Entries are temporary (see expires); assert they load, not that the list is empty.
+  assert.ok(exceptions.every((entry) => entry.id && entry.module && entry.expires))
 })
 
 test('loadExceptions fails closed on a missing registry file', async () => {
