@@ -55,8 +55,8 @@ test('postcss, mermaid, and DOMPurify pin the patched lines', async () => {
 test('brace-expansion, fast-uri, and ip-address pin patched floors without unbounded majors', async () => {
   const workspace = await workspaceYaml()
 
-  assert.match(workspace, /"brace-expansion@>=2\.0\.0 <3\.0\.0": 2\.1\.4/)
-  assert.match(workspace, /"brace-expansion@>=5\.0\.0 <6\.0\.0": 5\.0\.9/)
+  assert.match(workspace, /"brace-expansion@>=2\.0\.0 <3\.0\.0": 2\.1\.7/)
+  assert.match(workspace, /"brace-expansion@>=5\.0\.0 <6\.0\.0": 5\.0\.12/)
   assert.match(workspace, /"fast-uri@>=3\.0\.0 <4\.0\.0": 3\.1\.8/)
   assert.match(workspace, /^ {2}ip-address: 10\.3\.1$/m)
   assert.doesNotMatch(workspace, /(^|\s)brace-expansion:/m)
