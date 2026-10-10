@@ -187,8 +187,16 @@ reads the other's array.
 
 ### Current exceptions
 
-None. The two `image-size` advisories (GHSA-w3rx-r6r6-pgpr, GHSA-5p2g-fcmc-qvqq)
-were excepted while no patched release existed; 2.0.3 is now published and a
+One entry, `GHSA-vfj7-8cjw-p6xm` (`braces`, high), expiring 2027-01-08. The
+advisory lists no patched version and npm latest is 3.0.3, so no override can
+fix it. Every dependent is already at its latest release and still needs
+`braces` 3: `chokidar` 3 via `vite-plugin-static-copy`, `micromatch` 4.0.8,
+`fast-glob` 3.3.3, `globby` and `markdownlint-cli2`. The glob patterns they
+expand come from repository config, not untrusted input. Delete the entry when
+a patched `braces` publishes.
+
+The two `image-size` advisories (GHSA-w3rx-r6r6-pgpr, GHSA-5p2g-fcmc-qvqq)
+were previously excepted while no patched release existed; 2.0.3 is now published and a
 `"image-size@>=1.0.0 <2.0.0": 2.0.4` override in `pnpm-workspace.yaml` moves the
 `pptxgenjs` dependency onto it. `pptxgenjs@4.0.1` still declares `^1.2.1`, but its
 dist never requires `image-size`, so the range is inert. Drop the override when
