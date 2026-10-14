@@ -13,7 +13,7 @@ async function workspaceYaml() {
 test('js-yaml override is bounded to the intended 5.x major', async () => {
   const workspace = await workspaceYaml()
 
-  assert.match(workspace, /"js-yaml@>=5\.0\.0 <6\.0\.0": 5\.2\.3/)
+  assert.match(workspace, /"js-yaml@>=5\.0\.0 <6\.0\.0": 5\.4\.1/)
   assert.doesNotMatch(workspace, /"js-yaml@>=5\.0\.0":/)
 })
 
@@ -49,7 +49,7 @@ test('postcss, mermaid, and DOMPurify pin the patched lines', async () => {
 
   assert.match(workspace, /^ {2}postcss: 8\.5\.25$/m)
   assert.match(workspace, /^ {2}mermaid: 11\.16\.1$/m)
-  assert.match(workspace, /^ {2}dompurify: 3\.4\.13$/m)
+  assert.match(workspace, /^ {2}dompurify: 3\.4\.16$/m)
 })
 
 test('brace-expansion, fast-uri, and ip-address pin patched floors without unbounded majors', async () => {
@@ -71,7 +71,7 @@ test('browserslist and hono overrides pin patched floors without unbounded major
   const workspace = await workspaceYaml()
 
   assert.match(workspace, /"browserslist@>=4\.0\.0 <5\.0\.0": 4\.28\.8/)
-  assert.match(workspace, /"hono@>=4\.0\.0 <5\.0\.0": 4\.13\.5/)
+  assert.match(workspace, /"hono@>=4\.0\.0 <5\.0\.0": 4\.13\.7/)
   assert.match(workspace, /"@hono\/node-server@>=1\.0\.0 <2\.0\.0": 1\.19\.15/)
   assert.doesNotMatch(workspace, /(^|\s)browserslist:/m)
   assert.doesNotMatch(workspace, /(^|\s)hono:/m)
@@ -81,8 +81,19 @@ test('browserslist and hono overrides pin patched floors without unbounded major
 test('smol-toml override pins the patched floor without an unbounded major', async () => {
   const workspace = await workspaceYaml()
 
-  assert.match(workspace, /"smol-toml@>=1\.0\.0 <2\.0\.0": 1\.7\.1/)
+  assert.match(workspace, /"smol-toml@>=1\.0\.0 <2\.0\.0": 1\.9\.0/)
   assert.doesNotMatch(workspace, /(^|\s)smol-toml:/m)
+})
+
+test('postcss-selector-parser, markdown-it, and katex overrides pin patched floors without unbounded majors', async () => {
+  const workspace = await workspaceYaml()
+
+  assert.match(workspace, /"postcss-selector-parser@>=7\.0\.0 <8\.0\.0": 7\.1\.6/)
+  assert.match(workspace, /"markdown-it@>=14\.0\.0 <15\.0\.0": 14\.3\.1/)
+  assert.match(workspace, /"katex@>=0\.11\.0 <0\.18\.2": 0\.18\.4/)
+  assert.doesNotMatch(workspace, /(^|\s)postcss-selector-parser:/m)
+  assert.doesNotMatch(workspace, /(^|\s)markdown-it:/m)
+  assert.doesNotMatch(workspace, /(^|\s)katex:/m)
 })
 
 test('pnpm-lock.yaml carries exactly the overrides pnpm-workspace.yaml declares', async () => {

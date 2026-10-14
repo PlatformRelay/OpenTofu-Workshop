@@ -15,8 +15,9 @@ overrides:
   postcss: 8.5.25
   # GHSA-pm4m-ph32-ghv5 affects only js-yaml 5.0.0 through 5.2.1. Keep the
   # markdownlint 5.x line patched without forcing its unrelated 3.x/4.x users
-  # across a major-version boundary.
-  "js-yaml@>=5.0.0 <6.0.0": 5.2.3
+  # across a major-version boundary. GHSA-r3ph-w7gj-g6xm (5.0.0 through 5.4.0)
+  # raises the 5.x floor to 5.4.1.
+  "js-yaml@>=5.0.0 <6.0.0": 5.4.1
   # GHSA-5p4m-2wfm-xmqj (CVE-2026-59870) hits both the 3.x and 4.x js-yaml
   # lines that @slidev/cli pulls in transitively. The fix was released on each
   # line separately, so pin each range to its own first patched version rather
@@ -31,7 +32,8 @@ overrides:
   # patched 3.x release. postcss pulls that line transitively.
   "nanoid@>=3.0.0 <4.0.0": 3.3.18
   # monaco-editor / mermaid pull older DOMPurify; pin the patched line.
-  dompurify: 3.4.13
+  # GHSA-6688-9rhm-gjv2 / GHSA-p98j-92pf-mc4p are fixed in 3.4.16.
+  dompurify: 3.4.16
   # Five mermaid advisories first patched in 11.16.1 (DoS / prototype pollution /
   # sibling CSS injection). The deck only uses flowchart and stateDiagram-v2.
   mermaid: 11.16.1
@@ -77,13 +79,29 @@ overrides:
   # GHSA-g6gw-c38x-mqfc / GHSA-crvj-82cr-hjcx / GHSA-gqvv-2mrq-wpjv (hono:
   # parseBody() dot-notation nesting memory exhaustion, query parser reading
   # past the URL fragment, incomplete toSSG() path-traversal fix) raise the
-  # hono floor to 4.13.5.
-  "hono@>=4.0.0 <5.0.0": 4.13.5
+  # hono floor to 4.13.5; GHSA-hxh3-vqpv-xpqv raises it to 4.13.7.
+  "hono@>=4.0.0 <5.0.0": 4.13.7
   "@hono/node-server@>=1.0.0 <2.0.0": 1.19.15
   # GHSA-7w5x-hrqm-74c2: smol-toml DoS via malformed TOML, fixed in 1.7.1.
   # markdownlint-cli2 pins smol-toml exactly (1.7.0, still so in its latest
   # release), so only an override can move it. Bounded to the 1.x line.
-  "smol-toml@>=1.0.0 <2.0.0": 1.7.1
+  # GHSA-r4xh-jqrq-34v2 (<=1.8.0) raises the floor to 1.9.0; markdownlint-cli2's
+  # latest release still pins 1.8.0.
+  "smol-toml@>=1.0.0 <2.0.0": 1.9.0
+  # GHSA-rj75-hqrm-r3gf: postcss-selector-parser <7.1.6, via postcss-nested in
+  # @slidev/cli. Bounded to the 7.x line.
+  "postcss-selector-parser@>=7.0.0 <8.0.0": 7.1.6
+  # GHSA-253c-mchw-3w2r: markdown-it <14.3.1. markdownlint-cli2 0.23.0 pins
+  # 14.2.0 exactly and Slidev's plugins resolve 14.3.0; keep both on the 14.x
+  # line rather than following markdownlint-cli2's later jump to 15.x.
+  "markdown-it@>=14.0.0 <15.0.0": 14.3.1
+  # GHSA-238p-pmpm-9mq7: katex >=0.11.0 <0.18.2. Slidev already resolves 0.18.4;
+  # mermaid 11.16.1 and micromark-extension-math (markdownlint) still declare
+  # ^0.16, so only an override moves them. The range matches the advisory so
+  # the override cannot reach a release outside it; markdownlint uses only the
+  # math syntax extension, not KaTeX rendering, and the deck's mermaid diagrams
+  # carry no math.
+  "katex@>=0.11.0 <0.18.2": 0.18.4
 
 # pnpm 11 minimumReleaseAge gate: allow this override pin through when fresh
 # on the registry.
