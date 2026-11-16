@@ -33,7 +33,7 @@ overrides:
   "nanoid@>=3.0.0 <4.0.0": 3.3.18
   # monaco-editor / mermaid pull older DOMPurify; pin the patched line.
   # GHSA-6688-9rhm-gjv2 / GHSA-p98j-92pf-mc4p are fixed in 3.4.16.
-  dompurify: 3.4.16
+  dompurify: 3.4.17
   # Five mermaid advisories first patched in 11.16.1 (DoS / prototype pollution /
   # sibling CSS injection). The deck only uses flowchart and stateDiagram-v2.
   mermaid: 11.16.1
@@ -57,7 +57,7 @@ overrides:
   # IDN normalisation, fixed in 3.1.6) plus GHSA-qw65-cvwx-89v3 / GHSA-58mr-gqgx-xq4g
   # (fixed in 3.1.7; 3.1.8 is the current patch). This pin is what Dependabot cannot move
   # ("security_update_not_possible"), so bump it here when the next advisory lands.
-  "fast-uri@>=3.0.0 <4.0.0": 3.1.8
+  "fast-uri@>=3.0.0 <4.0.0": 3.1.9
   # GHSA-w3rx-r6r6-pgpr / GHSA-5p2g-fcmc-qvqq: image-size parser DoS loops, fixed
   # in 2.0.3. pptxgenjs (via @slidev/cli) still declares ^1.2.1, but its dist never
   # requires image-size (only commented-out code mentions it), so the range is
@@ -80,8 +80,8 @@ overrides:
   # parseBody() dot-notation nesting memory exhaustion, query parser reading
   # past the URL fragment, incomplete toSSG() path-traversal fix) raise the
   # hono floor to 4.13.5; GHSA-hxh3-vqpv-xpqv raises it to 4.13.7.
-  "hono@>=4.0.0 <5.0.0": 4.13.7
-  "@hono/node-server@>=1.0.0 <2.0.0": 1.19.15
+  "hono@>=4.0.0 <5.0.0": 4.13.16
+  "@hono/node-server@>=1.0.0 <3.0.0": 2.1.6
   # GHSA-7w5x-hrqm-74c2: smol-toml DoS via malformed TOML, fixed in 1.7.1.
   # markdownlint-cli2 pins smol-toml exactly (1.7.0, still so in its latest
   # release), so only an override can move it. Bounded to the 1.x line.
@@ -94,7 +94,7 @@ overrides:
   # GHSA-253c-mchw-3w2r: markdown-it <14.3.1. markdownlint-cli2 0.23.0 pins
   # 14.2.0 exactly and Slidev's plugins resolve 14.3.0; keep both on the 14.x
   # line rather than following markdownlint-cli2's later jump to 15.x.
-  "markdown-it@>=14.0.0 <15.0.0": 14.3.1
+  "markdown-it@>=14.0.0 <15.0.0": 14.3.3
   # GHSA-238p-pmpm-9mq7: katex >=0.11.0 <0.18.2. Slidev already resolves 0.18.4;
   # mermaid 11.16.1 and micromark-extension-math (markdownlint) still declare
   # ^0.16, so only an override moves them. The range matches the advisory so
@@ -102,8 +102,22 @@ overrides:
   # math syntax extension, not KaTeX rendering, and the deck's mermaid diagrams
   # carry no math.
   "katex@>=0.11.0 <0.18.2": 0.18.4
+  # Round 2026-11-16: first patched floors on the lines already resolved.
+  "vite@>=8.0.0 <9.0.0": 8.2.4
+  "zod@>=4.0.0 <5.0.0": 4.6.6
+  "@modelcontextprotocol/server": 2.3.0
+  "@modelcontextprotocol/node": 2.1.0
 
 # pnpm 11 minimumReleaseAge gate: allow this override pin through when fresh
 # on the registry.
 minimumReleaseAgeExclude:
   - 'nanoid@3.3.18'
+  - 'dompurify@3.4.17'
+  - 'fast-uri@3.1.9'
+  - 'hono@4.13.16'
+  - '@hono/node-server@2.1.6'
+  - 'markdown-it@14.3.3'
+  - 'vite@8.2.4'
+  - 'zod@4.6.6'
+  - '@modelcontextprotocol/server@2.3.0'
+  - '@modelcontextprotocol/node@2.1.0'
