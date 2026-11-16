@@ -49,7 +49,7 @@ test('postcss, mermaid, and DOMPurify pin the patched lines', async () => {
 
   assert.match(workspace, /^ {2}postcss: 8\.5\.25$/m)
   assert.match(workspace, /^ {2}mermaid: 11\.16\.1$/m)
-  assert.match(workspace, /^ {2}dompurify: 3\.4\.16$/m)
+  assert.match(workspace, /^ {2}dompurify: 3\.4\.17$/m)
 })
 
 test('brace-expansion, fast-uri, and ip-address pin patched floors without unbounded majors', async () => {
@@ -59,7 +59,7 @@ test('brace-expansion, fast-uri, and ip-address pin patched floors without unbou
   assert.match(workspace, /"brace-expansion@>=5\.0\.0 <6\.0\.0": 5\.0\.12/)
   assert.match(workspace, /"source-map-js@>=1\.0\.0 <2\.0\.0": 1\.2\.2/)
   assert.match(workspace, /"vue@>=3\.0\.0 <4\.0\.0": 3\.5\.43/)
-  assert.match(workspace, /"fast-uri@>=3\.0\.0 <4\.0\.0": 3\.1\.8/)
+  assert.match(workspace, /"fast-uri@>=3\.0\.0 <4\.0\.0": 3\.1\.9/)
   assert.match(workspace, /^ {2}ip-address: 10\.3\.1$/m)
   assert.doesNotMatch(workspace, /(^|\s)brace-expansion:/m)
   assert.doesNotMatch(workspace, /(^|\s)fast-uri:/m)
@@ -71,8 +71,8 @@ test('browserslist and hono overrides pin patched floors without unbounded major
   const workspace = await workspaceYaml()
 
   assert.match(workspace, /"browserslist@>=4\.0\.0 <5\.0\.0": 4\.28\.8/)
-  assert.match(workspace, /"hono@>=4\.0\.0 <5\.0\.0": 4\.13\.7/)
-  assert.match(workspace, /"@hono\/node-server@>=1\.0\.0 <2\.0\.0": 1\.19\.15/)
+  assert.match(workspace, /"hono@>=4\.0\.0 <5\.0\.0": 4\.13\.16/)
+  assert.match(workspace, /"@hono\/node-server@>=1\.0\.0 <3\.0\.0": 2\.1\.6/)
   assert.doesNotMatch(workspace, /(^|\s)browserslist:/m)
   assert.doesNotMatch(workspace, /(^|\s)hono:/m)
   assert.doesNotMatch(workspace, /(^|\s)"?@hono\/node-server"?:/m)
@@ -89,7 +89,7 @@ test('postcss-selector-parser, markdown-it, and katex overrides pin patched floo
   const workspace = await workspaceYaml()
 
   assert.match(workspace, /"postcss-selector-parser@>=7\.0\.0 <8\.0\.0": 7\.1\.6/)
-  assert.match(workspace, /"markdown-it@>=14\.0\.0 <15\.0\.0": 14\.3\.1/)
+  assert.match(workspace, /"markdown-it@>=14\.0\.0 <15\.0\.0": 14\.3\.3/)
   assert.match(workspace, /"katex@>=0\.11\.0 <0\.18\.2": 0\.18\.4/)
   assert.doesNotMatch(workspace, /(^|\s)postcss-selector-parser:/m)
   assert.doesNotMatch(workspace, /(^|\s)markdown-it:/m)
